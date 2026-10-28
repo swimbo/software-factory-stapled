@@ -1,0 +1,44 @@
+{
+  "case": "complex",
+  "unit": "nuc-router-complex-20261028-01",
+  "session_id": "a954f967-1422-5983-9431-5988a6bb8bf9",
+  "response": {
+    "http_status": 200,
+    "model": "deepseek-v4-pro:0813",
+    "usage": {
+      "input_tokens": 77,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 8740
+    }
+  },
+  "gateway_logs": [
+    {
+      "id": "01b75e99-19c8-4551-974c-2c5cce494ced",
+      "session_id": "a954f967-1422-5983-9431-5988a6bb8bf9",
+      "provider": "ollama-cloud",
+      "model": "deepseek-v4-pro:0813",
+      "routing_rule_name": "Desktop automatic complex",
+      "complexity_tier": "COMPLEX",
+      "complexity_mechanism": "llm",
+      "status": "success",
+      "cost": 0.03471204
+    }
+  ],
+  "request_body_bytes": 525,
+  "ledger": {
+    "requests": 1,
+    "estimated_microdollars": 14749
+  },
+  "allocation_id": "8b2c45108f88416c83ce13c02bfbc776",
+  "retained_budget_volume": "factory-8b2c45108f88416c83ce13c02bfbc776-budget",
+  "retained_anchor_volume": "factory-8b2c45108f88416c83ce13c02bfbc776-anchor",
+  "factory_revision": "36cec5b2d3d52ebeb8273d255e3c0bb2469f51d0",
+  "scope": "one bounded live route check through signed production proxy, not an OpenHands conversation",
+  "actual_charges": "unknown; null gateway costs are not zero",
+  "verified_at": "2026-10-28T15:31:19.743569+00:00"
+}
