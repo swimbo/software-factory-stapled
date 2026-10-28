@@ -45,6 +45,9 @@ def test_preparation_matches_operator_schema_and_refuses_reuse(tmp_path, monkeyp
     assert payload['agent_settings']['llm']['max_output_tokens']==1024
     assert '/opt/factory/egress_proxy.py' in actual['provision']['proxy_command']
     assert result['status']=='prepared_not_activated'
+    assert result['activation_requires'] == [
+        'single-operator deployment attestation',
+        'upstream provenance and dependency audit acceptance', 'operator service binding']
     assert config_path.stat().st_mode & 0o777 == 0o600
     assert Path(config['repo']).stat().st_mode & 0o777 == 0o700
     assert prep.git('-C',config['repo'],'ls-tree','--name-only','HEAD')==''

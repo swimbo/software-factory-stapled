@@ -121,7 +121,7 @@ def prepare(*, root, unit, manifest, release, approval, signature, trust_root,
         'FACTORY_RUNTIME_CONFIG':str(config_path),'FACTORY_IMAGE_APPROVAL_KEY':str(trust_root)},
         'argv':[sys.executable,str(release/'stapled-factory/worker/worker.py'),'--task-file',str(task),
             '--repo',str(workspace),'--attempt-id',attempt,'--attempt-db',str(db),'--attempt-anchor',str(anchor)],
-        'activation_requires':['protected release approval','upstream provenance approval','operator service binding'],
+        'activation_requires':['single-operator deployment attestation','upstream provenance and dependency audit acceptance','operator service binding'],
         'budget':'best effort reservations; actual charges not capped'}
     write(task_root/'invocation.json',json.dumps(invocation,indent=2)+'\n')
     return invocation

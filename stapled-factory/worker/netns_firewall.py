@@ -9,6 +9,7 @@ import ipaddress
 import json
 import re
 import subprocess
+from provision_check import resource_arguments
 
 
 class FirewallError(RuntimeError):
@@ -59,7 +60,7 @@ def _check_proxy_firewall(proxy_id, allocation_id, network_id, helper_image_id, 
                'iptables -S OUTPUT; echo IPv6; ip6tables -S OUTPUT')
     if not install:
         command = 'set -eu; iptables -S OUTPUT; echo IPv6; ip6tables -S OUTPUT'
-    output = _run(['run', '--rm', '--network', 'container:' + proxy_id,
+    output = _run(['run', '--rm', *resource_arguments('helper'), '--network', 'container:' + proxy_id,
                    '--cap-drop', 'ALL', '--cap-add', 'NET_ADMIN', '--security-opt', 'no-new-privileges',
                    '--read-only', '--tmpfs', '/run:rw,nosuid,nodev,noexec', '--user', '0:0',
                    '--entrypoint', '/bin/sh', helper_image_id, '-c', command])

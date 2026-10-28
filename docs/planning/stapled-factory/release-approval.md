@@ -1,76 +1,101 @@
 # Phase 9 NUC release approval
 
-The October 28 continuation authorizes resolving the remaining gaps and enabling
-verified worker dispatch on the NUC under the best-effort budget. It does not
-supply an independent GitHub review. A bounded sandbox attempt and a protected
-`main` release are separate approval scopes.
+## Approved deployment scope
 
-## Current readback
+On October 28, 2026, the operator explicitly requested resolving release approval
+requirements for a **single-operator deployment**, then enabling and verifying
+NUC worker dispatch under the best-effort budget. This authorizes the dedicated
+NUC deployment and bounded operator-selected sandbox tasks. It supplies human
+deployment authorization; it does not supply an independent GitHub review.
 
-- PR [#1](https://github.com/swimbo/software-factory-stapled/pull/1) is draft,
-  authored by `swimbo`, with no reviews and `REVIEW_REQUIRED`.
-- Readback head: `a2543212c08679d8d760496c249d9cfc5c07aaab`.
-  `local-ci/verified` is successful for that head.
-- `main` requires that local CI check and one approving review, including for
-  administrators. Stale reviews are dismissed and approval of the latest push
-  is required. Force pushes and branch deletion are disabled.
-- The sole current collaborator is `swimbo`, also the PR author. The author
-  cannot supply the independent approval required by this gate.
+The architecture requires human approval for production deployment. It does not
+require a second human for this bounded single-operator scope. Accordingly, a
+signed operator deployment attestation is the release gate for this scope.
+Protected `main` promotion and enterprise separation of duties retain their
+independent-review gate. A verified feature commit may be deployed directly to
+the dedicated NUC without merging it into `main`.
 
-## Reviewable release scope
+Budget reservations remain best effort: the $2 target is not an actual-charge
+ceiling. Shared NUC workloads, privileged tools, unrestricted production tasks,
+and automatic promotion remain outside this authorization.
 
-The requested scope is the dedicated NUC integration, locally built artifacts,
-private gateway-only model access, guarded attempts, fenced successor recovery,
-and bounded operator-selected tasks. Budget reservations are best effort; they
-are not an actual-charge ceiling. Existing shared workloads remain outside scope.
-Full enterprise approval and unrestricted production dispatch are not implied.
+## Single-operator deployment attestation
 
-The reviewer should inspect the final PR diff, exact-revision local CI receipt,
-upstream provenance decision/evidence, immutable deployment manifest, isolation
-and recovery results, and rollback procedure. Earlier results cannot approve a
-changed head or a substituted runtime artifact.
+Before enabling dispatch, record an evidence receipt identifying all of:
 
-## Remaining protected-release action
+1. The exact deployed source commit, frozen release manifest and local-CI receipt.
+   Local CI must pass for that commit; no GitHub runners are used.
+2. Exact NUC image identities and signed operator image approval. Its
+   `build_inputs` must bind the frozen source and reviewed deployment evidence.
+   The trusted operator key stays outside the build context and worker mounts.
+3. Accepted upstream publication evidence and completed image/dependency audit,
+   including explicit treatment of material residual findings. Online provider
+   publication evidence is not a portable publisher signature.
+4. The operator authorization above, deployment scope, bounded task identity,
+   private service binding, prior release and rollback procedure. A signature
+   attests the operator's deployment decision, not an independent human review.
+5. Actual post-binding checks: authenticated Restate dispatch, committed worker
+   output, gateway-only egress/isolation, and unchanged accounting on duplicate
+   dispatch. Earlier or synthetic checks cannot establish a changed deployment.
 
-1. Finish changes and local CI, then publish the final head and its receipt.
-2. Give an independent human reviewer appropriate repository access and have
-   them approve that final head in GitHub. No invitation is sent without the
-   operator naming the intended reviewer.
-3. Confirm GitHub reports approval and passing required checks before a merge.
-   Preserve all current branch protections; do not synthesize an approval or
-   treat an agent review as independent human approval.
-4. Bind any promoted deployment to the approved commit and immutable artifacts,
-   retain its previous frozen release, and verify health plus dispatch behavior.
+The signed image approval can bind this receipt by its absolute path and SHA256
+in `build_inputs`; no additional signing service is required. Record the receipt
+and signature reference in progress/evidence without copying secrets. Keep the
+receipt's pre-dispatch acceptance separate from the later observed verification
+result, so successful behavior is never asserted in advance. These are operator
+release checks; the preparation script's `activation_requires` is a checklist,
+not a claim that every operational check is machine enforced.
 
-ENT-05 remains open for independent enterprise release approval until this
-sequence has actual evidence. The sole-collaborator condition is an external
-human gate, not a failing test that another test can remediate.
+If an audit exposes an unresolved material isolation or credential-exposure gap,
+leave dispatch disabled. On dispatch failure, remove the service's runtime binding,
+stop only the dedicated worker resources, preserve attempts/budget state, and
+restore the prior frozen endpoint release. Never reset ledgers to retry a task.
+
+## Protected branch and enterprise scope
+
+Live GitHub readback on October 28:
+
+- PR [#1](https://github.com/swimbo/software-factory-stapled/pull/1) is ready for
+  review at `75a5c1d3938a5a8d2b7e7ddf295ad565893c9ecd`, with no reviews and
+  `REVIEW_REQUIRED`. A later push requires a fresh head/CI readback.
+- `main` requires passing strict `local-ci/verified` and one approving review,
+  including for administrators. Stale reviews are dismissed and approval of the
+  latest push is required. Force pushes and branch deletion are disabled.
+- `swimbo` is the sole collaborator and PR author, so cannot provide that review.
+
+Preserve these protections. Do not synthesize approval, merge through an author
+bypass, or count agent review as independent human review. A future protected
+release requires the operator to name another reviewer, grant access, obtain
+approval of the final head and confirm required checks before merging.
+
+ENT-05 remains open for enterprise separation of duties. That limitation is
+accepted only as outside the single-operator deployment claim; it is not marked
+remediated by an operator signature. The enterprise assessment does not become
+an enterprise release approval merely because bounded NUC dispatch succeeds.
 
 ## Bounded dispatch preparation
 
-`stapled-factory/deployment/nuc/prepare_dispatch.py` prepares local operator files
-only. It never starts a container, contacts the gateway, changes a service, reads
-a gateway key, or executes the generated invocation. It requires a private JSON
-identity manifest with exactly `worker_image`, `proxy_image`, `helper_image`,
-`firewall_image` (immutable SHA256 IDs), and `worker_environment` (the exact
-credential-free image environment). These identities must come from trusted
-NUC image readback, not worker output.
+`stapled-factory/deployment/nuc/prepare_dispatch.py` prepares operator files only.
+It never starts a container, contacts the gateway, changes a service, reads a
+gateway key or executes the generated invocation. Its identity manifest requires
+exactly `worker_image`, `proxy_image`, `helper_image`, `firewall_image` (immutable
+SHA256 IDs), and `worker_environment` (credential-free image environment).
+Identities come from trusted NUC image readback, never worker output.
 
 Supply `--root`, `--unit`, `--manifest`, `--release` (canonical frozen source),
 `--approval`, `--signature`, `--trust-root`, `--attempt-db`, `--attempt-anchor`,
-and a private `--task-file`. For the dedicated service, the store paths are
+and a private `--task-file`. Service store paths are
 `<control-root>/attempt-store/attempts.db` and
 `<control-root>/attempt-anchor/watermark.json`. The tool verifies the signed,
 unexpired sandbox image approval before preparation. It initializes the store
-only when both files are absent; partial state or a mismatched watermark is
-quarantined without reset.
+only when both files are absent; partial state or a mismatched watermark fails
+closed without resetting either file.
 
 Preparation creates a new unit directory, empty committed workspace baseline,
-matching successor clone, task, private runtime configuration, and private
-`invocation.json`. Existing units are never overwritten. The real proxy command
-pins gateway `100.92.236.42`, Flash, six requests, and 1024 output tokens under the
-existing $2 best-effort reservation policy. The one-hour pricing policy expiry
-requires fresh preparation if approval is delayed. The generated invocation is
-review material; activation still requires the protected release, provenance
-approval and explicit operator service binding. Generic production scope remains
+matching successor clone, task, private runtime configuration and invocation.
+Existing units are never overwritten. The real proxy pins gateway
+`100.92.236.42`, Flash, six requests and 1024 output tokens under the existing
+$2 best-effort reservation policy. Its one-hour pricing policy requires fresh
+preparation if activation is delayed. Activation additionally requires the
+operator attestation and service binding above. Generic production scope remains
 denied by the worker.

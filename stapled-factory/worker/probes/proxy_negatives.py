@@ -10,12 +10,14 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import time
 import uuid
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from provision_runtime import provision
 from netns_firewall import verify_proxy_firewall
 from container_negatives import verify
+from provision_check import RESOURCE_LIMITS, validate_resources, resource_arguments
 
 
 def docker(*args):
@@ -31,20 +33,39 @@ def main():
         root = Path(tmp)
         workspace = root / 'workspace'; workspace.mkdir(mode=0o700)
         subprocess.run(['git', 'init', '-q', str(workspace)], check=True)
-        config.update(workspace=str(workspace), worker_image=images['worker'], proxy_image=images['proxy'], helper_image=images['base'])
-        config['firewall']['helper_image'] = images['firewall']
+        config.update(workspace=str(workspace), worker_image=images['worker_image'],
+                      proxy_image=images['proxy_image'], helper_image=images['helper_image'],
+                      worker_environment=images['worker_environment'])
+        config['firewall']['helper_image'] = images['firewall_image']
         # A fresh allocation always owns fresh volumes, and no HTTP request occurs.
         command = config['proxy_command']
-        command[1] = '/tmp/egress_proxy.py'
-        command[command.index('--pricing-policy-expires-at')+1] = str(__import__('time').time_ns()//1000000000+3600)
+        if command[:2] != ['python3', '/opt/factory/egress_proxy.py']:
+            raise ValueError('production proxy entrypoint required')
+        command[command.index('--pricing-policy-expires-at')+1] = str(int(time.time())+3600)
         try:
             allocation = provision(**config, allocation_id=allocation_id, gateway_key=b'unpaid-negative-control')
             worker = json.loads(docker('inspect', allocation['worker']))[0]
             proxy = json.loads(docker('inspect', allocation['proxy']))[0]
             network = json.loads(docker('network', 'inspect', allocation['network']))[0]
+            kernel_check = '''import json,pathlib,sys
+limits=json.loads(sys.argv[1]);root=pathlib.Path('/sys/fs/cgroup')
+actual={name:(root/name).read_text().strip() for name in ['memory.max','memory.swap.max','cpu.max','pids.max']}
+assert actual['memory.max']==str(limits['Memory']),actual
+assert actual['memory.swap.max']=='0',actual
+assert actual['pids.max']==str(limits['PidsLimit']),actual
+quota,period=actual['cpu.max'].split()
+assert quota!='max' and int(quota)*1000000000==limits['NanoCpus']*int(period),actual
+print('PASS kernel cgroup v2 resource limits',json.dumps(actual,sort_keys=True))
+'''
+            for role, container in [('worker',worker),('proxy',proxy)]:
+                validate_resources(container, role)
+                print(role, docker('exec',container['Id'],'python3','-c',kernel_check,json.dumps(RESOURCE_LIMITS[role])))
+            print('helper',docker('run','--rm',*resource_arguments('helper'),'--network','none',
+                '--cap-drop','ALL','--security-opt','no-new-privileges','--read-only',
+                '--entrypoint','python3',images['helper_image'],'-c',kernel_check,json.dumps(RESOURCE_LIMITS['helper'])))
             assert worker['HostConfig']['NetworkMode'] == 'none'
             assert 'ALL' in worker['HostConfig']['CapDrop'] and 'ALL' in proxy['HostConfig']['CapDrop']
-            verify_proxy_firewall(proxy['Id'], allocation_id, network['Id'], images['firewall'], config['firewall']['gateway_ip'])
+            verify_proxy_firewall(proxy['Id'], allocation_id, network['Id'], images['firewall_image'], config['firewall']['gateway_ip'])
             verify(allocation['worker'], root)
             script = '''import socket,ssl,sys
 ip=sys.argv[1]
@@ -68,7 +89,16 @@ with socket.create_connection((ip,443),timeout=5) as raw:
   assert tls.getpeercert();print('PASS gateway TLS certificate hostname verified; no HTTP sent')
 '''
             print(docker('exec', allocation['proxy'], 'python3', '-c', script, config['firewall']['gateway_ip']))
-            verify_proxy_firewall(proxy['Id'], allocation_id, network['Id'], images['firewall'], config['firewall']['gateway_ip'])
+            verify_proxy_firewall(proxy['Id'], allocation_id, network['Id'], images['firewall_image'], config['firewall']['gateway_ip'])
+            # A TLS handshake never reaches the HTTP proxy's reservation path.
+            # Verify the real durable ledgers rather than inferring no spending.
+            budget_check = """import sqlite3
+db=sqlite3.connect('file:/budget/b.db?mode=ro',uri=True)
+assert db.execute('SELECT COALESCE(SUM(used),0) FROM budgets').fetchone()[0]==0
+assert db.execute('SELECT COALESCE(SUM(spent),0) FROM monetary_budgets').fetchone()[0]==0
+print('PASS durable budget: zero request reservations and zero estimated spend')
+"""
+            print(docker('exec', allocation['proxy'], 'python3', '-c', budget_check))
             print('PASS actual proxy gateway-only egress and worker binding; no paid requests')
         finally:
             if allocation: allocation['proxy_process'].terminate()

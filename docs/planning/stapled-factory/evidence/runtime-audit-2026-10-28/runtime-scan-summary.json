@@ -1,0 +1,89 @@
+{
+  "firewall": {
+    "scan_sha256": "57d38372e7ba44ccd7f1bfc2a2075bb7e30cb2e9374ef9b20a113972579b6a9b",
+    "image_id": "sha256:2ee14cd1a78377ae297ed17da1755df31eae18de7ec92607711498d426166216",
+    "packages": 114,
+    "license_records": 668,
+    "severity_matches": {
+      "LOW": 101,
+      "HIGH": 100,
+      "MEDIUM": 137,
+      "UNKNOWN": 4,
+      "CRITICAL": 3
+    },
+    "unique_advisories": 144
+  },
+  "frozen-python": {
+    "scan_sha256": "43270912d20b1019b03084f99c2509439826ae15f8bb74a690bbc87c4299a91c",
+    "image_id": null,
+    "packages": 27,
+    "license_records": 0,
+    "severity_matches": {
+      "MEDIUM": 7,
+      "HIGH": 2
+    },
+    "unique_advisories": 9
+  },
+  "proxy": {
+    "scan_sha256": "cbd218c8d04677c7a760937835323bc7ad82d1ab43ecd37bc1143947d62261c0",
+    "image_id": "sha256:ac4c89a0a35f444e63698368e7378e097807b7f9ad01c4cd47d5ad44dd17111c",
+    "packages": 106,
+    "license_records": 643,
+    "severity_matches": {
+      "LOW": 97,
+      "HIGH": 100,
+      "MEDIUM": 137,
+      "UNKNOWN": 4,
+      "CRITICAL": 3
+    },
+    "unique_advisories": 143
+  },
+  "restate": {
+    "scan_sha256": "8e00a7d1b4f8ad1838d1e3463b4cd21aca2c9fde635b64ede75b44a507837005",
+    "image_id": "sha256:c798307cbfc2ba9805bfc622293c58cab9273595bb25b52a486d09b116b2b5ec",
+    "packages": 104,
+    "license_records": 790,
+    "severity_matches": {
+      "LOW": 146,
+      "HIGH": 48,
+      "MEDIUM": 89,
+      "UNKNOWN": 3
+    },
+    "unique_advisories": 136
+  },
+  "source": {
+    "scan_sha256": "074cebe587cec12c3b2931cca60b809327b13aa33aece60c45b44d15ba22c644",
+    "image_id": null,
+    "packages": 34,
+    "license_records": 34,
+    "severity_matches": {},
+    "unique_advisories": 0
+  },
+  "upstream-lock-supplemental": {
+    "scan_sha256": "d8490792be17d72d371980eb016b3fdc6fb25ce4081901e2720904a9f5a8668a",
+    "image_id": null,
+    "packages": 372,
+    "license_records": 0,
+    "severity_matches": {
+      "HIGH": 46,
+      "MEDIUM": 50,
+      "LOW": 3,
+      "CRITICAL": 6
+    },
+    "unique_advisories": 105
+  },
+  "worker": {
+    "scan_sha256": "04de2f6dd3318bea3e3e97932b71db839673572b4e085194a7b8ff3fd2a7ce82",
+    "image_id": "sha256:048bd5f7e85d99dde3eb97a9223504877ee58c4954441c6e46fd6df185118919",
+    "packages": 2857,
+    "license_records": 2674,
+    "severity_matches": {
+      "LOW": 1122,
+      "HIGH": 316,
+      "MEDIUM": 957,
+      "UNKNOWN": 604,
+      "CRITICAL": 7
+    },
+    "unique_advisories": 1688
+  }
+}
