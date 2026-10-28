@@ -15,6 +15,9 @@ from pathlib import Path
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from restate_synthetic_successor import stop
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from guarded_store import GuardedAttemptStore, StoreQuarantined
+from egress_proxy import RequestBudget
 import urllib.request
 
 def request(url, payload=None):
@@ -101,13 +104,21 @@ def main():
             stop(server); stop(endpoint)
             raise
         stop(server)  # Dedicated backend only: clean stop before taking cold copy.
-        with sqlite3.connect(source / 'attempt.sqlite') as db:
-            db.execute('CREATE TABLE attempts(id TEXT PRIMARY KEY,status TEXT)')
-            db.executemany('INSERT INTO attempts VALUES (?,?)', [('completed','completed'), ('original','fenced'), ('successor','completed')])
-        with sqlite3.connect(source / 'ledger.sqlite') as db:
-            db.execute('CREATE TABLE reservations(id TEXT PRIMARY KEY,microdollars INTEGER)')
-            db.execute('INSERT INTO reservations VALUES (?,?)', ('shared', 1579010))
-        (source / 'anchor.json').write_text(json.dumps({'identity': 'restore-drill', 'generation': 1}))
+        for directory in ('attempts', 'attempt-anchor', 'budget', 'budget-anchor'):
+            (source / directory).mkdir()
+        attempts = GuardedAttemptStore.initialize(source / 'attempts/state.sqlite', source / 'attempt-anchor/state.json')
+        for unit in ('completed', 'original', 'successor'):
+            assert attempts.reserve(unit, 'hash-' + unit, 'conversation-' + unit) == ('new', None)
+        old_attempt_db = (source / 'attempts/state.sqlite').read_bytes()
+        attempts.complete('completed', '{"status":"completed"}')
+        attempts.complete('successor', '{"status":"completed"}')
+        GuardedAttemptStore.initialize(source / 'budget/state.sqlite', source / 'budget-anchor/state.json')
+        budget_policy = dict(attempt='shared', model='flash', limit=6, fingerprint='a'*64,
+                             ceiling_microdollars=2_000_000, reserve_microdollars=315802,
+                             policy_id='restore-drill-estimate', expires_at=int(time.time()) + 3600)
+        budget = RequestBudget(str(source / 'budget/state.sqlite'), anchor_path=str(source / 'budget-anchor/state.json'), **budget_policy)
+        for _ in range(5):
+            assert budget.reserve()
         (source / 'runtime.json').write_text(json.dumps({'paid_gateway': False, 'dispatch_enabled': False}))
         workspace = source / 'workspace'; workspace.mkdir()
         subprocess.run(['git', 'init', '-q', str(workspace)], check=True)
@@ -118,7 +129,7 @@ def main():
         backup = root / 'backup'; shutil.copytree(source, backup)
         restored = root / 'restored'; shutil.copytree(backup, restored)
         validate(restored, manifest)
-        for component in ('ledger.sqlite', 'anchor.json', 'runtime.json'):
+        for component in ('budget/state.sqlite', 'attempt-anchor/state.json', 'runtime.json'):
             saved = (restored / component).read_bytes()
             (restored / component).write_bytes(b'older generation')
             try:
@@ -135,15 +146,29 @@ def main():
                 assert request(server.ingress + f'/WorkUnit/{unit}/getState', {}) == expected
                 assert request(server.ingress + f'/WorkUnit/{unit}/claim', 'new-worker') is False
                 assert request(server.ingress + f'/WorkUnit/{unit}/getState', {}) == expected
-            with sqlite3.connect(restored / 'attempt.sqlite') as db:
-                assert db.execute('SELECT * FROM attempts ORDER BY id').fetchall() == [('completed','completed'), ('original','fenced'), ('successor','completed')]
-            with sqlite3.connect(restored / 'ledger.sqlite') as db:
-                assert db.execute('SELECT SUM(microdollars) FROM reservations').fetchone()[0] == 1579010
+            attempts = GuardedAttemptStore(restored / 'attempts/state.sqlite', restored / 'attempt-anchor/state.json')
+            assert attempts.reserve('original', 'hash-original', 'conversation-original') == ('unknown', None)
+            for unit in ('completed', 'successor'):
+                assert attempts.reserve(unit, 'hash-' + unit, 'conversation-' + unit) == ('completed', '{"status":"completed"}')
+            current = (restored / 'attempts/state.sqlite').read_bytes()
+            (restored / 'attempts/state.sqlite').write_bytes(old_attempt_db)
+            try:
+                attempts.lookup('completed', 'hash-completed', 'conversation-completed')
+            except StoreQuarantined:
+                pass
+            else:
+                raise AssertionError('actual store accepted rollback behind anchor')
+            (restored / 'attempts/state.sqlite').write_bytes(current)
+            budget = RequestBudget(str(restored / 'budget/state.sqlite'), anchor_path=str(restored / 'budget-anchor/state.json'), **budget_policy)
+            with sqlite3.connect(restored / 'budget/state.sqlite') as db:
+                assert db.execute('SELECT spent FROM monetary_budgets').fetchone()[0] == 1579010
+            assert budget.reserve()
+            assert not budget.reserve()
             subprocess.run(['git', '-C', str(restored / 'workspace'), 'fsck', '--no-progress'], check=True, capture_output=True)
         finally:
             stop(server)
             stop(endpoint)
-        print(json.dumps({'status':'passed','actual_restate_cold_restore':True,'mixed_generation_controls':3,'reservation_microdollars':1579010,'paid_requests':0,'scope':'actual completed and unresolved WorkUnit state; fixture SQLite stores; no independent protected backup authority'}))
+        print(json.dumps({'status':'passed','actual_restate_cold_restore':True,'mixed_generation_controls':3,'actual_store_rollback_rejected':True,'reservation_microdollars':1579010,'paid_requests':0,'scope':'actual WorkUnit, guarded attempt and reservation stores; local cold copy; no independent protected backup authority'}))
 
 if __name__ == '__main__':
     main()

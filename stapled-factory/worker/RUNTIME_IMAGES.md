@@ -33,3 +33,19 @@ This records operator review and prevents substitution after review. It is not
 an upstream publisher signature, reproducible-build proof, or evidence that the
 review itself occurred. Without independently provisioning the service trust root,
 the sandbox remains operator-trusted as before. Production remains denied.
+
+## Upstream verification (October 27, 2026)
+
+`verify_upstream_image.py IMAGE@sha256:DIGEST --identity EXACT_PUBLISHER_IDENTITY
+--issuer EXACT_OIDC_ISSUER` invokes Cosign with exact publisher and issuer checks,
+requires a verified signature for the requested digest, and fails on unavailable
+or unsigned inputs. Establish both trust values independently; never learn a
+trusted identity from an unverified artifact. Successful image signature checks
+still do not prove build provenance.
+
+Live `cosign tree` discovery found no supply-chain artifacts for the current
+pinned OpenHands, Python, and Restate digests. Restate discovery used an empty
+temporary Docker configuration for public anonymous access after the local
+credential helper refused access. Discovery is not signature verification and
+absence of artifacts is not proof of compromise. These results leave upstream
+publisher/build provenance unverified; operator signing cannot replace it.

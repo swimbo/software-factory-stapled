@@ -54,3 +54,52 @@ def validate_deployed(provider, expected, scenarios, security, wall):
                 service=expected.service, scenario_digest=scenario_digest,
                 security=scan, wall=result,
                 passed=scan['verdict'] == 'pass' and result['verdict']['passed'])
+
+
+class RailwayProvider:
+    """Read active provider state via authenticated CLI, never request metadata.
+
+    bindings map immutable locally built image digests to their source revisions;
+    they must come from an operator-owned verified build manifest. Targets are
+    Railway service domains. Private transport needs its own trusted adapter.
+    """
+    def __init__(self, bindings, runner=None):
+        import subprocess
+        import os
+        self.bindings = dict(bindings)
+        cli_env = {k: v for k, v in os.environ.items() if k not in ("RAILWAY_TOKEN", "RAILWAY_API_TOKEN")}
+        self.runner = runner or (lambda args: subprocess.check_output(args, text=True, env=cli_env))
+
+    def snapshot(self, project, environment, service):
+        import json
+        state = json.loads(self.runner(['railway', 'status', '--project', project,
+                                       '--environment', environment, '--json']))
+        if state['id'] != project:
+            raise ValueError('provider project mismatch')
+        envs = [x['node'] for x in state['environments']['edges'] if x['node']['id'] == environment]
+        if len(envs) != 1:
+            raise ValueError('provider environment mismatch')
+        services = [x['node'] for x in envs[0]['serviceInstances']['edges'] if x['node']['serviceId'] == service]
+        if len(services) != 1:
+            raise ValueError('provider service mismatch')
+        instance = services[0]
+        active = instance['activeDeployments']
+        if len(active) != 1:
+            raise ValueError('ambiguous active deployment')
+        deployment = active[0]
+        if deployment['deploymentStopped'] or deployment['id'] != instance['latestDeployment']['id']:
+            raise ValueError('stopped or superseded deployment')
+        if not deployment.get('instances') or any(x['status'] != 'RUNNING' for x in deployment['instances']):
+            raise ValueError('deployment instances unavailable')
+        digest = deployment['meta']['imageDigest']
+        revision = self.bindings.get(digest)
+        if revision is None:
+            raise ValueError('artifact absent from trusted local build manifest')
+        domains = instance['domains']['serviceDomains']
+        if len(domains) != 1 or instance['domains']['customDomains']:
+            raise ValueError('unambiguous provider service domain required')
+        domain = domains[0]['domain']
+        if not re.fullmatch(r'[a-zA-Z0-9-]+\.up\.railway\.app', domain):
+            raise ValueError('invalid provider domain')
+        return Deployment(project, environment, service, deployment['id'], revision,
+                          digest, 'https://' + domain, deployment['status'])
