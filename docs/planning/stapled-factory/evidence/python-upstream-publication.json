@@ -1,0 +1,48 @@
+{
+  "image": "python@sha256:f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457",
+  "evidence_type": "authenticated-docker-library-repo-info",
+  "publisher_signature_verified": false,
+  "metadata_repository": "docker-library/repo-info",
+  "metadata_revision": "f33f60f13d5546d9b944e228248a6563be4986a2",
+  "metadata_path": "repos/python/remote/3.11-slim.md",
+  "metadata_sha256": "c2f4e4a7e6118b5c8f09f58d9b3b729b7e016a10941fe0f7513c1a7f4aa7aaf4",
+  "platforms": {
+    "`python:3.11-slim` - linux; amd64": {
+      "manifest": "sha256:a01e48f10f90ac3ee65ef6937b9d7c831a3570c81b98d39a547ff09fb359de7f",
+      "image_config": "sha256:a8a3e0a84b0d5fab2b3b4b32e89715a7384b7af2f81b5e82d203d12828cb2578"
+    },
+    "`python:3.11-slim` - linux; arm variant v5": {
+      "manifest": "sha256:5bef0bc78a7f18876a70377a1f00a4ece200700a7cace05abb866702886711a1",
+      "image_config": "sha256:fe00a156fb27040f284876eea55728f8cde1135df3a0ba276cf88c89dd2d88d8"
+    },
+    "`python:3.11-slim` - linux; arm variant v7": {
+      "manifest": "sha256:bd6b0b265f5e43e6eccd3395b602d2ac3ec75e51911c517583f8a5478b29c3db",
+      "image_config": "sha256:461f67759d998f9e58e6a1605f5c6f4e77fbbe972336a8cb5a91777c926afc43"
+    },
+    "`python:3.11-slim` - linux; arm64 variant v8": {
+      "manifest": "sha256:11fbbde301e357effc172532adeccb017877be3ddda77db1511d42f292c97047",
+      "image_config": "sha256:1f36a4037bc906e68f59d9f3065265ac24be76ffc22fbf0a4c610a8467ebc30d"
+    },
+    "`python:3.11-slim` - linux; 386": {
+      "manifest": "sha256:3365bb6a2fc58c7e197b8254533acafa044b5bdb710affbecb29dccb250fc576",
+      "image_config": "sha256:db999a452bacb898411b5e329c29edd4352aa4326106c6b5edb0a61a08c7239b"
+    },
+    "`python:3.11-slim` - linux; ppc64le": {
+      "manifest": "sha256:ebc35a53225ee7122e83fb9ef7868703de74429c0275baaecec7c7db554538ea",
+      "image_config": "sha256:5d59a3fc6225fcaf9f45cfc76b76d302effda163c345e9c5dec37b12f018ea40"
+    },
+    "`python:3.11-slim` - linux; riscv64": {
+      "manifest": "sha256:6aa9a2de5f220771d3b92ceb15ac987989acfe07edce65a37f290af143ea7e0a",
+      "image_config": "sha256:56aad3178516764d0d277644af9bfe7a85b464d882bbf99d6ace20e8460708f1"
+    },
+    "`python:3.11-slim` - linux; s390x": {
+      "manifest": "sha256:a0c7de825d35a52bc836f5b3b25898abdd423886015da5858d7e4cc6c3f4cfca",
+      "image_config": "sha256:9902a8449518460fad8830da1c70aa39bbb093d4dccb1358e79201607670aff9"
+    }
+  },
+  "source_repository": "https://github.com/docker-library/python",
+  "source_revision": "c859f2b9e567f72c94e00c969f916d3f92ae52a7",
+  "source_directory": "3.11/slim-trixie",
+  "official_images_revision": "1d9e44084e553b7f77c58a1a775535092116d22c",
+  "official_images_sha256": "c9d297675e21f87d4013ac05c11c3a25f02833119dcbfb3e23136b9e1f24165f"
+}

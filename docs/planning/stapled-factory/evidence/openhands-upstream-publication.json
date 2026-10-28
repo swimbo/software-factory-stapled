@@ -1,0 +1,81 @@
+{
+  "image": "ghcr.io/openhands/agent-server@sha256:90da82d4dd57f713e2b9f5bc9444256b06c8bc709ca5ac794048ea9e1952b466",
+  "repository": "OpenHands/software-agent-sdk",
+  "revision": "d0d9d81324210414462fb676b377e0563a08a0cb",
+  "workflow": ".github/workflows/server.yml",
+  "run_id": 40352978807,
+  "run_url": "https://github.com/OpenHands/software-agent-sdk/actions/runs/40352978807",
+  "policy": {
+    "repo": "OpenHands/software-agent-sdk",
+    "workflow": ".github/workflows/server.yml",
+    "revision": "d0d9d81324210414462fb676b377e0563a08a0cb",
+    "run_id": 40352978807,
+    "event": "push",
+    "actor": "henriquehirako",
+    "job_id": 121684879794,
+    "job_name": "Merge Multi-Arch Manifests (python)",
+    "step_number": 6,
+    "step_name": "Create and push multi-arch manifest for python",
+    "reference": "ghcr.io/openhands/agent-server:d0d9d81324210414462fb676b377e0563a08a0cb-python",
+    "publication_style": "pushing-digest-to-reference"
+  },
+  "publication_step": {
+    "number": 6,
+    "name": "Create and push multi-arch manifest for python",
+    "started_at": "2026-10-26T16:01:07Z",
+    "completed_at": "2026-10-26T16:01:20Z"
+  },
+  "log_sha256": "0f2806263e0d9f0478752b1928bfac86596e9ce8c0651fa03778545dcb96b9a9",
+  "publication_lines": [
+    "Merge Multi-Arch Manifests (python)\tUNKNOWN STEP\t2026-10-26T16:01:13.2673418Z #1 1.124 pushing sha256:90da82d4dd57f713e2b9f5bc9444256b06c8bc709ca5ac794048ea9e1952b466 to ghcr.io/openhands/agent-server:d0d9d81324210414462fb676b377e0563a08a0cb-python"
+  ],
+  "registry_index_sha256": "sha256:90da82d4dd57f713e2b9f5bc9444256b06c8bc709ca5ac794048ea9e1952b466",
+  "platform_manifests": [
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:2da881bd22aae1dfdc43f4c17a885b006bf4b147e92b8faa3e28e0c58edc690c",
+      "size": 4505,
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:48273cdd7560fddb73f21ec248f9119f151af2fe5687179c51dc05f00a1d951d",
+      "size": 839,
+      "annotations": {
+        "vnd.docker.reference.digest": "sha256:2da881bd22aae1dfdc43f4c17a885b006bf4b147e92b8faa3e28e0c58edc690c",
+        "vnd.docker.reference.type": "attestation-manifest"
+      },
+      "platform": {
+        "architecture": "unknown",
+        "os": "unknown"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:910a96b047de2f7a1d3c9cc6c1c386a4c779d0b485c39dd1f674cc1a7f08d8d2",
+      "size": 4504,
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:04aa4f876888f986d7160561ac87fb272e5328a1001946b972ce1fdd73afbf72",
+      "size": 839,
+      "annotations": {
+        "vnd.docker.reference.digest": "sha256:910a96b047de2f7a1d3c9cc6c1c386a4c779d0b485c39dd1f674cc1a7f08d8d2",
+        "vnd.docker.reference.type": "attestation-manifest"
+      },
+      "platform": {
+        "architecture": "unknown",
+        "os": "unknown"
+      }
+    }
+  ],
+  "publisher_signature_verified": false,
+  "evidence_type": "authenticated-github-workflow-and-registry-publication"
+}
