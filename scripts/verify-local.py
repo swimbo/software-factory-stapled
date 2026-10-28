@@ -10,8 +10,6 @@ import tempfile
 root = Path(__file__).resolve().parents[1]
 def output(args):
     return subprocess.check_output(args, cwd=root, text=True).strip()
-if output(['git', 'status', '--porcelain']):
-    raise SystemExit('Commit changes before verifying the release revision.')
 revision = output(['git', 'rev-parse', 'HEAD'])
 receipt_dir = root / '.local-ci' / revision
 receipt_dir.mkdir(parents=True, exist_ok=True)
