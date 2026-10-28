@@ -1,0 +1,7 @@
+{
+  "unit": "nuc-wall-defaults-20261028-01",
+  "only_owned_worker_proxy_stopped": true,
+  "prior_endpoint_binding_restored": true,
+  "durable_stores_workspaces_ledgers_and_volumes_retained": true,
+  "shared_services_restarted": false
+}
