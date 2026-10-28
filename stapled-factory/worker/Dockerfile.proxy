@@ -1,0 +1,3 @@
+FROM python@sha256:f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457
+COPY egress_proxy.py guarded_store.py pinned_https.py budget_authority.py /opt/factory/
+ENTRYPOINT ["python3", "/opt/factory/egress_proxy.py"]

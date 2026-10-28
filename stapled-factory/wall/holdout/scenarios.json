@@ -1,0 +1,218 @@
+{
+  "unit": "auth",
+  "scenarios": [
+    {
+      "id": "auth-login-success",
+      "description": "A user with valid credentials can log in and receive a session token",
+      "steps": [
+        {
+          "delay_seconds": 0.12
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "alice",
+              "password": "correct"
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "token"
+          }
+        }
+      ]
+    },
+    {
+      "id": "auth-login-wrong-password",
+      "description": "A user with an incorrect password is rejected with 401",
+      "steps": [
+        {
+          "delay_seconds": 0.12
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "alice",
+              "password": "wrong"
+            }
+          },
+          "expect": {
+            "status": 401
+          }
+        }
+      ]
+    },
+    {
+      "id": "auth-logout-invalidates-session",
+      "description": "Logging out invalidates the session so subsequent access is denied",
+      "steps": [
+        {
+          "delay_seconds": 0.12
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "logout",
+              "password": "correct"
+            }
+          },
+          "expect": {
+            "status": 200
+          }
+        },
+        {
+          "request": {
+            "method": "GET",
+            "path": "/me",
+            "headers": {
+              "Authorization": "Bearer tok-1"
+            }
+          },
+          "expect": {
+            "status": 200
+          }
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/logout",
+            "body": {
+              "token": "tok-1"
+            }
+          },
+          "expect": {
+            "status": 200
+          }
+        },
+        {
+          "request": {
+            "method": "GET",
+            "path": "/me",
+            "headers": {
+              "Authorization": "Bearer tok-1"
+            }
+          },
+          "expect": {
+            "status": 401
+          }
+        }
+      ]
+    },
+    {
+      "id": "auth-rate-limit",
+      "description": "Repeated bad credentials are rate limited",
+      "steps": [
+        {
+          "delay_seconds": 0.12
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "limited",
+              "password": "wrong"
+            }
+          },
+          "expect": {
+            "status": 401
+          }
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "limited",
+              "password": "wrong"
+            }
+          },
+          "expect": {
+            "status": 401
+          }
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "limited",
+              "password": "wrong"
+            }
+          },
+          "expect": {
+            "status": 401
+          }
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "limited",
+              "password": "wrong"
+            }
+          },
+          "expect": {
+            "status": 429
+          }
+        }
+      ]
+    },
+    {
+      "id": "auth-session-expiry",
+      "description": "A live session expires",
+      "steps": [
+        {
+          "delay_seconds": 0.12
+        },
+        {
+          "request": {
+            "method": "POST",
+            "path": "/login",
+            "body": {
+              "username": "expiry",
+              "password": "correct"
+            }
+          },
+          "expect": {
+            "status": 200
+          }
+        },
+        {
+          "request": {
+            "method": "GET",
+            "path": "/me",
+            "headers": {
+              "Authorization": "Bearer tok-1"
+            }
+          },
+          "expect": {
+            "status": 200
+          }
+        },
+        {
+          "delay_seconds": 0.12
+        },
+        {
+          "request": {
+            "method": "GET",
+            "path": "/me",
+            "headers": {
+              "Authorization": "Bearer tok-1"
+            }
+          },
+          "expect": {
+            "status": 401
+          }
+        }
+      ]
+    }
+  ]
+}

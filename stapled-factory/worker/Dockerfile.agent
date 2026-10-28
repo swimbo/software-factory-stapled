@@ -1,0 +1,8 @@
+FROM ghcr.io/openhands/agent-server@sha256:90da82d4dd57f713e2b9f5bc9444256b06c8bc709ca5ac794048ea9e1952b466
+ARG WORKER_UID=1000
+USER root
+RUN useradd -u "$WORKER_UID" -d /tmp/factory-home -s /bin/sh factoryworker \
+    && mkdir -p /tmp/factory-home && chown "$WORKER_UID:$WORKER_UID" /tmp/factory-home
+COPY egress_bridge.py agent_entrypoint.py /opt/factory/
+ENV HOME=/tmp/factory-home
+WORKDIR /tmp

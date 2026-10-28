@@ -1,0 +1,15 @@
+.DS_Store
+target/
+.env
+.env.*
+# runtime data (Restate RocksDB, local sqlite stores)
+restate-data/
+*.db
+
+
+# Local dependencies and Python caches
+node_modules/
+__pycache__/
+.pytest_cache/
+.venv/
+stapled-factory/spine/dist/
