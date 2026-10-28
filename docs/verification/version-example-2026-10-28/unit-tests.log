@@ -1,0 +1,8 @@
+WARNING: The requested image's platform (linux/amd64) does not match the detected host platform (linux/arm64/v8) and no specific platform was requested
+test_unknown_route_returns_404 (test_version.VersionEndpointTest.test_unknown_route_returns_404) ... ok
+test_version_returns_service_and_version (test_version.VersionEndpointTest.test_version_returns_service_and_version) ... ok
+
+----------------------------------------------------------------------
+Ran 2 tests in 1.030s
+
+OK

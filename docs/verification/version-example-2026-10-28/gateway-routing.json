@@ -1,0 +1,72 @@
+{
+  "session_id": "6a3fd140-60f9-542a-ab73-b541fd0ec59d",
+  "logs": [
+    {
+      "id": "4354b5a3-3221-4f02-a4ac-92d5d132dd00",
+      "session_id": "6a3fd140-60f9-542a-ab73-b541fd0ec59d",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic default Flash",
+      "complexity_tier": "SIMPLE",
+      "complexity_mechanism": "llm",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "id": "4c951fa1-8f03-4bdc-af95-907ef6f3d9b5",
+      "session_id": "6a3fd140-60f9-542a-ab73-b541fd0ec59d",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "complexity_mechanism": "llm",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "id": "48c80a7e-fb6e-4f46-bff8-9909567771a5",
+      "session_id": "6a3fd140-60f9-542a-ab73-b541fd0ec59d",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "complexity_mechanism": "session",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "id": "97e63ee0-3e53-4db8-a94a-659943c3038f",
+      "session_id": "6a3fd140-60f9-542a-ab73-b541fd0ec59d",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "complexity_mechanism": "session",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "id": "c9969d62-365a-4f0f-aea5-fddbcd970327",
+      "session_id": "6a3fd140-60f9-542a-ab73-b541fd0ec59d",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "complexity_mechanism": "session",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "id": "1803ebb5-defa-4707-b6e2-c1a88e53b557",
+      "session_id": "6a3fd140-60f9-542a-ab73-b541fd0ec59d",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "complexity_mechanism": "session",
+      "status": "success",
+      "cost": null
+    }
+  ],
+  "actual_charges": "unknown; null costs are not zero"
+}

@@ -1,0 +1,45 @@
+{
+  "scope": "nuc-disposable-candidate",
+  "git_revision": "d8bf750a3c8c0b03c3481b9d8c07b508fc3fc3f3",
+  "artifact_digest": "sha256:0e94798bb030eb1e6ce2dd58e447cc804e09ad8b46d3d38c812002e2308ce5de",
+  "deployment_id": "0a23f1cc21f874a29306c2404c743e5703edad6294837e1661e1df4dab157728",
+  "source_archive_digest": "6f2d08e56466a95b2f14b1fbaefccd32b0740fc9f08484a9ec576084f5700457",
+  "scenario_digest": "3c5fe0887d7fa15c6c83843013cce24196f6cb36030ff20ec6f96290bbb627f9",
+  "security": {
+    "verdict": "pass",
+    "security_relevant": false,
+    "engines": {
+      "sast": "regex-fallback",
+      "secret": "regex-fallback",
+      "dependency": "manifest-flag"
+    },
+    "findings": []
+  },
+  "wall": {
+    "verdict": {
+      "passed": true,
+      "aggregate_pass_rate": 1.0,
+      "failure_message": "",
+      "per_scenario": {
+        "auth-login-success": true,
+        "auth-login-wrong-password": true,
+        "auth-logout-invalidates-session": true,
+        "auth-rate-limit": true,
+        "auth-session-expiry": true,
+        "service-version-and-route-boundary": true
+      }
+    },
+    "receipt": {
+      "tokens_in": 0,
+      "tokens_out": 0,
+      "requests": 48,
+      "retries": 0,
+      "wall_clock_ms": 2816,
+      "tier": "unknown",
+      "pricing_mode": "subscription",
+      "cost_estimate_usd": null,
+      "ceiling_violation": ""
+    }
+  },
+  "passed": true
+}
