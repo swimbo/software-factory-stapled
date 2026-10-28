@@ -58,3 +58,21 @@ and security verdicts through to rejection. Its tests exercise substitutions and
 a replacement during evaluation. A real provider implementation, deployed
 candidate and internal serialized Restate acceptance remain required; this
 boundary alone does not close ENT-01 or accept caller receipts.
+
+## Operator signed acceptance
+
+`WorkUnit.acceptValidation` now accepts an HMAC-signed evaluation only when its
+unit, selected completed attempt and exact source revision match serialized state
+at `needs_validation`. It records deployment/artifact/scenario identities with
+`validated` atomically, rejecting replay and stale original/successor evidence.
+The owner-only `FACTORY_VALIDATION_KEY_FILE` is mandatory; without it acceptance
+is disabled. The external bearer ingress deliberately exposes no acceptance
+route. Trusted operator processes on the NUC remain within the authority boundary.
+
+`deployment/nuc/validate.py` runs the real exact-commit disposable Docker adapter,
+issues a signature only after wall/security pass, and submits to private Restate.
+It never signs a supplied receipt or caller target. The key must remain outside
+worker mounts and backup exports accessible to workers. This grants validation
+only, not merge/deploy or production tool permissions. The disposable target is
+removed after evaluation; this evidence is not ongoing production-service health.
+Actual NUC evaluation and signed acceptance remain required before closing ENT01.

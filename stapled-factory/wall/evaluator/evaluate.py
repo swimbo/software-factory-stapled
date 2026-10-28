@@ -19,6 +19,11 @@ def load_scenarios(path: str | Path) -> list[dict]:
     return data["scenarios"]
 
 
+class _NoRedirect(urllib.request.HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
+
+
 def _request(target_base: str, step: dict) -> tuple[int, str]:
     method = step["request"].get("method", "GET").upper()
     path = step["request"].get("path", "/")
@@ -30,7 +35,7 @@ def _request(target_base: str, step: dict) -> tuple[int, str]:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=body_bytes, method=method, headers=headers)
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
+        with urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect()).open(req, timeout=5) as resp:
             return resp.status, resp.read().decode("utf-8", "replace")
     except urllib.error.HTTPError as e:
         return e.code, e.read().decode("utf-8", "replace")
