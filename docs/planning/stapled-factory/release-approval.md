@@ -99,3 +99,11 @@ $2 best-effort reservation policy. Its one-hour pricing policy requires fresh
 preparation if activation is delayed. Activation additionally requires the
 operator attestation and service binding above. Generic production scope remains
 denied by the worker.
+
+## Verified single-operator release
+
+The single-operator deployment gate passed for frozen source `6335e302fb873fe280529e6e512bf9bf7d5140b8`, locally verified with305 Python/23 Node tests, build, npm audit and Gitleaks. All804 release file hashes matched on NUC. Actual signed image approval binds the reviewed frozen code, CI, audit acceptance and prepared runtime/task/invocation. The private signing key remains on Mac; only its public trust root was provisioned to the NUC.
+
+The bound persistent endpoint dispatched `nuc-dispatch-20261028-01:0` through real Restate/CLI/OpenHands/Bifrost, producing a clean proof commit and `needs_validation`. A duplicate returned409 without changing durable state, container lifecycles or accounting. Five requests reserved$1.579010 estimated; actual charges unknown. The actual allocation passed confinement, image, cgroup and firewall checks. [Evidence and signature](../../verification/nuc-dispatch-2026-10-28/) are retained separately from pre-dispatch acceptance.
+
+The endpoint is enabled only for that signed unit. A new unit needs new signed preparation and service binding; no unattended scheduler or generic production tool scope is enabled. Protected-main approval remains outstanding and unchanged.

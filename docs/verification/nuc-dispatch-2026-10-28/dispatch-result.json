@@ -1,0 +1,136 @@
+{
+  "unit": "nuc-dispatch-20261028-01",
+  "worker_revision": "77d1f9e98da727fd671018832d79b1f5db3f53be",
+  "factory_revision": "6335e302fb873fe280529e6e512bf9bf7d5140b8",
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "nuc-dispatch-20261028-01:0",
+      "status": "completed",
+      "conversation_id": "3dc879f1-b587-5adb-aaeb-3cbd0ecd0cec",
+      "git_revision": "77d1f9e98da727fd671018832d79b1f5db3f53be"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793195452054
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "nuc-dispatch-20261028-01",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "operator-canary-no-wall-acceptance",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-dispatch-20261028-01/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-dispatch-20261028-01/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "duplicate_dispatch_unchanged": true,
+  "duplicate_http_status": 409,
+  "runtime_snapshot": {
+    "state": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "nuc-dispatch-20261028-01:0",
+        "status": "completed",
+        "conversation_id": "3dc879f1-b587-5adb-aaeb-3cbd0ecd0cec",
+        "git_revision": "77d1f9e98da727fd671018832d79b1f5db3f53be"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793195452054
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "nuc-dispatch-20261028-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-canary-no-wall-acceptance",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-dispatch-20261028-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-dispatch-20261028-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "attempt": [
+      "completed",
+      "{\"conversation_id\": \"3dc879f1-b587-5adb-aaeb-3cbd0ecd0cec\", \"git_revision\": \"77d1f9e98da727fd671018832d79b1f5db3f53be\", \"status\": \"completed\"}"
+    ],
+    "metadata": [
+      [
+        "1b889a60-bdb1-4994-bc75-3bd826fdd0ef",
+        4
+      ]
+    ],
+    "anchor": {
+      "store_id": "1b889a60-bdb1-4994-bc75-3bd826fdd0ef",
+      "generation": 4
+    },
+    "containers": {
+      "worker": {
+        "id": "28c28d2ef271a145803aded56b84ce6601db58826f9b9e20936ce645430d84ba",
+        "image": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77",
+        "running": true,
+        "pid": 2969315,
+        "started": "2026-10-28T13:40:53.232622361Z"
+      },
+      "proxy": {
+        "id": "6b5285e3c5b2f168c5c84290d80147d081413478ea5bbf1fd4784396677953e3",
+        "image": "sha256:6623375f4e0503fb51cbf20cf05220907904e42c50df96752c68dd4115c42aa4",
+        "running": true,
+        "pid": 2969207,
+        "started": "2026-10-28T13:40:53.118780582Z"
+      }
+    },
+    "allocation_id": "afef0931fdff4808ab54f665289c80f8",
+    "budget": {
+      "budgets": [
+        [
+          "nuc-dispatch-20261028-01:0",
+          "ollama-cloud/deepseek-v4.1-flash:1017",
+          6,
+          5,
+          "fe7373116dd069cb89b88f405d242e2f83e15f13925bc3e470e92bfcf4c5563e"
+        ]
+      ],
+      "monetary_budgets": [
+        [
+          "nuc-dispatch-20261028-01:0",
+          2000000,
+          315802,
+          "ollama-peak-2026-10-27-best-effort",
+          1793198403,
+          1579010
+        ]
+      ]
+    }
+  },
+  "best_effort_budget": true,
+  "actual_charges": "unknown",
+  "scope": "operator-selected sandbox task; needs_validation; no candidate acceptance or enterprise promotion",
+  "actual_live_boundary": {
+    "worker_cgroup": {
+      "cpu.max": "200000 100000",
+      "memory.max": "3221225472",
+      "memory.swap.max": "0",
+      "pids.max": "512"
+    },
+    "proxy_cgroup": {
+      "cpu.max": "100000 100000",
+      "memory.max": "536870912",
+      "memory.swap.max": "0",
+      "pids.max": "128"
+    },
+    "private_host_paths_denied": true,
+    "worker_isolation_positive_and_negatives_passed": true,
+    "proxy_firewall_reverified": true
+  },
+  "verified_at": "2026-10-28T13:44:16.143675+00:00",
+  "release_manifest_sha256": "0d6452a81e74cbb635fb3586042de8e57486aa70c42b907403965cb470dcd06a",
+  "release_files_verified": 804
+}

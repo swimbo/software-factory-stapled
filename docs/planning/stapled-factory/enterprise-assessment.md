@@ -1,6 +1,6 @@
-# Enterprise assessment — October 27, 2026
+# Enterprise assessment — October 27 baseline; October 28 scope update
 
-**D, 50.7/100, BLOCKED for enterprise deployment.** Default twelve-category
+**Last formal score: D, 50.7/100, BLOCKED for enterprise deployment.** Default twelve-category
 rubric, default weights (sum13), security and IAM must-pass. This supersedes the
 pre-NUC44.0 assessment, retained in Git history. Scores are conservative evidence
 judgments, not a compliance certification. The A/B implementation gate still
@@ -11,13 +11,13 @@ workspace transformations and disposable candidate validation. Kernel isolation
 constrains arbitrary terminal/Python/file code. Privileged external effects,
 unattended multi-unit scheduling, multiuser authorization and automatic activation
 of old backups are not approved by these checks. Generic production worker scope
-remains denied; the persistent control service lacks a per-attempt runtime config.
+remains denied. On October28 the persistent endpoint was enabled and verified for one signed operator-selected sandbox unit; this does not satisfy enterprise promotion.
 
 ## Category scores
 
 | Category | Score | Weight | Evidence and remaining gap |
 |---|---:|---:|---|
-| Security |64|1.5| Actual NUC worker/proxy deny controls, gateway TLS positive control, signed candidate/build bindings. Upstream provenance and image/Python vulnerability audit incomplete. |
+| Security |64|1.5| Actual NUC worker/proxy deny controls, gateway TLS positive control, signed candidate/build bindings. Authenticated upstream publication and scoped image/Python audit now recorded; residual vulnerabilities and exhaustive bundled/native inventory gaps remain. |
 | IAM |65|1.5| Signed Restate endpoint, owner-only bearer/key files, narrow ingress with actual401/404 negatives. Trusted single operator; no multiuser access review. |
 | Data governance |25|1.25| Encrypted/signed off-host backup and isolated stores verified. Retention, deletion and data inventory unverified. |
 | Compliance |25|1.25| Durable attempt/approval evidence and change logs. No verified applicability mapping or organizational control evidence. |
@@ -27,7 +27,7 @@ remains denied; the persistent control service lacks a per-attempt runtime confi
 | Code quality |50|.75| Strict TypeScript build, modular adapters and independent technical review. No enforced formatting/lint gate; large probe/coordinator modules remain. |
 | Testing |80|1| Python/Node suites, actual NUC crash/duplicate/isolation/egress/candidate and restore controls. Coverage/mutation acceptance unmeasured. |
 | Documentation |80|.75| Reproducible NUC deployment/recovery/operator instructions and exact evidence boundaries. Broader production operations incomplete. |
-| Third-party risk |30|1| Locked npm audit and pinned image content identities. No verified upstream signatures, complete SBOM/license/image audit or vendor fallback policy. |
+| Third-party risk |30|1| Locked npm audit and pinned image content identities. Scoped image/dependency/license audit completed with retained vulnerabilities; no portable publisher signatures, exhaustive native SBOM or vendor fallback policy. |
 | Change management |55|1| Published baseline, local CI receipts/status, required main check/admin enforcement, frozen release and independent agent technical review. Independent human approval and formal release/version policy remain incomplete; main now requires one approving review of the latest push. |
 
 Weighted sum658.5 /13 =50.65, rounded50.7. Unknown organizational controls receive
