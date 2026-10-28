@@ -27,9 +27,16 @@ provision_module.provision = record_provision
 
 
 def docker(*args):
-    return subprocess.run(['docker', *args], check=True, capture_output=True, text=True).stdout.strip()
+    result = subprocess.run(['docker', *args], capture_output=True, text=True)
+    if result.returncode:
+        raise RuntimeError('Docker probe operation failed: ' + result.stderr[-4000:])
+    return result.stdout.strip()
 
-base = docker('image', 'inspect', 'python:3.11-slim', '--format', '{{.Id}}')
+base_ref = os.environ.get('FACTORY_PROBE_PYTHON_IMAGE', 'python:3.11-slim')
+base = None if os.environ.get('FACTORY_PROBE_PREBUILT_IMAGES') else docker('image', 'inspect', base_ref, '--format', '{{.Id}}')
+build_uid = int(os.environ.get('FACTORY_PROBE_BUILD_UID', str(os.getuid())))
+build_platform = os.environ.get('FACTORY_PROBE_BUILD_PLATFORM')
+platform_args = ['--platform', build_platform] if build_platform else []
 base_env = ['PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin']
 scratch = tempfile.TemporaryDirectory(prefix='factory-egress-probe-')
 directory = Path(scratch.name)
@@ -78,25 +85,40 @@ agent_tag = 'factory-agent-uid-probe-' + suffix
 allocation = None
 successor_id = None
 try:
-    (directory/'Dockerfile').write_text('FROM python:3.11-slim\nRUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables && rm -rf /var/lib/apt/lists/*\n')
-    docker('build', '-t', firewall_tag, str(directory))
-    firewall_image = docker('image', 'inspect', firewall_tag, '--format', '{{.Id}}')
-    builder = docker('create', '--network', 'none', base, 'true')
-    try:
-        for name in ('egress_proxy.py', 'guarded_store.py', 'pinned_https.py', 'budget_authority.py', 'fake_proxy.py'):
-            docker('cp', str(directory/name), builder+':/tmp/'+name)
-        docker('commit', builder, tag)
-        exporter = subprocess.Popen(['docker','export',builder], stdout=subprocess.PIPE)
-        importer = subprocess.run(['docker','import','--change','ENV '+base_env[0],'-',worker_tag], stdin=exporter.stdout, capture_output=True, check=True)
-        exporter.stdout.close()
-        if exporter.wait() != 0: raise RuntimeError('export failed')
-    finally:
-        docker('rm', '-f', builder)
-    image = docker('image', 'inspect', tag, '--format', '{{.Id}}')
-    (directory/'Dockerfile').write_bytes((Path(ROOT)/'Dockerfile.agent').read_bytes())
-    docker('build', '--network', 'none', '--build-arg', 'WORKER_UID=' + str(os.getuid()), '-t', agent_tag, str(directory))
-    worker_image = docker('image', 'inspect', agent_tag, '--format', '{{.Id}}')
-    worker_env = json.loads(docker('image', 'inspect', agent_tag, '--format', '{{json .Config.Env}}'))
+    prebuilt_path = os.environ.get('FACTORY_PROBE_PREBUILT_IMAGES')
+    if prebuilt_path:
+        manifest = json.loads(Path(prebuilt_path).read_text())
+        if manifest['uid'] != os.getuid():
+            raise RuntimeError('prebuilt worker uid does not match coordinator')
+        base, firewall_image, image, worker_image = [manifest[k] for k in ('base', 'firewall', 'proxy', 'worker')]
+        for image_id in (base, firewall_image, image, worker_image):
+            if not image_id.startswith('sha256:') or docker('image', 'inspect', image_id, '--format', '{{.Id}}') != image_id:
+                raise RuntimeError('prebuilt image identity mismatch')
+    else:
+        (directory/'Dockerfile').write_text('FROM ' + base_ref + '\nRUN apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq iptables && rm -rf /var/lib/apt/lists/*\n')
+        docker('build', *platform_args, '-t', firewall_tag, str(directory))
+        firewall_image = docker('image', 'inspect', firewall_tag, '--format', '{{.Id}}')
+        builder = docker('create', '--network', 'none', base, 'true')
+        try:
+            for name in ('egress_proxy.py', 'guarded_store.py', 'pinned_https.py', 'budget_authority.py', 'fake_proxy.py'):
+                docker('cp', str(directory/name), builder+':/tmp/'+name)
+            docker('commit', builder, tag)
+            exporter = subprocess.Popen(['docker','export',builder], stdout=subprocess.PIPE)
+            importer = subprocess.run(['docker','import','--change','ENV '+base_env[0],'-',worker_tag], stdin=exporter.stdout, capture_output=True, check=True)
+            exporter.stdout.close()
+            if exporter.wait() != 0: raise RuntimeError('export failed')
+        finally:
+            docker('rm', '-f', builder)
+        image = docker('image', 'inspect', tag, '--format', '{{.Id}}')
+        (directory/'Dockerfile').write_bytes((Path(ROOT)/'Dockerfile.agent').read_bytes())
+        docker('build', *platform_args, '--network', 'none', '--build-arg', 'WORKER_UID=' + str(build_uid), '-t', agent_tag, str(directory))
+        worker_image = docker('image', 'inspect', agent_tag, '--format', '{{.Id}}')
+    if os.environ.get('FACTORY_PROBE_BUILD_MANIFEST'):
+        Path(os.environ['FACTORY_PROBE_BUILD_MANIFEST']).write_text(json.dumps(
+            dict(uid=build_uid, base=base, firewall=firewall_image, proxy=image, worker=worker_image)))
+        if os.environ.get('FACTORY_PROBE_BUILD_ONLY'):
+            raise SystemExit(0)
+    worker_env = json.loads(docker('image', 'inspect', worker_image, '--format', '{{json .Config.Env}}'))
     sync_root = Path(os.environ['FACTORY_PROBE_SYNC']).resolve() if os.environ.get('FACTORY_PROBE_REAL_CLI') else None
     if sync_root:
         (sync_root / 'workspace').mkdir()
@@ -312,8 +334,7 @@ finally:
         subprocess.run(['docker','network','rm',allocation['network']],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         for key in ('socket_volume','budget_volume','anchor_volume'):
             subprocess.run(['docker','volume','rm',allocation[key]],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    subprocess.run(['docker','image','rm',firewall_tag],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    subprocess.run(['docker','image','rm',agent_tag],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    subprocess.run(['docker','image','rm',worker_tag],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-    subprocess.run(['docker','image','rm',tag],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+    if not prebuilt_path and not os.environ.get('FACTORY_PROBE_BUILD_ONLY'):
+        for owned_tag in (firewall_tag, agent_tag, worker_tag, tag):
+            subprocess.run(['docker', 'image', 'rm', owned_tag], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     scratch.cleanup()

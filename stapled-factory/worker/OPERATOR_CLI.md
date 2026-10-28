@@ -27,3 +27,12 @@ external effects and production deployment require a separately reviewed tool
 mediation path and independently verified build/promotion evidence. No config
 boolean can waive this gate. Sandbox scope still assumes an honest operator and
 Docker daemon; a dishonest operator relabeling production is outside this gate.
+
+On the NUC, the operator can set `FACTORY_GATEWAY_KEY_FILE` to an existing
+absolute credential file reference (for this host,
+`/home/bo/.hermes/bifrost/virtual-key-claude-desktop-1.txt`). It must be an
+owner-only regular file owned by the coordinator user; symlinks and multiline
+values are rejected. Only the path enters the service environment. The value is
+read into memory and passed through the existing private provisioning channel.
+When unset, the desktop DSH YAML store remains the default source. No Ruby YAML
+parser is needed for the NUC file reference.

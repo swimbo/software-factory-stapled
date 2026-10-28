@@ -80,31 +80,51 @@ createServer(restate.createEndpointHandler({services:[workUnit,orchestrate,recon
                 if fixture.poll() is not None: raise RuntimeError('probe setup failed: ' + (root / 'probe.log').read_text())
                 time.sleep(1)
             else: raise RuntimeError('probe setup timed out')
-            server = subprocess.Popen(['restate-server', '--base-dir', str(root / 'data'), '--use-random-ports', 'true',
-                                       '--bind-ip', '127.0.0.1', '--listen-mode', 'tcp', '--no-logo'],
-                                      stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
-            # The npm launcher creates a child binary. Discover only descendants of our own process.
-            admin = ingress = None
-            for _ in range(100):
-                if server.poll() is not None: raise RuntimeError('Restate exited before becoming ready')
-                children = subprocess.run(['pgrep', '-P', str(server.pid)], capture_output=True, text=True).stdout.split()
-                for pid in [str(server.pid), *children]:
-                    out = subprocess.run(['lsof', '-nP', '-a', '-p', pid, '-iTCP', '-sTCP:LISTEN', '-Fn'], capture_output=True, text=True).stdout
-                    for line in out.splitlines():
-                        if not line.startswith('n127.0.0.1:'): continue
-                        url = 'http://' + line[1:]
-                        try:
-                            health = request(url + '/health')
-                            if health.get('admin_status') == 'Ready':
-                                addresses = {a['name']: a['address'] for a in health['bound_addresses'] if a['kind'] == 'tcp'}
-                                admin = 'http://' + addresses['admin-api-server']
-                                ingress = 'http://' + addresses['http-ingress-server']
-                                break
-                        except (OSError, ValueError, urllib.error.HTTPError):
-                            pass
-                if admin: break
-                time.sleep(.1)
-            if not admin: raise RuntimeError('isolated Restate did not become ready')
+            container_image = os.environ.get('FACTORY_PROBE_RESTATE_IMAGE')
+            restate_container = None
+            if container_image:
+                if not container_image.startswith('sha256:'):
+                    raise RuntimeError('immutable local Restate image ID required')
+                # Disposable VM only: loopback host network permits the colocated
+                # endpoint, while never publishing raw Restate ports publicly.
+                restate_container = 'factory-probe-restate-' + uuid.uuid4().hex
+                server = subprocess.Popen(['docker', 'run', '--rm', '--name', restate_container,
+                    '--network', 'host', container_image, '--base-dir', '/tmp/restate-probe',
+                    '--bind-ip', '127.0.0.1', '--listen-mode', 'tcp', '--no-logo'],
+                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+                admin, ingress = 'http://127.0.0.1:9070', 'http://127.0.0.1:8080'
+                for _ in range(100):
+                    try:
+                        if request(admin + '/health').get('admin_status') == 'Ready': break
+                    except (OSError, ValueError): pass
+                    time.sleep(.1)
+                else: raise RuntimeError('container Restate did not become ready')
+            else:
+                server = subprocess.Popen(['restate-server', '--base-dir', str(root / 'data'), '--use-random-ports', 'true',
+                                           '--bind-ip', '127.0.0.1', '--listen-mode', 'tcp', '--no-logo'],
+                                          stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
+                # The npm launcher creates a child binary. Discover only descendants of our own process.
+                admin = ingress = None
+                for _ in range(100):
+                    if server.poll() is not None: raise RuntimeError('Restate exited before becoming ready')
+                    children = subprocess.run(['pgrep', '-P', str(server.pid)], capture_output=True, text=True).stdout.split()
+                    for pid in [str(server.pid), *children]:
+                        out = subprocess.run(['lsof', '-nP', '-a', '-p', pid, '-iTCP', '-sTCP:LISTEN', '-Fn'], capture_output=True, text=True).stdout
+                        for line in out.splitlines():
+                            if not line.startswith('n127.0.0.1:'): continue
+                            url = 'http://' + line[1:]
+                            try:
+                                health = request(url + '/health')
+                                if health.get('admin_status') == 'Ready':
+                                    addresses = {a['name']: a['address'] for a in health['bound_addresses'] if a['kind'] == 'tcp'}
+                                    admin = 'http://' + addresses['admin-api-server']
+                                    ingress = 'http://' + addresses['http-ingress-server']
+                                    break
+                            except (OSError, ValueError, urllib.error.HTTPError):
+                                pass
+                    if admin: break
+                    time.sleep(.1)
+                if not admin: raise RuntimeError('isolated Restate did not become ready')
             endpoint = subprocess.Popen(['node', str(app / 'server.mjs')], env=env, stdout=subprocess.DEVNULL,
                                         stderr=subprocess.DEVNULL, start_new_session=True)
             uri = 'http://127.0.0.1:' + env['TEST_PORT']
@@ -158,6 +178,8 @@ createServer(restate.createEndpointHandler({services:[workUnit,orchestrate,recon
 
         finally:
             stop(endpoint); stop(server)
+            if locals().get('restate_container'):
+                subprocess.run(['docker', 'rm', '-f', restate_container], capture_output=True)
             (root / 'done').touch()
             if fixture:
                 try: fixture.wait(timeout=90)

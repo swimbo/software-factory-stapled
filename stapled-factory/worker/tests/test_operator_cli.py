@@ -92,3 +92,24 @@ def test_non_sandbox_scope_blocks_before_credential_or_dispatch(tmp_path, monkey
     monkeypatch.setattr(worker, 'execute_bound_attempt', lambda *a, **kw: pytest.fail('dispatched'))
     with pytest.raises(ValueError, match='production scope unavailable'):
         operator_cli.run(args)
+
+
+def test_nuc_private_key_reference_and_negative_controls(tmp_path, monkeypatch):
+    key = tmp_path / 'gateway.key'
+    key.write_bytes(b'fixture-private-key\n')
+    key.chmod(0o600)
+    monkeypatch.setenv('FACTORY_GATEWAY_KEY_FILE', str(key))
+    monkeypatch.setattr(operator_cli.subprocess, 'run', lambda *a, **kw: pytest.fail('no YAML parser needed'))
+    assert operator_cli._credential() == b'fixture-private-key'
+    key.chmod(0o644)
+    with pytest.raises(ValueError, match='ownership or mode'):
+        operator_cli._credential()
+    key.chmod(0o600)
+    key.write_bytes(b'bad\nkey')
+    with pytest.raises(ValueError, match='unavailable'):
+        operator_cli._credential()
+    link = tmp_path / 'link'
+    link.symlink_to(key)
+    monkeypatch.setenv('FACTORY_GATEWAY_KEY_FILE', str(link))
+    with pytest.raises(OSError):
+        operator_cli._credential()

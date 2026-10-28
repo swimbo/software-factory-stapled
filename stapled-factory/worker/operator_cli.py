@@ -91,6 +91,12 @@ def load_config(args):
 
 
 def _credential():
+    key_file = os.environ.get('FACTORY_GATEWAY_KEY_FILE')
+    if key_file:
+        key = _private_file(key_file).rstrip(b'\n')
+        if not key or len(key) > 4096 or any(c < 33 or c > 126 for c in key):
+            raise ValueError('gateway credential unavailable')
+        return key
     path = str(Path.home() / '.dsh' / '.credentials.yaml')
     # Validate using an already-open descriptor, then feed its contents directly
     # to a safe YAML parser; never expose the credential in argv or environment.
