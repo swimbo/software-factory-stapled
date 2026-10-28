@@ -18,7 +18,7 @@ receipt = {'revision': revision, 'tree': output(['git', 'rev-parse', 'HEAD^{tree
            'runner': 'local', 'steps': [], 'passed': False}
 steps = [
     ('secrets', ['gitleaks', 'dir', '.', '--redact', '--no-banner'], '.'),
-    ('python', ['python3', '-m', 'pytest', 'worker/tests', 'security/tests', 'wall/tests', 'wall/isolation', 'spine/python_tests', '-q'], 'stapled-factory'),
+    ('python', ['python3', '-m', 'pytest', 'worker/tests', 'security/tests', 'wall/tests', 'wall/isolation', 'spine/python_tests', 'deployment/nuc', '-q'], 'stapled-factory'),
     ('dependencies', ['npm', 'ci', '--ignore-scripts'], 'stapled-factory/spine'),
     ('audit', ['npm', 'audit', '--audit-level=high'], 'stapled-factory/spine'),
     ('build', ['npm', 'run', 'build'], 'stapled-factory/spine'),
