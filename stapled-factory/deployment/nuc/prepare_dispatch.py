@@ -15,7 +15,7 @@ WORKER = Path(__file__).resolve().parents[2] / 'worker'
 sys.path.insert(0, str(WORKER))
 from guarded_store import GuardedAttemptStore, StoreQuarantined
 from image_approval import verify_approval
-from pricing_policy import policy_id, reservation_microdollars
+from pricing_policy import policy_id, reservation_microdollars, request_limit
 
 MODEL = 'auto'
 
@@ -105,7 +105,7 @@ def prepare(*, root, unit, manifest, release, approval, signature, trust_root,
     provision.update({'workspace':str(workspace),'uid':os.geteuid(), 'worker_environment':environment,
         'worker_command':['tini','--','python','/opt/factory/agent_entrypoint.py'],
         'proxy_command':['python3','/opt/factory/egress_proxy.py','--socket','/gateway/api.sock',
-            '--model',MODEL,'--gateway-ip','100.92.236.42','--max-requests','6',
+            '--model',MODEL,'--gateway-ip','100.92.236.42','--max-requests',str(request_limit(MODEL)),
             '--budget-db','/budget/b.db','--budget-anchor','/anchor/b.json','--initialize-budget-store',
             '--attempt-id',attempt,'--attempt-fingerprint',fingerprint,'--ceiling-microdollars','2000000',
             '--worst-case-request-microdollars',str(reservation_microdollars(MODEL)),
@@ -115,7 +115,7 @@ def prepare(*, root, unit, manifest, release, approval, signature, trust_root,
         'image_approval':{'document':str(approval),'signature':str(signature)},
         'payload':{'agent_settings':{'llm':{'usage_id':attempt,'model':'anthropic/'+MODEL,
             'base_url':'http://127.0.0.1:8123','api_key':'dummy','max_output_tokens':1024}},
-            'workspace':{'working_dir':'/workspace'},'max_iterations':6}}
+            'workspace':{'working_dir':'/workspace'},'max_iterations':request_limit(MODEL)}}
     config_path = task_root/'runtime.json'; write(config_path,json.dumps(config,indent=2)+'\n')
     invocation = {'status':'prepared_not_activated','unit':unit,'environment':{
         'FACTORY_RUNTIME_CONFIG':str(config_path),'FACTORY_IMAGE_APPROVAL_KEY':str(trust_root)},

@@ -29,7 +29,7 @@ def test_router_reserves_pro_peak_plus_explicit_allowance_by_body_size():
     assert reservation_microdollars('auto') == 1398176
     assert router_reservation_microdollars(1000) == 15376
     assert router_reservation_microdollars(2000) > router_reservation_microdollars(1000)
-    assert request_limit('auto') == 6
+    assert request_limit('auto') == 12
     assert policy_id('auto') == ROUTED_POLICY_ID
     assert policy_id('deepseek-v4.1-flash:1017') == POLICY_ID
     for invalid in (True, 0, -1, 1_048_577, 1.5):

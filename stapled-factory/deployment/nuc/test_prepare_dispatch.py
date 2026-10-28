@@ -46,7 +46,8 @@ def test_preparation_matches_operator_schema_and_refuses_reuse(tmp_path, monkeyp
     assert payload['agent_settings']['llm']['model']=='anthropic/auto'
     command=actual['provision']['proxy_command']
     assert command[command.index('--model')+1]=='auto'
-    assert command[command.index('--max-requests')+1]=='6'
+    assert command[command.index('--max-requests')+1]=='12'
+    assert actual['payload']['max_iterations']==12
     assert '/opt/factory/egress_proxy.py' in actual['provision']['proxy_command']
     assert result['status']=='prepared_not_activated'
     assert result['activation_requires'] == [

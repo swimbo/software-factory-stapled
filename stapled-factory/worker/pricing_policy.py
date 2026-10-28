@@ -10,7 +10,7 @@ BUDGET_MICRODOLLARS = 2_000_000
 INPUT_TOKENS = 1_048_576  # generous rounding of the published 1M context
 OUTPUT_TOKENS = 1_024
 ROUTER_MODEL = 'auto'
-ROUTED_POLICY_ID = 'request-size-pro-2026-10-28-best-effort'
+ROUTED_POLICY_ID = 'request-size-pro-2026-10-28-v2-best-effort'
 # Explicit allowance only: embedding/classifier retries and fallback-provider
 # charges are unknown, so this is not a bound on the router's actual charges.
 ROUTER_CLASSIFICATION_MICRODOLLARS = 10_000
@@ -52,7 +52,7 @@ def router_reservation_microdollars(body_bytes):
 
 def request_limit(model):
     if model == ROUTER_MODEL:
-        return 6
+        return 12
     return BUDGET_MICRODOLLARS // reservation_microdollars(model)
 
 

@@ -376,3 +376,17 @@ def test_router_session_is_distinct_between_attempts(tmp_path):
     finally:
         for server in servers:
             server.server_close();os.unlink(server.server_address)
+
+
+def test_routed_task_has_room_to_finish_after_six_calls(tmp_path):
+    from pricing_policy import request_limit, router_reservation_microdollars, policy_id
+    cost=router_reservation_microdollars(1000)
+    b=budget(str(tmp_path/'task.db'),'task','auto',request_limit('auto'),'d'*64,
+        ceiling_microdollars=2000000,reserve_microdollars=1398176,policy_id=policy_id('auto'))
+    assert all(b.reserve(cost) for _ in range(7))
+    assert all(b.reserve(cost) for _ in range(5))
+    assert not b.reserve(cost)
+    with b.store._transaction() as (db,_):
+        assert db.execute('SELECT used FROM budgets').fetchone()[0]==12
+        assert db.execute('SELECT spent FROM monetary_budgets').fetchone()[0]==12*cost
+        assert db.execute('SELECT ceiling FROM monetary_budgets').fetchone()[0]==2000000
