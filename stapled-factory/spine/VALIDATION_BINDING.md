@@ -76,3 +76,22 @@ worker mounts and backup exports accessible to workers. This grants validation
 only, not merge/deploy or production tool permissions. The disposable target is
 removed after evaluation; this evidence is not ongoing production-service health.
 Actual NUC evaluation and signed acceptance remain required before closing ENT01.
+
+The NUC prebuilt adapter derives the source archive and diff from an exact commit
+and verified ancestor in an operator-owned Git repository. It rejects supplied
+archive/diff substitutions. `deployment/nuc/build_candidate.py` builds locally
+and signs the archive/diff/Dockerfile hashes and immutable image config digest
+with a separate operator Ed25519 key outside the build context. NUC verifies the
+signature with its operator-installed public key and checks actual Docker-save
+config bytes before launching the image. Labels alone cannot establish trust.
+The NUC builds no candidate images.
+
+Candidates run read-only, nonroot, network-none and without mounts. A bounded,
+persistent Docker-exec HTTP transport can contact only candidate loopback8000;
+wall redirects and environment proxies are disabled. Source/image/container and
+scenario binding is checked before/after evaluation. Actual NUC good, broken and
+secret controls passed, as did archive/diff/signature/artifact substitution
+rejections. Security engine reports currently record regex fallbacks and manifest
+flags: these controls prove the configured deterministic gate, not full external
+SAST coverage or ongoing production-service health. Signed acceptance records
+`scope=disposable-candidate` and the engine names explicitly.

@@ -17,6 +17,9 @@ for name in ('repo','revision','baseline','scenarios','entrypoint','runtime-imag
 p.add_argument('--prebuilt-image')
 p.add_argument('--source-archive')
 p.add_argument('--diff-file')
+p.add_argument('--build-manifest')
+p.add_argument('--build-signature')
+
 p.add_argument('--ingress',default='http://127.0.0.1:18080')
 a=p.parse_args()
 keyfile=Path(a.key_file)
@@ -30,7 +33,7 @@ spec=importlib.util.spec_from_file_location('local_validation',module)
 adapter=importlib.util.module_from_spec(spec);spec.loader.exec_module(adapter)
 if a.prebuilt_image:
     if not a.source_archive or not a.diff_file:raise SystemExit('source archive and diff required')
-    result=adapter.validate_prebuilt(a.source_archive,a.revision,a.prebuilt_image,a.scenarios,a.diff_file)
+    result=adapter.validate_prebuilt(a.source_archive,a.revision,a.prebuilt_image,a.scenarios,a.diff_file,a.repo,a.baseline,a.build_manifest,a.build_signature,os.environ['FACTORY_BUILD_APPROVAL_PUBLIC_KEY'])
 else:
     result=adapter.validate(a.repo,a.revision,a.baseline,a.scenarios,a.entrypoint,a.runtime_image)
 if not result['passed']:raise SystemExit('validation rejected; no signature issued')
