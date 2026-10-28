@@ -59,3 +59,8 @@ removed; the previously created persistent Restate control service and volume
 remain intact pending an explicit cleanup decision. No model credential was
 uploaded. Local builds transfer directly to the NUC; see the NUC deployment
 artifacts as they are verified.
+
+The previously created compute deployment was subsequently stopped to avoid
+running unused services. Actual provider readback showed no active deployments;
+volume bf9371fb-4138-4bf1-a6a8-1975b9c5c65d remained READY with no pending deletion.
+Project, service and persistent data were retained.

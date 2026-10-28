@@ -10,9 +10,9 @@ and artifact transfer. No GitHub runners or remote provider builds are used.
 - SSH alias `hermes-control`, host `nuc-hermes`, operator bo uid1000, Linux amd64,
   Docker29.8.0. Existing shared workloads were inventoried and left running.
 - Frozen release:
-  `/home/bo/.local/share/stapled-factory-control/releases/9f40ca50e50220248fd104ddda3bdaa4cc968b18`.
-  All764 transferred file hashes matched. Release manifest SHA256:
-  `8afa428f25c3e9b4b4e459d95ed03288be026cb3f53f474ddc4ce79c9f6b6dfe`.
+  `/home/bo/.local/share/stapled-factory-control/releases/3e15fb4aee87b2acb8c457ee42c0916c2f6f0913`.
+  All768 transferred file hashes matched. Release manifest SHA256:
+  `84e930e24a22486e3c5bd6a5efcfe7a406b542f9b833227012376e3a8fade589`.
 - Enabled user services: `factory-restate`, `factory-endpoint`, `factory-ingress`.
   Restate admin19070/raw18080, signed endpoint19080 and bearer ingress19081 bind
   loopback only. Restate fabric5122 also binds loopback.
@@ -82,3 +82,12 @@ deploy/merge permission. See docs/verification/nuc-validation.json.
 Actual release rollback9f40ca5→f5f18a4→9f40ca5 preserved validated state without
 restoring Restate data. The current persistent worker still requires an explicit
 per-attempt runtime configuration; arbitrary production dispatch stays blocked.
+
+The final hardened signing CLI requires prebuilt image/archive/diff and signed
+build provenance arguments. The unattested local-build fallback is removed.
+Actual hardened CLI evaluation/signing/acceptance passed; a legacy invocation
+failed at argument parsing before key or Docker access. Release3e15fb4 is active.
+
+The unused Railway compute deployment was stopped after the NUC correction.
+Readback confirmed zero active deployments and the retained volume READY with
+no pending deletion. Project/service/volume metadata remain preserved.
