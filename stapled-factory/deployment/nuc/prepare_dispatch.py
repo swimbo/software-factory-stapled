@@ -15,9 +15,9 @@ WORKER = Path(__file__).resolve().parents[2] / 'worker'
 sys.path.insert(0, str(WORKER))
 from guarded_store import GuardedAttemptStore, StoreQuarantined
 from image_approval import verify_approval
-from pricing_policy import POLICY_ID, reservation_microdollars
+from pricing_policy import policy_id, reservation_microdollars
 
-MODEL = 'ollama-cloud/deepseek-v4.1-flash:1017'
+MODEL = 'auto'
 
 
 def private(path):
@@ -109,7 +109,7 @@ def prepare(*, root, unit, manifest, release, approval, signature, trust_root,
             '--budget-db','/budget/b.db','--budget-anchor','/anchor/b.json','--initialize-budget-store',
             '--attempt-id',attempt,'--attempt-fingerprint',fingerprint,'--ceiling-microdollars','2000000',
             '--worst-case-request-microdollars',str(reservation_microdollars(MODEL)),
-            '--pricing-policy-id',POLICY_ID,'--pricing-policy-expires-at',str(int(time.time())+3600)]})
+            '--pricing-policy-id',policy_id(MODEL),'--pricing-policy-expires-at',str(int(time.time())+3600)]})
     config = {'deployment_scope':'sandbox','attempt_id':attempt,'task_file':str(task),'repo':str(workspace),
         'baseline':baseline,'successor_workspace':str(successor), 'provision':provision,
         'image_approval':{'document':str(approval),'signature':str(signature)},

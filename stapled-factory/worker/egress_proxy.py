@@ -15,10 +15,12 @@ import socketserver
 import sqlite3
 import sys
 import time
+import uuid
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from guarded_store import GuardedAttemptStore, StoreQuarantined
 from budget_authority import AuthorityClient
+from pricing_policy import ROUTER_MODEL, router_reservation_microdollars
 
 MAX_BODY = 1024 * 1024
 MAX_ATTEMPT_MICRODOLLARS = 2_000_000
@@ -103,7 +105,12 @@ class RequestBudget:
             elif row != (model, limit, fingerprint):
                 raise ValueError('attempt budget configuration mismatch')
 
-    def reserve(self):
+    def reserve(self, estimated_microdollars=None):
+        if estimated_microdollars is not None:
+            if (self.model != ROUTER_MODEL or type(estimated_microdollars) is not int
+                    or not 1 <= estimated_microdollars <= self.cost):
+                raise ValueError('invalid dynamic request reservation')
+        cost = self.cost if estimated_microdollars is None else estimated_microdollars
         with self.store._transaction() as (db, state):
             if int(time.time()) >= self.expires_at:
                 return False
@@ -111,10 +118,10 @@ class RequestBudget:
             money = db.execute('SELECT ceiling, reserve, policy_id, expires_at, spent FROM monetary_budgets WHERE attempt=?', (self.attempt,)).fetchone()
             if row is None or money is None or row[1:] != (self.limit, self.model, self.fingerprint) or money[:4] != (self.ceiling, self.cost, self.policy_id, self.expires_at):
                 raise ValueError('budget state mismatch')
-            if row[0] >= self.limit or money[4] > self.ceiling - self.cost:
+            if row[0] >= self.limit or money[4] > self.ceiling - cost:
                 return False
             db.execute('UPDATE budgets SET used=used+1 WHERE attempt=?', (self.attempt,))
-            db.execute('UPDATE monetary_budgets SET spent=spent+? WHERE attempt=?', (self.cost, self.attempt))
+            db.execute('UPDATE monetary_budgets SET spent=spent+? WHERE attempt=?', (cost, self.attempt))
             state['changed'] = True
             return True
 
@@ -126,6 +133,11 @@ class UnixServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
         self.key, self.host, self.port, self.model = key, host, port, model
         self.gateway_ip = gateway_ip
         self.budget = budget
+        if model == ROUTER_MODEL and not isinstance(budget, RequestBudget):
+            raise ValueError('router requires body-sized local request reservations')
+        self.router_session_id = (str(uuid.uuid5(uuid.NAMESPACE_URL,
+                                  'stapled-factory-attempt:' + budget.attempt))
+                                  if model == ROUTER_MODEL else None)
         super().__init__(path, Handler)
         os.chmod(path, 0o600)
 
@@ -161,7 +173,9 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, TypeError, UnicodeError, RecursionError):
             return self.send_error(400)
         try:
-            if not self.server.budget.reserve():
+            reserved = (self.server.budget.reserve(router_reservation_microdollars(len(raw)))
+                        if self.server.model == ROUTER_MODEL else self.server.budget.reserve())
+            if not reserved:
                 return self.send_error(429)
         except (sqlite3.Error, ValueError, StoreQuarantined):
             return self.send_error(503)
@@ -171,10 +185,13 @@ class Handler(BaseHTTPRequestHandler):
             from pinned_https import PinnedHTTPSConnection
             conn = PinnedHTTPSConnection(self.server.host, self.server.port, gateway_ip=self.server.gateway_ip, timeout=90)
         try:
-            conn.request('POST', '/anthropic/v1/messages', raw, {
+            headers = {
                 'content-type': 'application/json', 'anthropic-version': '2023-06-01',
                 'x-bf-vk': self.server.key,
-            })
+            }
+            if self.server.router_session_id is not None:
+                headers['x-bf-session-id'] = self.server.router_session_id
+            conn.request('POST', '/anthropic/v1/messages', raw, headers)
             response = conn.getresponse()
             # Do not follow redirects or relay their location headers.
             if 300 <= response.status < 400:
@@ -223,6 +240,8 @@ def main():
     if not 0 < args.ceiling_microdollars <= MAX_ATTEMPT_MICRODOLLARS:
         parser.error('per-attempt ceiling must be between 1 and 2,000,000 microdollars')
     if args.authority_socket:
+        if args.model == ROUTER_MODEL:
+            parser.error('router model requires body-sized local request reservations')
         if (not os.path.isabs(args.authority_socket) or not os.path.isabs(args.socket)
                 or os.path.realpath(os.path.dirname(args.authority_socket)) == os.path.realpath(os.path.dirname(args.socket))
                 or args.initialize_budget_store):

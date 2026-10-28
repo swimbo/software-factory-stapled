@@ -93,3 +93,5 @@ and config/image ID
 `sha256:a8a3e0a84b0d5fab2b3b4b32e89715a7384b7af2f81b5e82d203d12828cb2578`.
 A different initializer image ID must not be described as this base without a
 separate verified platform/derivation binding.
+
+The router proxy adds `pricing_policy.py` to its fixed copied files and requests the existing gateway `auto` alias. The new proxy build/audit receipt and NUC unpaid isolation evidence are in planning evidence/router-proxy-build-audit.json and nuc-router-images-unpaid-isolation-2026-10-28.json. See ROUTING.md for session identity and best-effort estimate boundaries.

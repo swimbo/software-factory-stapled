@@ -293,3 +293,86 @@ def test_proxy_uses_pinned_transport_when_configured(tmp_path, monkeypatch):
         conn.close()
     finally:
         server.shutdown(); server.server_close(); thread.join(); os.unlink(path)
+
+
+def test_dynamic_router_reservations_persist_and_enforce_limits(tmp_path, monkeypatch):
+    path = str(tmp_path / 'router.db')
+    b = budget(path, 'routed', 'auto', 6, 'a'*64, ceiling_microdollars=100, reserve_microdollars=80)
+    assert b.reserve(15)
+    assert b.reserve(70)
+    assert not b.reserve(16)
+    reopened = budget(path, 'routed', 'auto', 6, 'a'*64, ceiling_microdollars=100, reserve_microdollars=80)
+    with reopened.store._transaction() as (db, state):
+        assert db.execute('SELECT used FROM budgets').fetchone() == (2,)
+        assert db.execute('SELECT spent, reserve FROM monetary_budgets').fetchone() == (85, 80)
+    for invalid in (True, 0, -1, 81, 1.5):
+        with pytest.raises(ValueError):
+            reopened.reserve(invalid)
+    fixed = budget(str(tmp_path/'fixed.db'), 'fixed', 'fixed', 6, 'b'*64)
+    with pytest.raises(ValueError):
+        fixed.reserve(1)
+    monkeypatch.setattr(egress_proxy.time, 'time', lambda: 4102444800)
+    assert not reopened.reserve(1)
+
+
+def test_auto_forwards_raw_alias_with_trusted_stable_session_and_dynamic_cost(tmp_path, monkeypatch):
+    calls = []
+    class Response:
+        status = 200
+        def getheader(self, name, default): return default
+        def read1(self, size): return b''
+    class Upstream:
+        def __init__(self, *args, **kwargs): pass
+        def request(self, method, path, body, headers): calls.append((path, body, headers))
+        def getresponse(self): return Response()
+        def close(self): pass
+    monkeypatch.setattr(egress_proxy.http.client, 'HTTPSConnection', Upstream)
+    path = '/tmp/sf-' + next(tempfile._get_candidate_names()) + '.sock'
+    b = budget(str(tmp_path/'budget.db'), 'trusted-attempt', 'auto', 6, 'a'*64,
+               ceiling_microdollars=2_000_000, reserve_microdollars=1_398_176)
+    server = egress_proxy.UnixServer(path, 'test-key', 'gateway.example', 443, 'auto', b)
+    thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+    def send(payload):
+        conn = UnixHTTP(path)
+        conn.request('POST', '/v1/messages', payload, {'x-bf-session-id':'worker-selected', 'x-bf-vk':'worker-key'})
+        response = conn.getresponse(); status = response.status; response.read(); conn.close()
+        return status
+    try:
+        first = b'{ "model": "auto", "max_tokens": 1024, "messages": [] }'
+        second = json.dumps({'model':'auto', 'max_tokens':1024, 'messages':[{'role':'user','content':'a'*1000}]}).encode()
+        assert send(first) == send(second) == 200
+        assert send(b'{"model":"deepseek-v4-pro:0813","max_tokens":1}') == 400
+        assert len(calls) == 2
+        assert calls[0][0:2] == ('/anthropic/v1/messages', first)
+        assert calls[1][1] == second
+        assert calls[0][2]['x-bf-session-id'] == calls[1][2]['x-bf-session-id'] == server.router_session_id
+        assert server.router_session_id != 'worker-selected'
+        assert calls[0][2]['x-bf-vk'] == 'test-key'
+        with b.store._transaction() as (db, state):
+            assert db.execute('SELECT spent FROM monetary_budgets').fetchone()[0] == sum(
+                egress_proxy.router_reservation_microdollars(len(body)) for body in (first, second))
+    finally:
+        server.shutdown(); server.server_close(); thread.join(); os.unlink(path)
+    reopened = egress_proxy.UnixServer(path, 'test-key', 'gateway.example', 443, 'auto', b)
+    try:
+        assert reopened.router_session_id == server.router_session_id
+    finally:
+        reopened.server_close(); os.unlink(path)
+
+
+def test_router_rejects_fixed_reservation_authority_backend():
+    with pytest.raises(ValueError, match='body-sized'):
+        egress_proxy.UnixServer('/tmp/should-not-be-created.sock', 'key', 'gateway', 443, 'auto', object())
+
+
+def test_router_session_is_distinct_between_attempts(tmp_path):
+    first=budget(str(tmp_path/'first.db'),'first','auto',6,'a'*64,reserve_microdollars=1398176,ceiling_microdollars=2000000)
+    second=budget(str(tmp_path/'second.db'),'second','auto',6,'b'*64,reserve_microdollars=1398176,ceiling_microdollars=2000000)
+    servers=[]
+    try:
+        for b in (first,second):
+            servers.append(egress_proxy.UnixServer('/tmp/sf-'+next(tempfile._get_candidate_names())+'.sock','key','example.com',443,'auto',b))
+        assert servers[0].router_session_id!=servers[1].router_session_id
+    finally:
+        for server in servers:
+            server.server_close();os.unlink(server.server_address)

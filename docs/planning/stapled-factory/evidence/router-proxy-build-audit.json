@@ -1,0 +1,68 @@
+{
+  "local_config_id": "sha256:79ca82ad28e06ef5180cc93c1210231b6cfbc0453c57cfccdb9fde26fcb8771a",
+  "nuc_expected_manifest_id": "sha256:4a52b0a7b179ef38d4c573b30c743c04174b08779d6d1550882be433bbc95b65",
+  "platform": "linux/amd64",
+  "pinned_base_layer_prefix_verified": true,
+  "package_inventory_matches_prior_audited_proxy": true,
+  "packages": 106,
+  "new_scan_sha256": "01ee80778afca368ab184e168564890df0888a5f6b3ae7343b3f0e4070e8f5ae",
+  "build_metadata": {
+    "buildx.build.provenance": {
+      "builder": {
+        "id": ""
+      },
+      "buildType": "https://mobyproject.org/buildkit@v1",
+      "materials": [
+        {
+          "uri": "pkg:docker/python?digest=sha256:f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457&platform=linux%2Famd64",
+          "digest": {
+            "sha256": "f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457"
+          }
+        }
+      ],
+      "invocation": {
+        "configSource": {
+          "entryPoint": "Dockerfile.proxy"
+        },
+        "parameters": {
+          "frontend": "dockerfile.v0",
+          "args": {
+            "force-network-mode": "none"
+          },
+          "locals": [
+            {
+              "name": "context"
+            },
+            {
+              "name": "dockerfile"
+            }
+          ],
+          "root": {
+            "configSource": {
+              "path": "Dockerfile.proxy"
+            },
+            "request": {
+              "args": {
+                "force-network-mode": "none",
+                "vcs:localdir:context": "stapled-factory/worker",
+                "vcs:localdir:dockerfile": "stapled-factory/worker",
+                "vcs:revision": "3861dfb2c77ea95d924a860fb089416573d0d988",
+                "vcs:source": "https://github.com/swimbo/software-factory-stapled"
+              }
+            }
+          },
+          "compatibilityVersion": 30
+        },
+        "environment": {
+          "dockerfileVersion": "1.27.0",
+          "platform": "linux/arm64"
+        }
+      }
+    },
+    "buildx.build.ref": "default/default/qlfp1p715w1511i8f955g6no9",
+    "containerimage.config.digest": "sha256:79ca82ad28e06ef5180cc93c1210231b6cfbc0453c57cfccdb9fde26fcb8771a",
+    "containerimage.digest": "sha256:79ca82ad28e06ef5180cc93c1210231b6cfbc0453c57cfccdb9fde26fcb8771a",
+    "image.name": "docker.io/library/stapled-phase9-router-proxy:20261028"
+  },
+  "risk_acceptance": "Same package inventory and documented runtime-audit-2026-10-28 residuals; changed proxy/pricing source independently reviewed and tested"
+}

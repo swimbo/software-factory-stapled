@@ -195,3 +195,7 @@ prerequisite to any agent holding credentials.
 - Restate `ctx.run` effect boundaries for the agent run + eval — confirm before committing the receipt schema.
 - DeepSeek vs GLM-5 as the default "cheap" model (Phase 6).
 - Dashboard: React vs lighter CLI/TUI (Phase 7).
+
+## Existing complexity router integration — October28
+
+User explicitly selected the existing NUC router. The concise ModeB finance/security/implementation review and current evidence are recorded in decisions/2026-10-28-existing-complexity-router.md. Use gatewayaliasauto through the same confined proxy; do not duplicate or modify the shared classifier. Dynamic body-sized Pro-rate estimates replace Flash-only reservations for this route, with classifier/fallback charge uncertainty retained. Fixed-model policy compatibility, signed unit bindings and gateway-only egress remain.

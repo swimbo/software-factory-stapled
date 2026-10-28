@@ -1,0 +1,99 @@
+{
+  "verified_at": "2026-10-28T15:21:05.008858+00:00",
+  "host": "nuc-hermes",
+  "scope": "fresh disposable sandbox allocation; current probe source staged under /tmp, not a frozen production release",
+  "probe_sha256": "5b7478f5024aafa78b7501adb0b853b2fdc8f1c7c878410d19d66cd9d9de9c53",
+  "images": {
+    "worker_image": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77",
+    "proxy_image": "sha256:4a52b0a7b179ef38d4c573b30c743c04174b08779d6d1550882be433bbc95b65",
+    "helper_image": "sha256:73570499e4f9272b8e96a1115a13f9c4d186a32cf3968621f5ae602e55083d19",
+    "firewall_image": "sha256:f3a4d140558c50f81f1f5e1519652a1722a55738d364317fe9c7568716049baa",
+    "worker_environment": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "OH_ENABLE_VSCODE=true",
+      "OPENHANDS_BUILD_GIT_SHA=d0d9d81324210414462fb676b377e0563a08a0cb",
+      "OPENHANDS_BUILD_GIT_REF=refs/heads/main",
+      "ACP_NODE_DIR=/acp-node",
+      "LC_ALL=C.UTF-8",
+      "LANG=C.UTF-8",
+      "LOG_JSON=true",
+      "OH_ACP_SKILL_SOURCING=openhands_managed",
+      "EDITOR=code",
+      "VISUAL=code",
+      "GIT_EDITOR=code --wait",
+      "OPENVSCODE_SERVER_ROOT=/openhands/.openvscode-server",
+      "CHROME_BIN=/usr/bin/chromium",
+      "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium",
+      "CHROMIUM_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu",
+      "LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib:/usr/lib/x86_64-linux-gnu:",
+      "HOME=/tmp/factory-home"
+    ]
+  },
+  "exit_code": 0,
+  "checks": {
+    "trusted_provisioning_identity_and_lifecycle": true,
+    "worker_nonroot": true,
+    "worker_host_fixture_and_store_paths_denied": true,
+    "worker_docker_socket_absent": true,
+    "worker_direct_tcp_and_dns_denied": true,
+    "worker_root_directory_write_denied": true,
+    "worker_workspace_writable": true,
+    "proxy_public_ipv4_443_denied": true,
+    "proxy_metadata_80_denied": true,
+    "proxy_gateway_80_denied": true,
+    "proxy_public_ipv6_443_denied": true,
+    "proxy_dns_udp53_denied": true,
+    "gateway_443_tls_certificate_hostname_verified": true,
+    "proxy_firewall_verified_before_and_after": true,
+    "durable_budget_used_requests": 0,
+    "durable_budget_estimated_spent_microdollars": 0,
+    "inspected_hostconfig_resource_limits_verified": true,
+    "kernel_cgroup_v2": {
+      "worker": {
+        "cpu.max": "200000 100000",
+        "memory.max": "3221225472",
+        "memory.swap.max": "0",
+        "pids.max": "512"
+      },
+      "proxy": {
+        "cpu.max": "100000 100000",
+        "memory.max": "536870912",
+        "memory.swap.max": "0",
+        "pids.max": "128"
+      },
+      "helper": {
+        "cpu.max": "50000 100000",
+        "memory.max": "134217728",
+        "memory.swap.max": "0",
+        "pids.max": "32"
+      }
+    }
+  },
+  "model_http_requests_sent": false,
+  "credential": "dummy negative-control bytes only; no live key read",
+  "persistent_services_changed": false,
+  "limitations": [
+    "Root filesystem is not globally read-only; root-directory write is denied by nonroot permissions.",
+    "TLS positive verifies gateway reachability and certificate hostname, not provider/model execution.",
+    "Paid dispatch and Restate integration are separate gates.",
+    "CPU, memory, swap and PID bounds are verified. No workspace disk quota is claimed; shared host storage requires operator monitoring.",
+    "This unpaid probe verifies the router image namespace and budget initialization only; alias routing/provider execution requires the separate paid dispatch proof."
+  ],
+  "source_sha256": {
+    "provision_runtime.py": "808106dd5af70f769d5d478ade5d19e75cb113ae9ebf579d2610e81f50c7b3c5",
+    "provision_check.py": "419a2e66c8196a89ebed20073106ab2e8ed803c778455e6d69e9a59cb7b5a264",
+    "netns_firewall.py": "5686c1696428ec95f4e257dc4e89c50e57f62a0b488782e6e70d278d8460858e",
+    "probes/proxy_negatives.py": "5b7478f5024aafa78b7501adb0b853b2fdc8f1c7c878410d19d66cd9d9de9c53",
+    "pricing_policy.py": "fbad8f93a8caaa43eeac0f727986400f26abc242873b3c10b5896f53e5577141",
+    "egress_proxy.py": "41c990562cbba7e07361769be0bf1acd1fac114187bd5cc6e99a91fa62c2045f"
+  },
+  "local_verification": "Actual NUC current-source probe exit0; router model HTTP dispatch intentionally not exercised",
+  "policy": {
+    "model_alias": "auto",
+    "pricing_policy_id": "request-size-pro-2026-10-28-best-effort",
+    "worst_case_request_microdollars": 1398176,
+    "max_requests": 6,
+    "ceiling_microdollars": 2000000,
+    "expiry": "fresh one hour policy for disposable probe"
+  }
+}
