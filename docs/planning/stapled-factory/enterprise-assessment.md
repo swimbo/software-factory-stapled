@@ -1,43 +1,73 @@
 # Enterprise assessment — October 27, 2026
 
-Scope: current local single-operator Restate/OpenHands integration. Default enterprise-assessment 12-category rubric, default weights; security and IAM must pass. This is a conservative source/evidence assessment, not a certification or deployment authorization. Unknown controls receive no credit. Rerun after the local remediation pass. Scope remains a single-operator sandbox; no production target or external release infrastructure is configured. Live recovery results are prior evidence; this assessment adds no paid requests.
+**D, 50.7/100, BLOCKED for enterprise deployment.** Default twelve-category
+rubric, default weights (sum13), security and IAM must-pass. This supersedes the
+pre-NUC44.0 assessment, retained in Git history. Scores are conservative evidence
+judgments, not a compliance certification. The A/B implementation gate still
+fails; no threshold or policy override is asserted.
 
-**Grade D, 44.0/100, BLOCKED for enterprise deployment.** The A/B Phase 11.6 gate does not pass. No threshold override was requested. Existing local recovery capability is useful but does not satisfy the complete factory roadmap.
+Scope: trusted NUC host/Docker administrator and one operator, with unprivileged
+workspace transformations and disposable candidate validation. Kernel isolation
+constrains arbitrary terminal/Python/file code. Privileged external effects,
+unattended multi-unit scheduling, multiuser authorization and automatic activation
+of old backups are not approved by these checks. Generic production worker scope
+remains denied; the persistent control service lacks a per-attempt runtime config.
 
-| Category | Score | Weight | Verified evidence and missing controls |
+## Category scores
+
+| Category | Score | Weight | Evidence and remaining gap |
 |---|---:|---:|---|
-| Security | 64 | 1.5 | worker/egress_guard.py and netns_firewall.py constrain runtime/network; security/pipeline.py provides scanners. Operator-signed sandbox image approval now verifies signature, expiry, immutable IDs and reviewed build-input hashes; configured trust root fails closed. Current npm registry audit: zero vulnerabilities across 34 dependencies. Python/image audit, upstream signed build provenance and whole-tool guard remain unverified. |
-| IAM | 65 | 1.5 | spine/src/main.ts requires signed requests; ingress.ts owner-only bearer credential and route allowlist; operator config permissions checked. Shared single-operator identity, no per-user authorization/access review. |
-| Data governance | 15 | 1.25 | Owner-only configuration/workspaces, credentials excluded from worker. No verified encrypted backups, retention/deletion policy or data inventory. |
-| Compliance | 25 | 1.25 | Durable attempt/fence evidence and planning logs. No compliance control mapping or reviewed access/change evidence. |
-| Operations | 20 | 1 | worker/OPERATOR_CLI.md setup and best-effort spend policy. No SLO, capacity envelope, on-call/escalation or monitored deployment. |
-| Incident response/BCP | 30 | 1 | worker/probes/restate_live_recovery.py crash/fence/successor flow. Actual non-empty Restate WorkUnit state survived cold restore, new claims were rejected, and three altered external fixture components were rejected. No off-host encrypted backup or declared RTO/RPO; independent backup manifest protection remains unverified. |
-| Infrastructure | 55 | 1 | worker/Dockerfile.* and RUNTIME_IMAGES.md pin local IDs and describe local builds. CI configuration exists and signed operator sandbox promotion is implemented. Hosted CI, isolated production parity and upstream signed build promotion remain unverified. |
-| Code quality | 50 | .75 | TypeScript strict build and modular Python. No enforced lint/format gate; large coordinator/probe modules. |
-| Testing | 80 | 1 | Python/Node suites, negative controls, real disposable containers and explicit paid recovery probe. No measured coverage/mutation acceptance evidence or CI execution. |
-| Documentation | 75 | .75 | architecture.md, tech-guide.md, worker/OPERATOR_CLI.md, RUNTIME_IMAGES.md, spine/README.md. Setup is documented; production/release operations incomplete. |
-| Third-party risk | 30 | 1 | Pinned base IDs and npm lock file; vendor dependencies documented. No verified SBOM/license report, image signature approval or current vulnerability audit. |
-| Change management | 20 | 1 | Local initial baseline 9cfad9e exists with clean staged-snapshot gitleaks scan; CI configuration exists. No push, hosted merge protection, independent review, released baseline or tested version rollback. |
+| Security |64|1.5| Actual NUC worker/proxy deny controls, gateway TLS positive control, signed candidate/build bindings. Upstream provenance and image/Python vulnerability audit incomplete. |
+| IAM |65|1.5| Signed Restate endpoint, owner-only bearer/key files, narrow ingress with actual401/404 negatives. Trusted single operator; no multiuser access review. |
+| Data governance |25|1.25| Encrypted/signed off-host backup and isolated stores verified. Retention, deletion and data inventory unverified. |
+| Compliance |25|1.25| Durable attempt/approval evidence and change logs. No verified applicability mapping or organizational control evidence. |
+| Operations |30|1| Dedicated enabled user services, health and scoped restart checks. No SLO, capacity envelope or on-call/escalation policy. |
+| Incident response/BCP |45|1| Live in-flight recovery and exact joined off-host cold restore verified. No declared RTO/RPO, automatic old-generation activation or independent rollback witness. |
+| Infrastructure |65|1| Local-only builds, exact image-transfer identities, frozen NUC release and source publication. Generic production parity and vendor provenance incomplete. |
+| Code quality |50|.75| Strict TypeScript build, modular adapters and independent technical review. No enforced formatting/lint gate; large probe/coordinator modules remain. |
+| Testing |80|1| Python/Node suites, actual NUC crash/duplicate/isolation/egress/candidate and restore controls. Coverage/mutation acceptance unmeasured. |
+| Documentation |80|.75| Reproducible NUC deployment/recovery/operator instructions and exact evidence boundaries. Broader production operations incomplete. |
+| Third-party risk |30|1| Locked npm audit and pinned image content identities. No verified upstream signatures, complete SBOM/license/image audit or vendor fallback policy. |
+| Change management |55|1| Published baseline, local CI receipts/status, required main check/admin enforcement, frozen release and independent agent technical review. Independent human approval and formal release/version policy remain incomplete; main now requires one approving review of the latest push. |
 
-## Findings and production gate disposition
+Weighted sum658.5 /13 =50.65, rounded50.7. Unknown organizational controls receive
+no credit; the restricted runtime scope does not confer enterprise approval.
 
-| ID | Severity | Finding / exact evidence | Disposition |
-|---|---|---|---|
-| ENT-01 | High | No trusted built revision → deployed target → wall/security verdict binding. spine/src/orchestrate.ts deliberately returns needs_validation after commit verification. | PARTIAL: concrete local validation adapter binds archived revision, image, disposable target identity, security and wall verdicts with good/broken/secret controls. Production acceptance remains denied; no external production deployment target is approved. |
-| ENT-02 | High | security/README.md claims every tool operation passes firewall/broker; actual OpenHands terminal runs through Agent Server, not worker/guard.py. | OPEN: enforced production-scope denial prevents promotion; sandbox tooling remains unmediated. No external privileged credentials/effects may be granted until mediated tool integration is demonstrated. |
-| ENT-03 | High | worker/RUNTIME_IMAGES.md explicitly trusts image inputs; IDs establish content identity only. Firewall build obtains unpinned distribution packages. | PARTIAL: real OpenSSL signed operator approval and tamper/expiry/source/image negative controls pass. Independently provision FACTORY_IMAGE_APPROVAL_KEY to mandate the chain; upstream publisher/build provenance is still missing and production remains denied. |
-| ENT-04 | High | No full Restate + attempt DB + anchor + workspace backup/restore drill. OPERATOR_CLI.md records coordinated local rollback limitation. | PARTIAL: disposable cold Restate + guarded-store + workspace recovery probe implements generation validation and conservative fencing. Off-host encrypted backup, independent manifest protection, production recovery and RTO/RPO remain unverified. |
-| ENT-05 | High | Initially source was untracked and no reviewed release baseline or CI merge gate existed. | PARTIAL: repeatable local suite and hosted-CI configuration exist; secret-scanned initial baseline 9cfad9e is committed, followed by fixture inclusion fix 56f3495. Hosted execution, branch protection, independent review and release/rollback evidence remain required. |
-| ENT-06 | Medium | spine/src/wall.ts explicitly passed one run, overriding evaluator triple-run default. | FIXED: default now three; Node test observes actual subprocess arguments, including explicit override. |
-| ENT-07 | Medium | Shared Bifrost billing key and mutable upstream routing; estimate is not actual charge measurement. | ACCEPTED SCOPE: user dropped hard $2 cap. Keep best-effort reservations and label estimates; no actual-charge guarantee. |
-| ENT-08 | Medium | Single process-wide FACTORY_RUNTIME_CONFIG per OPERATOR_CLI.md. | OPEN: only one operator-approved attempt per deployment; no multi-tenant scheduling claim. |
+## Five High findings
 
-No external deployment, host image trust policy, SLO or compliance applicability was invented during this assessment. Completing these organizational/production gates requires an explicit production target and reviewed operating policy, not more synthetic recovery scaffolding. Phases 10–14 remain separate contracts; no later-phase completion is asserted.
+| ID | Current disposition | Verified evidence / remaining boundary |
+|---|---|---|
+| ENT-01 | RESOLVED for trusted operator/disposable candidate scope | Exact Git archive/diff recomputed; operator-signed local build binds revision/baseline/archive/diff/Dockerfile/image config; NUC image content checked. Good wall/security passes; broken wall and secret source reject. Private signed Restate acceptance binds selected attempt/revision and serializes validation; substitution/tamper/stale/replay and public-route controls reject. This is candidate evaluation, not continuing production-service health. |
+| ENT-02 | RESOLVED for unprivileged workspace scope | Actual arbitrary-code container negatives deny host fixtures/stores/socket, direct TCP/DNS and root-directory writes; workspace writes pass. Kernel boundaries apply to every tool process; no regex/per-command mediation claim. Container root filesystem is not globally read-only. Privileged external effects remain denied. |
+| ENT-03 | OPEN High | Exact pinned OpenHands/Python/Restate artifact discovery found no supply-chain signatures. Exact identity/issuer Cosign verifier fails closed. Operator image approval/local build signing proves operator provenance, not upstream publisher provenance; firewall package acquisition and complete dependency/image audit remain gaps. |
+| ENT-04 | RESOLVED for tested single-operator cold restore | Exact joined Restate data, guarded attempt/anchor, shared budget/anchor and both workspaces restored from121 encrypted/authenticated off-host files. Actual restored WorkUnit successor revision equals guarded result and GitHEAD; ledger unchanged. Older backup activation requires manual quarantine/fencing; no automatic anti-rollback or whole-host disaster recovery claim. |
+| ENT-05 | PARTIAL / OPEN High for enterprise release governance | Verified baseline published; main requires local-ci/verified including admins and disallows force/deletion. Local builds/receipts, frozen release, actual version rollback and independent agent review exist. These do not establish independent human approval, a completed independent approval or a formal enterprise release policy. PR review requirements are now configured and awaiting approval. No GitHub runner is required or used. |
 
-Follow-up target selection: user selected a new Railway project in the existing workspace. The private Restate foundation is now deployed and SSH-verified as recorded in railway-target.md. This is an empty control service, not the factory deployment/validation adapter or a restore drill. The last formal score remains D 44.0; the five production High findings are not closed by project creation or control-service health. GitHub origin is configured; local baseline and corrected fixture commit exist, but code has not been pushed and hosted CI is unverified.
+Two enterprise High findings remain open. ENT-01/02/04 dispositions are expressly
+limited to the tested trusted-operator scope; expanding privileges or deployment
+scope requires reassessment.
 
-## Remediation rerun evidence
+## Other tracked findings
 
-Real OpenSSL approval verification and its negative controls passed with the operator CLI tests (8 tests). The configured service trust root requires approval before credential/Docker access. Without that setting this remains an explicitly operator-trusted sandbox. The real Docker validation probe passed good wall/security controls and rejected broken wall and secret source controls, checking archive/image/container identity before and after. The cold Restate restore preserved non-empty WorkUnit state and rejected new claims and three altered external fixture components; root verification passed 247 Python tests, 22 Node tests and TypeScript build. npm audit reported zero vulnerabilities across 34 dependencies. Baseline 9cfad9e passed staged-snapshot gitleaks scanning, with only deliberate fixture allow annotations. No source has been pushed or hosted CI executed. No High finding is closed solely by adding documentation or blocking production.
+- ENT-06 fixed: triple wall runs are the default; real regression observes arguments.
+- Evaluator redirect gap fixed: candidate redirects cannot reach another host
+  service, and environment proxies are ignored. A real two-server negative
+  control verifies rejection.
+- ENT-07 accepted scope: user dropped the hard$2 actual-charge ceiling. Reservations
+  remain best-effort. Five live NUC requests reserved$1.579010; actual charges
+  were not measured. No non-overshooting billing guarantee is asserted.
+- ENT-08 open Medium: one operator-approved attempt configuration per deployment;
+  no multi-tenant/unattended scheduling claim.
 
-Scores use the complete 12-category default rubric and weights (sum 13). The score is 44.0/100 (weighted sum 572.25 divided by 13), D/BLOCKED; partial local controls do not satisfy the A/B enterprise gate. Unknown external/organizational controls receive no additional credit.
+## Source and evidence
+
+The baseline and follow-ups through `f5f18a4` were pushed only after isolated-clone
+local CI. Receipts record source/tree, commands, exits and log hashes. GitHub
+runners and provider-side builds are excluded by user policy. Final verification
+and release evidence are recorded in progress.md and docs/verification/.
+
+See `nuc-target.md`, `nuc-worker-verification.md`, worker/RUNTIME_IMAGES.md,
+spine/VALIDATION_BINDING.md and deployment/nuc/BACKUP.md. The user corrected the
+target from Railway to NUC; disposable Railway sandboxes were removed and the
+previously created persistent private service/volume preserved. No shared NUC
+services were restarted or pruned. No later implementation phase is marked done.

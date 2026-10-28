@@ -1,0 +1,30 @@
+{
+  "scope": "operator-trusted-nuc-disposable-candidate",
+  "date": "2026-10-27",
+  "release": "9f40ca50e50220248fd104ddda3bdaa4cc968b18",
+  "release_manifest_sha256": "8afa428f25c3e9b4b4e459d95ed03288be026cb3f53f474ddc4ce79c9f6b6dfe",
+  "verified_release_files": 764,
+  "build_public_key_sha256": "4019990c18f985f2f89c14d71a5a7f28c6bf9faa1484398b6006cb882a953d70",
+  "source_revision": "ded4cc3373a36c17b0974c1ea4f6f7d8a8a19149",
+  "artifact_remote_manifest": "sha256:d871e6d8dde1da8b61530aea11076021545a2cbca678c3e4a14ffababcf0bcde",
+  "artifact_signed_config": "sha256:2de2da069cf59961245fd773944e8cdb3f794bcbdeac9a098c88fd94787e97ab",
+  "controls": {
+    "good": {"security": "pass", "wall": "15/15", "accepted": true},
+    "broken": {"security": "pass", "wall": "0/15", "accepted": false},
+    "secret": {"security": "fail-critical", "wall": "15/15", "accepted": false},
+    "archive_substitution_rejected": true,
+    "diff_substitution_rejected": true,
+    "build_signature_substitution_rejected": true,
+    "image_substitution_rejected": true,
+    "receipt_tamper_rejected_terminal": true,
+    "stale_unit_attempt_revision_rejected": true,
+    "receipt_replay_rejected": true,
+    "public_receipt_route": 404
+  },
+  "actual_validation_cli_unit": "validation-cli-7e5c2b610ce743e5ae5800f8c4a57ae0",
+  "negative_controls_unit": "validation-212228ffdd8144499f4dcdaafa14e703",
+  "release_rollback": {"from": "9f40ca50e50220248fd104ddda3bdaa4cc968b18", "to": "f5f18a4d848a687c9d9a2be7bd98dc3828bc4dd6", "returned_to": "9f40ca50e50220248fd104ddda3bdaa4cc968b18", "state_preserved": "validated-disposable-candidate", "restate_data_restored": false},
+  "candidate_confinement": ["network-none", "nonroot", "read-only", "zero-host-mounts", "cap-drop-all", "no-new-privileges", "fixed-loopback-docker-exec-http"],
+  "security_engines": {"sast": "regex-fallback", "secret": "regex-fallback", "dependency": "manifest-flag"},
+  "limitations": ["operator and Docker daemon trusted", "disposable candidate, not ongoing production service", "configured regex gate, not full external SAST coverage", "candidate control source is trusted fixture", "no paid model requests in this verification"]
+}

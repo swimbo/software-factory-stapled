@@ -10,9 +10,9 @@ and artifact transfer. No GitHub runners or remote provider builds are used.
 - SSH alias `hermes-control`, host `nuc-hermes`, operator bo uid1000, Linux amd64,
   Docker29.8.0. Existing shared workloads were inventoried and left running.
 - Frozen release:
-  `/home/bo/.local/share/stapled-factory-control/releases/f5f18a4d848a687c9d9a2be7bd98dc3828bc4dd6`.
-  All745 transferred file hashes matched. Release manifest SHA256:
-  `b931dade2e2d4134baa84c433cf481409e28425fa50907ab2276b05e7a206653`.
+  `/home/bo/.local/share/stapled-factory-control/releases/9f40ca50e50220248fd104ddda3bdaa4cc968b18`.
+  All764 transferred file hashes matched. Release manifest SHA256:
+  `8afa428f25c3e9b4b4e459d95ed03288be026cb3f53f474ddc4ce79c9f6b6dfe`.
 - Enabled user services: `factory-restate`, `factory-endpoint`, `factory-ingress`.
   Restate admin19070/raw18080, signed endpoint19080 and bearer ingress19081 bind
   loopback only. Restate fabric5122 also binds loopback.
@@ -64,3 +64,21 @@ alongside its real stores/anchors/workspaces. Its signed off-host restore booted
 successfully and matched WorkUnit successor revision, guarded result and Git HEAD,
 with unchanged shared reservations. This supersedes the initial incomplete worker
 backup limitation, while older-backup activation still requires quarantine.
+
+## Trusted candidate acceptance
+
+The actual NUC validator derived the source archive and diff from the selected
+Git commits, verified the operator-signed local build and actual image config,
+then ran the candidate with network-none, read-only root and no host mounts.
+Good passed15/15, broken0/15, and secret-bearing source was rejected despite
+passing15/15 wall checks. Archive/diff/signature/image substitutions were denied.
+The validation CLI evaluated, signed and accepted through private Restate; stale,
+tampered and replayed evidence was rejected. The public route stayed404.
+
+Security engines were explicitly regex fallbacks/manifest flags; this does not
+prove full external SAST coverage. Candidate validation grants no production
+deploy/merge permission. See docs/verification/nuc-validation.json.
+
+Actual release rollback9f40ca5→f5f18a4→9f40ca5 preserved validated state without
+restoring Restate data. The current persistent worker still requires an explicit
+per-attempt runtime configuration; arbitrary production dispatch stays blocked.

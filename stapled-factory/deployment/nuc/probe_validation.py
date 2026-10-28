@@ -21,7 +21,8 @@ def call(method,body,unit_id=unit,base='http://127.0.0.1:18080',auth=False):
     if auth:headers['Authorization']='Bearer '+(root/'ingress.token').read_text()
     req=urllib.request.Request(base+'/WorkUnit/'+unit_id+'/'+method,json.dumps(body).encode(),headers=headers)
     try:
-        with urllib.request.urlopen(req,timeout=20) as r:return r.status,json.load(r)
+        with urllib.request.urlopen(req,timeout=20) as r:
+            raw=r.read();return r.status,json.loads(raw) if raw else None
     except urllib.error.HTTPError as e:return e.code,e.read().decode()
 
 def envelope(evidence):
