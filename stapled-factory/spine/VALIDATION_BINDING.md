@@ -25,8 +25,10 @@ successor selection, failed security scan and failed wall verdict. All must
 preserve the non-accepted state. External merge and production promotion retain
 their separate approval boundaries.
 
-No production deployment provider/target is configured in the current local
-integration. A unit test of receipt shape cannot substitute for this evidence.
+Railway project `a6f58ea9-2483-4606-bb6a-d51a9c9d2082` is selected, with a private
+Restate control service. A deployed candidate application target and its provider
+artifact binding have not yet been verified. A unit test cannot substitute for
+that evidence.
 
 ## Executable local artifact verification
 
@@ -45,3 +47,14 @@ security pipeline may use regex fallbacks, and operator-selected entrypoints and
 the Docker daemon are trusted. This adapter deliberately has no authority to
 change Restate state to `validated`: production provider binding and a serialized
 selected-attempt acceptance transition are still required. ENT-01 remains open.
+
+## Provider adapter boundary
+
+`deployed_validation.py` binds a complete operator-selected deployment identity
+to authenticated provider snapshots of the **active** service before scanning,
+between scanning and evaluation, and after triple evaluation. It rejects changed
+source, image, URL, deployment, status or scenario bytes and carries failed wall
+and security verdicts through to rejection. Its tests exercise substitutions and
+a replacement during evaluation. A real provider implementation, deployed
+candidate and internal serialized Restate acceptance remain required; this
+boundary alone does not close ENT-01 or accept caller receipts.

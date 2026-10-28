@@ -1,9 +1,10 @@
 """Guarded execution — the firewall + broker wrapped around the worker's tool calls.
 
-This is the deterministic boundary every worker tool call passes through. The
-OpenHands Agent Server's command/file execution path should call `guarded_exec`
-instead of executing directly, and obtain credentials only through
-`request_credential` (which mints a short-lived broker token).
+This boundary applies only to callers that explicitly invoke it. The current
+OpenHands Agent Server executes terminal and file tools outside this wrapper.
+Do not grant it privileged credentials or production effects based on this
+classifier. Arbitrary shell/Python execution requires an external capability
+boundary; a command-name classifier cannot mediate all resulting effects.
 
 - firewall.check(op) classifies by EFFECT:
     "allow"   → execute
