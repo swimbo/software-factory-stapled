@@ -1,0 +1,55 @@
+{
+  "scope": "unpaid real docker-exec bridge integration on local Docker, not NUC deployment or model execution",
+  "source_sha256": "ad87f449681bc4dd3614618cea66802c27c682ecac5ceb00d170f91969313431",
+  "image": "sha256:48e077b33fa8782146b1ec8d00e7cca0d83dca5eff92089193becfa23f8f4c3f",
+  "missing_key_status": 401,
+  "invalid_supplied_key_status": 200,
+  "methods": [
+    {
+      "method": "GET",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    },
+    {
+      "method": "POST",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    },
+    {
+      "method": "PUT",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    },
+    {
+      "method": "PATCH",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    },
+    {
+      "method": "DELETE",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    },
+    {
+      "method": "OPTIONS",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    },
+    {
+      "method": "PURGE",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    },
+    {
+      "method": "HEAD",
+      "status": 200,
+      "candidate_received_exact_inputs": true
+    }
+  ],
+  "network": "none",
+  "user": "65534:65534",
+  "readonly": true,
+  "mounts": [],
+  "host_header_cannot_change_destination": true,
+  "paid_requests": 0
+}

@@ -24,6 +24,51 @@ for line in sys.stdin:
  c.close()
 """
 
+
+def forwarder_handler(transport, transport_lock):
+    """Keep scenario HTTP semantics while fixing transport to the candidate."""
+    class Forwarder(BaseHTTPRequestHandler):
+        def __getattr__(self, name):
+            # BaseHTTPRequestHandler dispatches through do_<method>. Even a
+            # candidate-specific verb must reach the candidate, not a proxy 501.
+            if name.startswith('do_'):
+                return self.forward
+            raise AttributeError(name)
+
+        def forward(self):
+            try:
+                length = int(self.headers.get('Content-Length', '0'))
+            except ValueError:
+                self.send_error(400)
+                return
+            if not 0 <= length <= 1048576:
+                self.send_error(413)
+                return
+            hop_by_hop = {'connection', 'keep-alive', 'proxy-authenticate',
+                          'proxy-authorization', 'te', 'trailer',
+                          'transfer-encoding', 'upgrade', 'content-length'}
+            for value in self.headers.get_all('Connection', []):
+                hop_by_hop.update(token.strip().lower() for token in value.split(','))
+            headers = {k: v for k, v in self.headers.items() if k.lower() not in hop_by_hop}
+            # CLIENT always connects to loopback:8000 in the network-none
+            # candidate. Host and other scenario headers cannot change it.
+            request = dict(method=self.command, path=self.path,
+                           body=base64.b64encode(self.rfile.read(length)).decode(),
+                           headers=headers)
+            with transport_lock:
+                transport.stdin.write(json.dumps(request)+'\n')
+                transport.stdin.flush()
+                response=json.loads(transport.stdout.readline(1500000))
+            body=base64.b64decode(response['body'])
+            self.send_response(response['status'])
+            self.send_header('Content-Type','application/json')
+            self.send_header('Content-Length',str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self,*args):pass
+    return Forwarder
+
 def command(*args):
     return subprocess.check_output(args,text=True).strip()
 
@@ -71,21 +116,8 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
                     raise ValueError('candidate identity/isolation changed')
             transport=subprocess.Popen(['docker','exec','-i',container,'python3','-u','-c',CLIENT],stdin=subprocess.PIPE,stdout=subprocess.PIPE,text=True)
             transport_lock=threading.Lock()
-            class Forwarder(BaseHTTPRequestHandler):
-                def do_GET(self):self.forward()
-                def do_POST(self):self.forward()
-                def forward(self):
-                    length=int(self.headers.get('Content-Length','0'))
-                    if length>1048576: self.send_error(413);return
-                    # Every destination is fixed inside the network-none candidate.
-                    request=dict(method=self.command,path=self.path,body=base64.b64encode(self.rfile.read(length)).decode(),headers={k:v for k,v in self.headers.items() if k.lower() in ('content-type','authorization')})
-                    with transport_lock:
-                        transport.stdin.write(json.dumps(request)+'\n');transport.stdin.flush()
-                        response=json.loads(transport.stdout.readline(1500000))
-                    body=base64.b64decode(response['body']);self.send_response(response['status']);self.send_header('Content-Type','application/json');self.send_header('Content-Length',str(len(body)));self.end_headers();self.wfile.write(body)
-                def log_message(self,*args):pass
             identity();time.sleep(.3)
-            server=ThreadingHTTPServer(('127.0.0.1',0),Forwarder)
+            server=ThreadingHTTPServer(('127.0.0.1',0),forwarder_handler(transport,transport_lock))
             threading.Thread(target=server.serve_forever,daemon=True).start()
             target='http://127.0.0.1:'+str(server.server_port)
             wall=json.loads(command('python3',str(ROOT/'wall/evaluator/cli.py'),'--target',target,'--scenarios',str(scenarios),'--runs','3'))
