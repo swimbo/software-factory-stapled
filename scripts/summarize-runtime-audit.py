@@ -44,7 +44,7 @@ def summarize(scans, output):
             'unique_advisories': len({f['id'] for f in matches})}
     (output / 'runtime-package-inventory.json').write_text(json.dumps(inventories, indent=2) + '\n')
     with (output / 'runtime-findings.csv').open('w', newline='') as handle:
-        writer = csv.DictWriter(handle, fieldnames=list(findings[0]) if findings else
+        writer = csv.DictWriter(handle, lineterminator='\n', fieldnames=list(findings[0]) if findings else
             ['role', 'target', 'id', 'severity', 'package', 'version', 'fixed', 'path', 'title', 'url'])
         writer.writeheader()
         writer.writerows(findings)
