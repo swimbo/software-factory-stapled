@@ -31,6 +31,14 @@ def private(path, data):
     finally:os.close(fd)
 
 
+
+def bundle_hash(path):
+    # docker cp can preserve an untrusted worker symlink. Never dereference it
+    # on the operator host, even while only computing an artifact digest.
+    if path.is_symlink() or not path.is_file():
+        raise ValueError('exported bundle must be a regular file, not a worker symlink')
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
 def post(route, data):
     token = (ROOT / 'ingress.token').read_text().strip()
     req = urllib.request.Request('http://127.0.0.1:19081/' + route,
@@ -238,13 +246,13 @@ def main(action, data):
                 code = "import sqlite3,json;d=sqlite3.connect('file:/budget/b.db?mode=ro',uri=True);print(json.dumps({t:d.execute('SELECT * FROM '+t).fetchall() for t in ('budgets','monetary_budgets')}))"
                 ledger = json.loads(command('docker', 'exec', proxy, 'python3', '-c', code))
                 result = {'state': state, 'revision': revision, 'changed': changed, 'budget': ledger,
-                          'bundle_sha256': hashlib.sha256(bundle.read_bytes()).hexdigest(),
+                          'bundle_sha256': bundle_hash(bundle),
                           'actual_charges': 'unknown', 'runtime_validation': last,
                           'worker': worker, 'proxy': proxy}
                 private(approval / 'result.json', result)
         else:
             result = completed
-            if result.get('revision') and hashlib.sha256((approval / 'result.bundle').read_bytes()).hexdigest() != result['bundle_sha256']:
+            if result.get('revision') and bundle_hash(approval / 'result.bundle') != result['bundle_sha256']:
                 raise ValueError('saved result bundle changed')
         if result.get('revision'):
             worker, proxy = result['worker'], result['proxy']

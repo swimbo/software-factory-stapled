@@ -201,3 +201,10 @@ def test_budget_summary_labels_reservations_without_inventing_actual_cost():
     assert report['estimated_reserved_usd'] == .25 and report['estimated_target_usd'] == 2
     assert report['actual_charges'].startswith('unknown')
     assert cli.budget_summary({})['estimated_reserved_usd'] is None
+
+
+def test_export_does_not_dereference_worker_symlink_on_host(tmp_path):
+    secret = tmp_path / 'operator-private';secret.write_text('synthetic host fixture')
+    export = tmp_path / 'result.bundle';export.symlink_to(secret)
+    with pytest.raises(ValueError, match='worker symlink'):nuc.bundle_hash(export)
+    assert secret.read_text() == 'synthetic host fixture'
