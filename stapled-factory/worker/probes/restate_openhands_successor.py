@@ -7,6 +7,7 @@ worker CLI with a private operator configuration and a synthetic gateway. The
 unsigned endpoint and synthetic images are for this disposable probe only.
 """
 import json
+from contextlib import nullcontext
 import os
 from pathlib import Path
 import shutil
@@ -43,7 +44,10 @@ def stop(proc):
 
 def main():
     assert (SPINE / 'dist' / 'build.js').is_file(), 'run npm run build in spine first'
-    with tempfile.TemporaryDirectory(prefix='factory-restate-synthetic-') as tmp:
+    retained = os.environ.get('FACTORY_PROBE_RETAIN_ROOT')
+    if retained: Path(retained).mkdir(mode=0o700, parents=True, exist_ok=False)
+    context = nullcontext(retained) if retained else tempfile.TemporaryDirectory(prefix='factory-restate-synthetic-')
+    with context as tmp:
         root = Path(tmp).resolve()
         app, bindir = root / 'app', root / 'bin'
         app.mkdir(); bindir.mkdir(); (root / 'anchor').mkdir()
@@ -52,6 +56,9 @@ def main():
         credential = root / 'home' / '.dsh' / '.credentials.yaml'
         credential.write_text('refs:\n  BIFROST_API_KEY: dummy-probe-key\n')
         credential.chmod(0o600)
+        key_file = root / 'synthetic-key'
+        key_file.write_text('dummy-probe-key')
+        key_file.chmod(0o600)
         shutil.copytree(SPINE / 'dist', app / 'dist')
         shutil.copy(SPINE / 'package.json', app / 'package.json')
         (app / 'node_modules').symlink_to(SPINE / 'node_modules', target_is_directory=True)
@@ -66,7 +73,7 @@ createServer(restate.createEndpointHandler({services:[workUnit,orchestrate,recon
         probe = ROOT / 'worker' / 'probes' / 'successor_provisioned_agent.py'
         env = dict(os.environ, FACTORY_ATTEMPT_DB=str(root / 'db'),
                    FACTORY_ATTEMPT_ANCHOR=str(root / 'anchor' / 'file'),
-                   FACTORY_RUNTIME_CONFIG=str(root / 'runtime.json'), HOME=str(root / 'home'),
+                   FACTORY_RUNTIME_CONFIG=str(root / 'runtime.json'), FACTORY_GATEWAY_KEY_FILE=str(key_file), HOME=str(root / 'home'),
                    FACTORY_PROBE_SYNC=str(root), FACTORY_PROBE_TOOL='1', FACTORY_PROBE_REAL_CLI='1')
         with socket.socket() as sock:
             sock.bind(('127.0.0.1', 0)); env['TEST_PORT'] = str(sock.getsockname()[1])
@@ -88,14 +95,18 @@ createServer(restate.createEndpointHandler({services:[workUnit,orchestrate,recon
                 # Disposable VM only: loopback host network permits the colocated
                 # endpoint, while never publishing raw Restate ports publicly.
                 restate_container = 'factory-probe-restate-' + uuid.uuid4().hex
+                state_dir = root / 'restate-data'
+                state_dir.mkdir(mode=0o700)
                 server = subprocess.Popen(['docker', 'run', '--rm', '--name', restate_container,
-                    '--network', 'host', container_image, '--base-dir', '/tmp/restate-probe',
-                    '--bind-ip', '127.0.0.1', '--listen-mode', 'tcp', '--no-logo'],
+                    '--user', str(os.getuid())+':'+str(os.getgid()),
+                    '--mount', 'type=bind,src='+str(state_dir)+',dst=/restate-data',
+                    '--network', 'host', container_image, '--base-dir', '/restate-data', '--node-name', 'factory-recovery-probe',
+                    '--bind-ip', '127.0.0.1', '--bind-port', '15122', '--listen-mode', 'tcp', '--no-logo'],
                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, start_new_session=True)
                 admin, ingress = 'http://127.0.0.1:9070', 'http://127.0.0.1:8080'
                 for _ in range(100):
                     try:
-                        if request(admin + '/health').get('admin_status') == 'Ready': break
+                        if urllib.request.urlopen(admin + '/health', timeout=1).status == 200: break
                     except (OSError, ValueError): pass
                     time.sleep(.1)
                 else: raise RuntimeError('container Restate did not become ready')
@@ -160,6 +171,8 @@ createServer(restate.createEndpointHandler({services:[workUnit,orchestrate,recon
             assert state['stage'] == 'needs_validation' and state['build']['status'] == 'unknown'
             assert state['successor']['attempt_id'] == 'unit:0:successor'
             assert state['successor']['conversation_id'] == successor
+            from container_negatives import verify
+            verify(prefix+'-successor', root)
             revision = state['successor']['git_revision']
             assert len(revision) == 40
             assert (root / 'successor-workspace' / 'agent-effect.txt').read_text() == 'agent effect\n'
@@ -169,11 +182,17 @@ createServer(restate.createEndpointHandler({services:[workUnit,orchestrate,recon
                 "import sqlite3; d=sqlite3.connect('/budget/b.db'); print(*d.execute('select used, spent from budgets join monetary_budgets using (attempt)').fetchone())"],
                 capture_output=True, text=True, check=True).stdout.strip()
             assert ledger == '5 2000000', ledger
+            before_containers = subprocess.check_output(['docker', 'inspect', prefix+'-worker', prefix+'-successor'], text=True)
+            before_state = request(ingress + '/WorkUnit/unit/getState', {})
             try:
                 duplicate = request(ingress + '/Reconciliation/unit/restart', {})
                 assert duplicate != 'needs_validation'
             except urllib.error.HTTPError as exc:
                 assert exc.code == 500
+            assert request(ingress + '/WorkUnit/unit/getState', {}) == before_state
+            assert subprocess.check_output(['docker', 'inspect', prefix+'-worker', prefix+'-successor'], text=True) == before_containers
+            assert subprocess.check_output(['docker','exec',proxy,'python3','-c',
+                "import sqlite3; d=sqlite3.connect('/budget/b.db'); print(*d.execute('select used, spent from budgets join monetary_budgets using (attempt)').fetchone())"], text=True).strip() == ledger
             print('PASS: real Restate invoked the real worker CLI; fenced source, reconciled successor commit, shared synthetic $2 ledger; no real provider charges')
 
         finally:

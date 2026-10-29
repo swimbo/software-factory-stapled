@@ -1,0 +1,83 @@
+{
+  "revision": "f5f18a4d848a687c9d9a2be7bd98dc3828bc4dd6",
+  "tree": "341bea6f21848af2ec37554137c5a0af8688ac65",
+  "started_at": "2026-10-28T03:20:27.555204+00:00",
+  "runner": "local",
+  "steps": [
+    {
+      "name": "secrets",
+      "command": [
+        "gitleaks",
+        "dir",
+        ".",
+        "--redact",
+        "--no-banner"
+      ],
+      "exit_code": 0,
+      "log_sha256": "9aac1205213e73b57a5e0f81a46075f13c7c10b381ebe9ce8f924201d0f8e7f8"
+    },
+    {
+      "name": "python",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "worker/tests",
+        "security/tests",
+        "wall/tests",
+        "wall/isolation",
+        "spine/python_tests",
+        "deployment/nuc",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c657a86e4d9b60a4ae6cc80b1dadf4d52dff8c6b26720a08c48f0ef5754a1496"
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "bdf11a0bbebe1dd20e0fa7b12da04d848cd43832bd719889680c155094df689c"
+    },
+    {
+      "name": "audit",
+      "command": [
+        "npm",
+        "audit",
+        "--audit-level=high"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "name": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f78a4b179b39a62de1f139ab98ad784486d0ff3aa0a49605d3db25bf38eb470d"
+    },
+    {
+      "name": "node",
+      "command": [
+        "node",
+        "--test",
+        "tests/build.test.mjs",
+        "tests/endpoint.test.mjs",
+        "tests/ingress.test.mjs",
+        "tests/reconcile.test.mjs",
+        "tests/wall.test.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "55b4f1f05e3e714da5a3c455f46b59e44e0af8bedc3509ec2f5eec5847c7be83"
+    }
+  ],
+  "passed": true,
+  "finished_at": "2026-10-28T03:21:04.319455+00:00"
+}

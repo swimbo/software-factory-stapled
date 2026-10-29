@@ -1,0 +1,66 @@
+{
+  "local_config": "sha256:f43c1f4dc73ea71be29665e58a04196197746a4d1dd3d3df68ccf3f42fc0fa45",
+  "nuc_manifest": "sha256:fdf080d514cc5225b85fd7fe0a2c8177f65ca2d439f979246839d34c16ebda82",
+  "package_inventory_unchanged": true,
+  "packages": 106,
+  "scan_sha256": "3830a892b33418695bfce57ebc3c957c7df6320e1307f168d93b0eee8d92f063",
+  "change": "Routed tasks admit12requests instead of canary6; pricingpolicyv2, same2USDestimated monetary target and sizebasedreservations; initialattemptledgerunchanged",
+  "build_metadata": {
+    "buildx.build.provenance": {
+      "builder": {
+        "id": ""
+      },
+      "buildType": "https://mobyproject.org/buildkit@v1",
+      "materials": [
+        {
+          "uri": "pkg:docker/python?digest=sha256:f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457&platform=linux%2Famd64",
+          "digest": {
+            "sha256": "f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457"
+          }
+        }
+      ],
+      "invocation": {
+        "configSource": {
+          "entryPoint": "Dockerfile.proxy"
+        },
+        "parameters": {
+          "frontend": "dockerfile.v0",
+          "args": {
+            "force-network-mode": "none"
+          },
+          "locals": [
+            {
+              "name": "context"
+            },
+            {
+              "name": "dockerfile"
+            }
+          ],
+          "root": {
+            "configSource": {
+              "path": "Dockerfile.proxy"
+            },
+            "request": {
+              "args": {
+                "force-network-mode": "none",
+                "vcs:localdir:context": "stapled-factory/worker",
+                "vcs:localdir:dockerfile": "stapled-factory/worker",
+                "vcs:revision": "2e5c3865ecacc0060f317f270aba2915d10e4da6",
+                "vcs:source": "https://github.com/swimbo/software-factory-stapled"
+              }
+            }
+          },
+          "compatibilityVersion": 30
+        },
+        "environment": {
+          "dockerfileVersion": "1.27.0",
+          "platform": "linux/arm64"
+        }
+      }
+    },
+    "buildx.build.ref": "default/default/x8egmoo7ouy9nmfeitdtm0ezy",
+    "containerimage.config.digest": "sha256:f43c1f4dc73ea71be29665e58a04196197746a4d1dd3d3df68ccf3f42fc0fa45",
+    "containerimage.digest": "sha256:f43c1f4dc73ea71be29665e58a04196197746a4d1dd3d3df68ccf3f42fc0fa45",
+    "image.name": "docker.io/library/stapled-phase9-example-proxy:20261028"
+  }
+}

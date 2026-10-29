@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "kind": "independent_version_baseline_gate",
+  "runs_per_scenario": 3,
+  "source_sha256": "38fc8265813175db9668cd941f2385ffdb5b5e836fdeafe4164d0857ca3d6416",
+  "operator_scenarios_sha256": "3c5fe0887d7fa15c6c83843013cce24196f6cb36030ff20ec6f96290bbb627f9",
+  "original_auth_scenarios_unchanged": true,
+  "controls": {
+    "baseline_version_absent": {
+      "passed": false,
+      "scenario_runs_passed": 15,
+      "scenario_runs_total": 18,
+      "scenario_quorum_passed": 5,
+      "scenario_count": 6,
+      "aggregate_pass_rate": 0.8333333333333334,
+      "failure_message": "service-version-and-route-boundary: GET /version returned 404 (expected 200)",
+      "candidate_sha256": "38fc8265813175db9668cd941f2385ffdb5b5e836fdeafe4164d0857ca3d6416"
+    },
+    "known_correct_version_endpoint": {
+      "passed": true,
+      "scenario_runs_passed": 18,
+      "scenario_runs_total": 18,
+      "scenario_quorum_passed": 6,
+      "scenario_count": 6,
+      "aggregate_pass_rate": 1.0,
+      "failure_message": "",
+      "candidate_sha256": "d4d1b6d12b0fffb08e5338d1e9501702cb61dcf36637a6adcec91c51d9484d74"
+    }
+  }
+}

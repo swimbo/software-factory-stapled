@@ -1,0 +1,44 @@
+{
+  "case": "simple",
+  "unit": "nuc-router-simple-20261028-01",
+  "session_id": "4b856784-ff4a-5863-b1f1-fceb9d8298e1",
+  "response": {
+    "http_status": 200,
+    "model": "deepseek-v4.1-flash:1017",
+    "usage": {
+      "input_tokens": 9,
+      "cache_creation_input_tokens": 0,
+      "cache_read_input_tokens": 0,
+      "cache_creation": {
+        "ephemeral_5m_input_tokens": 0,
+        "ephemeral_1h_input_tokens": 0
+      },
+      "output_tokens": 15
+    }
+  },
+  "gateway_logs": [
+    {
+      "id": "d3b44514-9c8f-4d76-881b-493e38778490",
+      "session_id": "4b856784-ff4a-5863-b1f1-fceb9d8298e1",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic default Flash",
+      "complexity_tier": "SIMPLE",
+      "complexity_mechanism": "llm",
+      "status": "success",
+      "cost": null
+    }
+  ],
+  "request_body_bytes": 105,
+  "ledger": {
+    "requests": 1,
+    "estimated_microdollars": 14194
+  },
+  "allocation_id": "71d545722c1a40b190b52d3175a05fba",
+  "retained_budget_volume": "factory-71d545722c1a40b190b52d3175a05fba-budget",
+  "retained_anchor_volume": "factory-71d545722c1a40b190b52d3175a05fba-anchor",
+  "factory_revision": "36cec5b2d3d52ebeb8273d255e3c0bb2469f51d0",
+  "scope": "one bounded live route check through signed production proxy, not an OpenHands conversation",
+  "actual_charges": "unknown; null gateway costs are not zero",
+  "verified_at": "2026-10-28T15:31:19.318087+00:00"
+}

@@ -1,0 +1,84 @@
+{
+  "revision": "3e15fb4aee87b2acb8c457ee42c0916c2f6f0913",
+  "tree": "ff5467c4727ccf54f481ce2a7c41e10c602409cb",
+  "started_at": "2026-10-28T03:51:26.083861+00:00",
+  "runner": "local",
+  "steps": [
+    {
+      "name": "secrets",
+      "command": [
+        "gitleaks",
+        "dir",
+        ".",
+        "--redact",
+        "--no-banner"
+      ],
+      "exit_code": 0,
+      "log_sha256": "70e7151055d15782d1e4815cee5510c677fbd334ee36943a5da6c771edba3caf"
+    },
+    {
+      "name": "python",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "worker/tests",
+        "security/tests",
+        "wall/tests",
+        "wall/isolation",
+        "spine/python_tests",
+        "deployment/nuc",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "89979f60c921efe1b86629e6954bcc4dd00652f4dd19a271d9d101ddc7b804be"
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "0cad137dbd8214bb94754a7e116dd04ffccec728b4373dd58225e7f82fe60542"
+    },
+    {
+      "name": "audit",
+      "command": [
+        "npm",
+        "audit",
+        "--audit-level=high"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "name": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f78a4b179b39a62de1f139ab98ad784486d0ff3aa0a49605d3db25bf38eb470d"
+    },
+    {
+      "name": "node",
+      "command": [
+        "node",
+        "--test",
+        "tests/build.test.mjs",
+        "tests/endpoint.test.mjs",
+        "tests/ingress.test.mjs",
+        "tests/reconcile.test.mjs",
+        "tests/validation.test.mjs",
+        "tests/wall.test.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "5e308b68a2debebbb770b71d8606b356b24447eba52c7d81448af2426afbcd9a"
+    }
+  ],
+  "passed": true,
+  "finished_at": "2026-10-28T03:51:56.890786+00:00"
+}

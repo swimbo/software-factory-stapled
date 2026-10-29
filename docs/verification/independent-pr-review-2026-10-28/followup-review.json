@@ -1,0 +1,20 @@
+{
+  "status": "complete",
+  "original_heads": {
+    "pr1": "c97b52ef4ffe2322b9d504d8731b3bdbfcc69ab4",
+    "pr2": "115cf150b65f5132c5e6a0fb62c73edfa9cb8b0e"
+  },
+  "finding_closure": {
+    "title": "Preserve scenario request headers through candidate validation",
+    "status": "closed in reviewed local delta",
+    "evidence": "Read extracted forwarder and CLIENT; independently ran all nine HTTP/subprocess regression cases, including invalid custom credentials vs absent credentials, PUT/PATCH/DELETE/HEAD/OPTIONS/PURGE, body preservation, hop-by-hop removal and fixed destination with arbitrary Host. 9 passed in5.42s."
+  },
+  "findings": [],
+  "pr2": "Unchanged; original independent review found no actionable findings and five added regressions passed.",
+  "reviewed_local_sha256": {
+    "stapled-factory/spine/prebuilt_validation.py": "ad87f449681bc4dd3614618cea66802c27c682ecac5ceb00d170f91969313431",
+    "stapled-factory/spine/python_tests/test_prebuilt_transport.py": "b8df4d66cdf15f25a8b88e43f5dad7a8cded0fe4226735b2d8ed39dcf3596228"
+  },
+  "limits": "Bounded follow-up on local uncommitted delta, not a newly verified live PR head. No Docker/network-none integration re-run by this reviewer; root reports independent unpaid Docker probe separately. No paid calls, NUC mutations, full CI, GitHub comments or human approval.",
+  "completed_at": "2026-10-28T21:07:37.632563+00:00"
+}

@@ -1,0 +1,54 @@
+{
+  "audit_report_sha256": "14714a936416e71b37a1ab0d9dfa769147085750d20c6ba8b34ba273a13c2e8f",
+  "ci_receipt_sha256": "e2976c66d84310d8d0c910c1b573b1ba10b4b57aa72ad9e436bcc1ff392b309c",
+  "created_at_unix": 1793194772,
+  "executor": "Codex executing explicit operator deployment authorization; not an independent human reviewer",
+  "factory_revision": "6335e302fb873fe280529e6e512bf9bf7d5140b8",
+  "images": {
+    "firewall_image": "sha256:f3a4d140558c50f81f1f5e1519652a1722a55738d364317fe9c7568716049baa",
+    "helper_image": "sha256:73570499e4f9272b8e96a1115a13f9c4d186a32cf3968621f5ae602e55083d19",
+    "proxy_image": "sha256:6623375f4e0503fb51cbf20cf05220907904e42c50df96752c68dd4115c42aa4",
+    "worker_environment": [
+      "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+      "OH_ENABLE_VSCODE=true",
+      "OPENHANDS_BUILD_GIT_SHA=d0d9d81324210414462fb676b377e0563a08a0cb",
+      "OPENHANDS_BUILD_GIT_REF=refs/heads/main",
+      "ACP_NODE_DIR=/acp-node",
+      "LC_ALL=C.UTF-8",
+      "LANG=C.UTF-8",
+      "LOG_JSON=true",
+      "OH_ACP_SKILL_SOURCING=openhands_managed",
+      "EDITOR=code",
+      "VISUAL=code",
+      "GIT_EDITOR=code --wait",
+      "OPENVSCODE_SERVER_ROOT=/openhands/.openvscode-server",
+      "CHROME_BIN=/usr/bin/chromium",
+      "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium",
+      "CHROMIUM_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu",
+      "LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib:/usr/lib/x86_64-linux-gnu:",
+      "HOME=/tmp/factory-home"
+    ],
+    "worker_image": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77"
+  },
+  "isolation_receipt_sha256": "51b685442ccd308883c8e2d0e3ca7884ccc14a60657ab9951e9d02106e5d2c44",
+  "operator_authorization": "Continue Phase 9: finish the image and dependency audit, resolve the release approval requirements for a single-operator deployment, then enable and verify NUC worker dispatch under the best-effort budget.",
+  "prepared_inputs_sha256": {
+    "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-dispatch-20261028-01/invocation.json": "ca9c01ae77449bb2c818755114b50bae4b07e5e7b40537905176387db696355c",
+    "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-dispatch-20261028-01/runtime.json": "da43ae15a71f41ceea8408facf6268e4d687ec19b5afe244bb50227f683cd074",
+    "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-dispatch-20261028-01/task.txt": "e3144f02beb05ea23274464d8edffec883ee9e4fdb1c4113c92ec12ee3f809e0"
+  },
+  "prior_release": "3e15fb4aee87b2acb8c457ee42c0916c2f6f0913",
+  "release_manifest_sha256": "0d6452a81e74cbb635fb3586042de8e57486aa70c42b907403965cb470dcd06a",
+  "risk_acceptance": [
+    "Retained vulnerabilities and task-integrity/availability risks are accepted only inside tested disposable containment; no established escape or credential-proxy-path blocker identified.",
+    "Frozen modules/native and Restate Rust dependencies lack exhaustive SBOM coverage; online official publication evidence is accepted instead of a portable publisher signature for this scope.",
+    "Trusted operator/host/Docker are assumptions. Workspace disk has no quota and requires operator monitoring.",
+    "Six Flash requests and 1024 output tokens use a $2 best-effort reservation target; actual provider charges are unknown and not capped."
+  ],
+  "rollback": "Remove per-attempt endpoint binding; stop only the bound attempt resources; preserve attempts/budget/Restate state; restore prior endpoint unit from owner-only backup. Never reset ledgers.",
+  "scope": "one operator-selected sandbox work unit on dedicated NUC; no main merge or enterprise promotion",
+  "status": "pre-dispatch scoped acceptance; observed verification recorded separately",
+  "task_sha256": "e3144f02beb05ea23274464d8edffec883ee9e4fdb1c4113c92ec12ee3f809e0",
+  "unit": "nuc-dispatch-20261028-01",
+  "version": 1
+}

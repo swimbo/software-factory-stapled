@@ -11,6 +11,9 @@ def fixture(tmp_path):
     for container, role, image in ((worker, 'worker', '1'), (proxy, 'proxy', '2')):
         container['Image'] = 'sha256:' + image * 64
         container['Config'].update(Entrypoint=['/run'], Cmd=[role], Labels={'factory.allocation': allocation, 'factory.role': role})
+        container['HostConfig'].update(Memory=(3 * 1024**3 if role == 'worker' else 512 * 1024**2),
+            MemorySwap=(3 * 1024**3 if role == 'worker' else 512 * 1024**2),
+            NanoCpus=(2_000_000_000 if role == 'worker' else 1_000_000_000), PidsLimit=(512 if role == 'worker' else 128))
     records = {name: {'Name': name, 'Driver': 'local', 'Scope': 'local', 'Options': None, 'Labels': {'factory.allocation': allocation, 'factory.role': role}} for name, role in ((socket, 'socket'), (budget, 'budget'), ('anchor', 'anchor'))}
     kw = dict(worker_image_id=worker['Image'], proxy_image_id=proxy['Image'], worker_command=['/run', 'worker'], proxy_command=['/run', 'proxy'], socket_volume=socket, budget_volume=budget, proxy_network=network, workspace_source=str(tmp_path), volume_records=records, allocation_id=allocation, worker_environment=[], anchor_volume='anchor')
     return worker, proxy, kw
@@ -48,4 +51,14 @@ def test_anchor_must_be_distinct_and_proxy_only(tmp_path):
     w, p, k = fixture(tmp_path)
     w['Mounts'].append({'Type': 'volume', 'Name': 'anchor', 'Destination': '/anchor', 'RW': False})
     with pytest.raises(UnsafeTopology):
+        validate_identity(w, p, **k)
+
+
+@pytest.mark.parametrize('role', ['worker', 'proxy'])
+@pytest.mark.parametrize('field,bad', [('Memory', 0), ('Memory', 4 * 1024**3),
+    ('MemorySwap', -1), ('NanoCpus', 0), ('NanoCpus', 3_000_000_000), ('PidsLimit', -1), ('PidsLimit', None)])
+def test_unbounded_or_changed_resources_rejected(tmp_path, role, field, bad):
+    w, p, k = fixture(tmp_path)
+    (w if role == 'worker' else p)['HostConfig'][field] = bad
+    with pytest.raises(UnsafeTopology, match='resource limits'):
         validate_identity(w, p, **k)

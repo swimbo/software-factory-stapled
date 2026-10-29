@@ -40,3 +40,27 @@ The Bifrost hostname currently resolves through the private tailnet. Railway int
 - [Railway over SSH](https://railway.com/changelog/2026-06-26-railway-over-ssh): approved-key terminal access.
 
 The official documentation supports this design but does not verify this account's enrollment, runtime capabilities, private gateway route, or deployed isolation. Those require live checks.
+
+## Local-build deployment continuation (2026-10-27)
+
+User explicitly requires CI and image builds locally, followed by publication; do not configure GitHub-hosted runners or Railway source builds as substitutes.
+
+A disposable PRIVATE sandbox `98ecfda9-f2e0-4859-8e81-f1ea42f874c1` in the target environment verified Docker Engine 29.1.2, builtin seccomp and private cgroup namespace security options. Private `restate-control.railway.internal:9070/health` returned HTTP 200. These are host capability/connectivity checks, not worker isolation verification. The new VM had no container images and no host iptables binary; the pinned firewall helper still must be transferred and tested.
+
+The trusted model transport is **not established**: unauthenticated HTTPS to `hermes-control.tail4296e6.ts.net/anthropic` failed TLS with unexpected EOF and HTTP 000. Sandbox DNS returned public IPv4 addresses `199.38.181.54` and `209.177.145.137`, not the operator's intended private gateway address. Do not pin these as a trusted substitute or send the Bifrost key. No model credential was uploaded and no paid request was made.
+
+The current spine invokes local Python with local durable filesystem paths and binds its Restate endpoint to loopback. A Railway ordinary-service coordinator therefore needs an explicit authenticated remote dispatcher and durable artifact handoff; merely exposing its listen address cannot connect it to a sandbox worker. An ephemeral PRIVATE sandbox may colocate the spine and worker only for a disposable integration drill, with distinct trusted and untrusted boundaries, and cannot serve as an unattended durable worker service. Production-scope terminal dispatch remains deliberately blocked pending actual tool mediation. Existing source-image Dockerfiles do not constitute locally published OCI artifacts or publisher provenance.
+
+## Superseded deployment target
+
+The user corrected the runtime target to the local NUC on October 27. Do not
+continue Railway worker deployment. Disposable capability sandboxes were
+removed; the previously created persistent Restate control service and volume
+remain intact pending an explicit cleanup decision. No model credential was
+uploaded. Local builds transfer directly to the NUC; see the NUC deployment
+artifacts as they are verified.
+
+The previously created compute deployment was subsequently stopped to avoid
+running unused services. Actual provider readback showed no active deployments;
+volume bf9371fb-4138-4bf1-a6a8-1975b9c5c65d remained READY with no pending deletion.
+Project, service and persistent data were retained.

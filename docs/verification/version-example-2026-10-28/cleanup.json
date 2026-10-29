@@ -1,0 +1,26 @@
+{
+  "unit": "nuc-version-example-20261028-02",
+  "allocation_id": "4d3f184e82194ada8b56b48ac77d0a16",
+  "resources": {
+    "worker": {
+      "id": "d1b97edf58c534dce862ef130158312655d4432d777a7db5129b2c155baa5220",
+      "running": false,
+      "pid": 0
+    },
+    "proxy": {
+      "id": "52908c477de2d7f2a87fd52e3aa2935972e8aedd677ba6a44bd3913593598818",
+      "running": false,
+      "pid": 0
+    }
+  },
+  "preserved": [
+    "containers",
+    "workspaces",
+    "budget and anchor volumes",
+    "attempt store",
+    "Restate journal",
+    "candidate image",
+    "attestations"
+  ],
+  "scope": "only completed example worker and proxy stopped after persistence verification"
+}

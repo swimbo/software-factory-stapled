@@ -9,3 +9,10 @@ it does not prove production provisioning, isolation, or recovery.
 
 Build deployment images locally for the target platform and transfer the built
 artifacts to Railway. Do not configure provider-side source builds.
+
+The `main` branch requires the `local-ci/verified` status, including for admins;
+force pushes and deletion are disabled. Publish the verified commit to a
+`codex/` branch first, record a success status for that exact SHA only after its
+local receipt passes, then submit a pull request. Main requires one independent approval, including
+approval of the latest push; new commits dismiss stale reviews. This is an operator-owned local CI gate;
+it does not establish independent review or use a GitHub runner.

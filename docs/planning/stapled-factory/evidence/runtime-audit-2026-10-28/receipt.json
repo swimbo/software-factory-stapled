@@ -1,0 +1,114 @@
+{
+  "proxy.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/proxy.json.gz",
+    "sha256": "cbd218c8d04677c7a760937835323bc7ad82d1ab43ecd37bc1143947d62261c0",
+    "compressed_sha256": "5c28e17dd23ff6732e3e8a8b61fb787ecf003b66603aeea8d9d531b6f68d83a8",
+    "bytes": 1736027
+  },
+  "firewall.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/firewall.json.gz",
+    "sha256": "57d38372e7ba44ccd7f1bfc2a2075bb7e30cb2e9374ef9b20a113972579b6a9b",
+    "compressed_sha256": "4e75f6cf9a0d3b858dfbc15a4e8522ee172ffd2000bb0fb21f962365eb064a54",
+    "bytes": 1770402
+  },
+  "worker.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/worker.json.gz",
+    "sha256": "04de2f6dd3318bea3e3e97932b71db839673572b4e085194a7b8ff3fd2a7ce82",
+    "compressed_sha256": "15aaa105e1252663cf63bc674c4827cb9aa772ca3c21b77848bfcb93f3f83b45",
+    "bytes": 12303221
+  },
+  "restate.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/restate.json.gz",
+    "sha256": "8e00a7d1b4f8ad1838d1e3463b4cd21aca2c9fde635b64ede75b44a507837005",
+    "compressed_sha256": "eaf2ca2773e5ee4ff3bbb7d955ef88a1f55a3e4c070c08a4a009f32824cfbaf2",
+    "bytes": 1368859
+  },
+  "source-all.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/source-all.json.gz",
+    "sha256": "074cebe587cec12c3b2931cca60b809327b13aa33aece60c45b44d15ba22c644",
+    "compressed_sha256": "93f34d2d658d55f48aefc6318cc85640974f8c16eeece76f617e2a14c5924c25",
+    "bytes": 30267
+  },
+  "frozen-python.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/frozen-python.json.gz",
+    "sha256": "43270912d20b1019b03084f99c2509439826ae15f8bb74a690bbc87c4299a91c",
+    "compressed_sha256": "9f735ca4c92a15cb1c83729b064d723f004376c0f8c67ad5a1d56acfe8f4325b",
+    "bytes": 43108
+  },
+  "frozen-python-inventory.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/frozen-python-inventory.json.gz",
+    "sha256": "2fcfe8b871e3ca69fc42b3d785f109484cd27c47db255c452bf9ac3d15061f53",
+    "compressed_sha256": "db47bdec8eada7ec138c42cdee85e7ac4ba66dfe993f8d3464fc726a8ecc7475",
+    "bytes": 20656
+  },
+  "openhands-lock.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/openhands-lock.json.gz",
+    "sha256": "d8490792be17d72d371980eb016b3fdc6fb25ce4081901e2720904a9f5a8668a",
+    "compressed_sha256": "2a421ef05bc7caf67ddc3f5d0b205d5ccea6d0563f5f5f9ea388d479063fa195",
+    "bytes": 567885
+  },
+  "npm-audit.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/npm-audit.json.gz",
+    "sha256": "2eabed0f461be15723b9353576c21ad9f1d3f9d0c8235de3125fc891e386c534",
+    "compressed_sha256": "97339f1f1788eb0de50c1bd04a95ac58fc4d771ac0f1fee86425933c5c4cda23",
+    "bytes": 361
+  },
+  "worker-python-inventory.json": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/worker-python-inventory.json.gz",
+    "sha256": "6ee194d9763601e7c299bf5f81577d5f2cfb82534ff34048b05d17de2a359d6a",
+    "compressed_sha256": "1c88721e843fb88fe6402a7f76f05f511226ac57567105e71052294b7b5c42ba",
+    "bytes": 314
+  },
+  "restate-LICENSE": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/restate-LICENSE.gz",
+    "sha256": "ea4fd504ffe508ce7ece0727a714a4fffc7208ad5a9618ae33f794d713450f02",
+    "compressed_sha256": "c14152596fbd556484ccff6120c8335b4ea59ef1f20a66938ce7fca7f62ffa4e",
+    "bytes": 6352
+  },
+  "openhands-LICENSE": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/openhands-LICENSE.gz",
+    "sha256": "14a9b631c658eee682c6c2973525fbdf808c3457176bc47513052c559cc5ce86",
+    "compressed_sha256": "903b8f39dc6f1aecd6ededd10fa73ae0a34170ae9cdb061db2abcd4245f8a7fc",
+    "bytes": 1079
+  },
+  "agent-server.spec": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/agent-server.spec.gz",
+    "sha256": "6c7a10f48ad5cc7688b882a97439f58b9f9ccc8a3ba38658c1cb0570964a6a32",
+    "compressed_sha256": "f633569dd317cf85fd0cd8dcda0febd752ef89d1b0e2fd2756f57e602d9d09d6",
+    "bytes": 8929
+  },
+  "openhands-workflow.yml": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/openhands-workflow.yml.gz",
+    "sha256": "4b9a538011d25ad12b00388acb63e17a180effc3c1ebb7eb8555c382858dab25",
+    "compressed_sha256": "18d48458ba391b876487edf334e9c94c3d033a9519b46051c0e1264d7210773f",
+    "bytes": 43604
+  },
+  "uv.lock": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/uv.lock.gz",
+    "sha256": "e52bb3893223b11919ce22046dfffaefcfc8858eb537f0869cc4856d669e0e61"
+  },
+  "server-binary": {
+    "sha256": "9458a2973b141a8bc0a2ef32ad31be93e459f854e253104f8b76ad69d1bd3756",
+    "bytes": 113679456
+  },
+  "tooling": {
+    "trivy": "0.76.1",
+    "pyinstaller_reader": "6.22.3",
+    "database": {
+      "Version": 2,
+      "NextUpdate": "2026-10-29T07:10:42.861393507Z",
+      "UpdatedAt": "2026-10-28T07:10:42.861393948Z",
+      "DownloadedAt": "2026-10-28T11:35:19.464119Z"
+    }
+  },
+  "openhands-api.py": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/openhands-api.py.gz",
+    "sha256": "3ec01139061ff55775d3149ecff6896fbf26b3f88c7350d2f345dbf6b01ba3f2",
+    "source_revision": "d0d9d81324210414462fb676b377e0563a08a0cb"
+  },
+  "openhands-llm-router.py": {
+    "path": "/Users/bo/.local/share/stapled-factory-audits/2026-10-28/openhands-llm-router.py.gz",
+    "sha256": "cb039bf37f2c770e3dd554757210baa9c3a00de10694f0ec0fa63d752e59b9c1",
+    "source_revision": "d0d9d81324210414462fb676b377e0563a08a0cb"
+  }
+}

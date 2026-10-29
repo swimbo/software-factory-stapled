@@ -37,8 +37,8 @@ def test_installs_and_verifies_before_caller_can_continue(monkeypatch):
     setup(monkeypatch, calls)
     firewall.install_proxy_firewall(PROXY, ALLOC, NETWORK, IMAGE, IP)
     run = next(call for call in calls if call[0] == 'run')
-    assert run[0:3] == ['run', '--rm', '--network']
-    assert 'container:' + PROXY in run
+    assert run[0:2] == ['run', '--rm']
+    assert run[run.index('--network')+1] == 'container:' + PROXY
     assert '--cap-add' in run and 'NET_ADMIN' in run
     assert run[-1].index('iptables -P OUTPUT DROP') < run[-1].index('iptables -F OUTPUT')
 

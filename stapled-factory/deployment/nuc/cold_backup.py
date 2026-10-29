@@ -43,7 +43,7 @@ def seal(source, output, password, signing_key):
     with tempfile.TemporaryDirectory() as tmp:
         archive = Path(tmp) / 'snapshot.tar'
         before = manifest(source)
-        with tarfile.open(archive, 'w') as tar:
+        with tarfile.open(archive, 'w', dereference=True) as tar:
             tar.add(source, arcname='snapshot', recursive=True)
             data = json.dumps(before, sort_keys=True).encode()
             import io

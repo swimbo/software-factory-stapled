@@ -1,0 +1,128 @@
+{
+  "scope": "local amd64 build; not deployed or activated",
+  "base_config": "sha256:a8a3e0a84b0d5fab2b3b4b32e89715a7384b7af2f81b5e82d203d12828cb2578",
+  "images": {
+    "proxy": {
+      "config_id": "sha256:ac4c89a0a35f444e63698368e7378e097807b7f9ad01c4cd47d5ad44dd17111c",
+      "architecture": "amd64",
+      "base_layer_prefix_verified": true,
+      "build_metadata": {
+        "buildx.build.provenance": {
+          "builder": {
+            "id": ""
+          },
+          "buildType": "https://mobyproject.org/buildkit@v1",
+          "materials": [
+            {
+              "uri": "pkg:docker/python?digest=sha256:f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457&platform=linux%2Famd64",
+              "digest": {
+                "sha256": "f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457"
+              }
+            }
+          ],
+          "invocation": {
+            "configSource": {
+              "entryPoint": "Dockerfile.proxy"
+            },
+            "parameters": {
+              "frontend": "dockerfile.v0",
+              "args": {
+                "force-network-mode": "none"
+              },
+              "locals": [
+                {
+                  "name": "context"
+                },
+                {
+                  "name": "dockerfile"
+                }
+              ],
+              "root": {
+                "configSource": {
+                  "path": "Dockerfile.proxy"
+                },
+                "request": {
+                  "args": {
+                    "force-network-mode": "none",
+                    "vcs:localdir:context": "stapled-factory/worker",
+                    "vcs:localdir:dockerfile": "stapled-factory/worker",
+                    "vcs:revision": "a2543212c08679d8d760496c249d9cfc5c07aaab",
+                    "vcs:source": "https://github.com/swimbo/software-factory-stapled"
+                  }
+                }
+              },
+              "compatibilityVersion": 30
+            },
+            "environment": {
+              "dockerfileVersion": "1.27.0",
+              "platform": "linux/arm64"
+            }
+          }
+        },
+        "buildx.build.ref": "default/default/64yld7lka97igpx1pgq9ckmrg",
+        "containerimage.config.digest": "sha256:ac4c89a0a35f444e63698368e7378e097807b7f9ad01c4cd47d5ad44dd17111c",
+        "containerimage.digest": "sha256:ac4c89a0a35f444e63698368e7378e097807b7f9ad01c4cd47d5ad44dd17111c",
+        "image.name": "docker.io/library/stapled-phase9-production-proxy:20261028"
+      }
+    },
+    "firewall": {
+      "config_id": "sha256:2ee14cd1a78377ae297ed17da1755df31eae18de7ec92607711498d426166216",
+      "architecture": "amd64",
+      "base_layer_prefix_verified": true,
+      "build_metadata": {
+        "buildx.build.provenance": {
+          "builder": {
+            "id": ""
+          },
+          "buildType": "https://mobyproject.org/buildkit@v1",
+          "materials": [
+            {
+              "uri": "pkg:docker/python?digest=sha256:f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457&platform=linux%2Famd64",
+              "digest": {
+                "sha256": "f9fa7f851e38bfb19c9de3afbc4b86ae7176ea7aaf94535c31df5458d5849457"
+              }
+            }
+          ],
+          "invocation": {
+            "configSource": {
+              "entryPoint": "Dockerfile.firewall"
+            },
+            "parameters": {
+              "frontend": "dockerfile.v0",
+              "locals": [
+                {
+                  "name": "context"
+                },
+                {
+                  "name": "dockerfile"
+                }
+              ],
+              "root": {
+                "configSource": {
+                  "path": "Dockerfile.firewall"
+                },
+                "request": {
+                  "args": {
+                    "vcs:localdir:context": "stapled-factory/worker",
+                    "vcs:localdir:dockerfile": "stapled-factory/worker",
+                    "vcs:revision": "a2543212c08679d8d760496c249d9cfc5c07aaab",
+                    "vcs:source": "https://github.com/swimbo/software-factory-stapled"
+                  }
+                }
+              },
+              "compatibilityVersion": 30
+            },
+            "environment": {
+              "dockerfileVersion": "1.27.0",
+              "platform": "linux/arm64"
+            }
+          }
+        },
+        "buildx.build.ref": "default/default/nujb9474yhsp7tg755vzfewna",
+        "containerimage.config.digest": "sha256:2ee14cd1a78377ae297ed17da1755df31eae18de7ec92607711498d426166216",
+        "containerimage.digest": "sha256:2ee14cd1a78377ae297ed17da1755df31eae18de7ec92607711498d426166216",
+        "image.name": "docker.io/library/stapled-phase9-production-firewall:20261028"
+      }
+    }
+  }
+}

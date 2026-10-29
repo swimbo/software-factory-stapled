@@ -9,6 +9,26 @@ import stat
 
 from egress_guard import UnsafeTopology, validate_networkless
 
+# Fixed per-allocation limits. MemorySwap equals Memory, preventing extra swap.
+RESOURCE_LIMITS = {
+    'worker': {'Memory': 3 * 1024**3, 'MemorySwap': 3 * 1024**3, 'NanoCpus': 2_000_000_000, 'PidsLimit': 512},
+    'proxy': {'Memory': 512 * 1024**2, 'MemorySwap': 512 * 1024**2, 'NanoCpus': 1_000_000_000, 'PidsLimit': 128},
+    'helper': {'Memory': 128 * 1024**2, 'MemorySwap': 128 * 1024**2, 'NanoCpus': 500_000_000, 'PidsLimit': 32},
+}
+
+
+def resource_arguments(role):
+    limits = RESOURCE_LIMITS[role]
+    return ['--memory', str(limits['Memory']), '--memory-swap', str(limits['MemorySwap']),
+            '--cpus', str(limits['NanoCpus'] / 1_000_000_000), '--pids-limit', str(limits['PidsLimit'])]
+
+
+def validate_resources(container, role):
+    config = container.get('HostConfig') or {}
+    if any(type(config.get(field)) is not int or config[field] != value
+           for field, value in RESOURCE_LIMITS[role].items()):
+        raise UnsafeTopology(role + ' resource limits missing or changed')
+
 
 def validate_volume(record, name, role, allocation_id):
     """Reject external or bind-backed volumes before privileged initialization."""
@@ -40,6 +60,7 @@ def validate_identity(worker, proxy, *, worker_image_id, proxy_image_id,
     validate_networkless(worker, proxy, socket_volume, budget_volume, proxy_network, workspace_source, anchor_volume)
     for container, image, command, role in ((worker, worker_image_id, worker_command, 'worker'),
                                              (proxy, proxy_image_id, proxy_command, 'proxy')):
+        validate_resources(container, role)
         require(container.get('Image') == image, role + ' image mismatch')
         cfg = container.get('Config', {})
         require(isinstance(command, list) and command and (cfg.get('Entrypoint') or []) + (cfg.get('Cmd') or []) == command,

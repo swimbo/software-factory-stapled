@@ -15,7 +15,7 @@ from pathlib import Path
 from docker_transport import DockerTransport
 from guarded_store import GuardedAttemptStore
 from openhands_adapter import OpenHandsAdapter
-from pricing_policy import BUDGET_MICRODOLLARS, OUTPUT_TOKENS, POLICY_ID, request_limit, reservation_microdollars
+from pricing_policy import BUDGET_MICRODOLLARS, OUTPUT_TOKENS, policy_id, request_limit, reservation_microdollars
 from revision import verify_revision
 
 
@@ -72,7 +72,7 @@ def load_config(args):
     command = data['provision']['proxy_command']
     model = _option(command, '--model')
     if (_option(command, '--attempt-id') != args.attempt_id or
-            _option(command, '--pricing-policy-id') != POLICY_ID or
+            _option(command, '--pricing-policy-id') != policy_id(model) or
             int(_option(command, '--ceiling-microdollars')) != BUDGET_MICRODOLLARS or
             int(_option(command, '--worst-case-request-microdollars')) < reservation_microdollars(model) or
             int(_option(command, '--worst-case-request-microdollars')) > BUDGET_MICRODOLLARS or

@@ -13,6 +13,8 @@ import * as restate from "@restatedev/restate-sdk";
 import { BuildEvidence, Claim, Receipt, Stage, WorkUnitState } from "./types.js";
 import { conversationId } from "./build.js";
 
+import { verifyValidation, type SignedValidation } from "./validation.js";
+
 const CLAIM_LEASE_MS = 10 * 60 * 1000; // 10 minutes
 
 const KEY = "state";
@@ -109,6 +111,23 @@ export const workUnit = restate.object({
           build.status !== "completed" || !/^[0-9a-f]{40}([0-9a-f]{24})?$/.test(build.git_revision ?? "")) return false;
       s.successor = build;
       s.stage = "needs_validation";
+      ctx.set(KEY, s);
+      return true;
+    },
+
+    acceptValidation: async (ctx: restate.ObjectContext, envelope: SignedValidation): Promise<boolean> => {
+      // Verification is journaled so secret rotation cannot change replay results.
+      const evidence = await ctx.run(() => {
+        try { return verifyValidation(envelope); }
+        catch { throw new restate.TerminalError("Validation authority or signed evidence invalid"); }
+      });
+      const s = (await ctx.get<WorkUnitState>(KEY)) ?? empty();
+      const selected = s.successor ?? s.build;
+      if (s.stage !== "needs_validation" || s.validation || !selected || selected.status !== "completed" ||
+          evidence.unit_id !== ctx.key || evidence.attempt_id !== selected.attempt_id ||
+          evidence.git_revision !== selected.git_revision) return false;
+      s.validation = evidence;
+      s.stage = "validated";
       ctx.set(KEY, s);
       return true;
     },

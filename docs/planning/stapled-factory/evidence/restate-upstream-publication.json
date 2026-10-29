@@ -1,0 +1,82 @@
+{
+  "image": "ghcr.io/restatedev/restate@sha256:2614a4e3a2102ef0cd4733e324574ee29a77e19e7e29262fa5660c9c55df70e5",
+  "repository": "restatedev/restate",
+  "revision": "954797e4a36cf146ab4261cf0b6622375d1f5ae6",
+  "workflow": ".github/workflows/docker-refresh.yml",
+  "run_id": 39179905022,
+  "run_url": "https://github.com/restatedev/restate/actions/runs/39179905022",
+  "policy": {
+    "repo": "restatedev/restate",
+    "workflow": ".github/workflows/docker-refresh.yml",
+    "revision": "954797e4a36cf146ab4261cf0b6622375d1f5ae6",
+    "run_id": 39179905022,
+    "event": "schedule",
+    "actor": "tillrohrmann",
+    "job_id": 117830245950,
+    "job_name": "refresh",
+    "step_number": 12,
+    "step_name": "Build and push refreshed Docker image",
+    "reference": "ghcr.io/***/restate:1.8.0-20261019",
+    "publication_style": "pushing-manifest-reference-digest"
+  },
+  "publication_step": {
+    "number": 12,
+    "name": "Build and push refreshed Docker image",
+    "started_at": "2026-10-19T00:15:32Z",
+    "completed_at": "2026-10-19T00:16:51Z"
+  },
+  "log_sha256": "b7fa838fc5666df64c25bb9fa0afdbcba2787e7407e19b8d4361af9b8ec94d54",
+  "publication_lines": [
+    "refresh\tUNKNOWN STEP\t2026-10-19T00:16:32.6224983Z #31 pushing manifest for ghcr.io/***/restate:1.8.0-20261019@sha256:2614a4e3a2102ef0cd4733e324574ee29a77e19e7e29262fa5660c9c55df70e5",
+    "refresh\tUNKNOWN STEP\t2026-10-19T00:16:33.2757506Z #31 pushing manifest for ghcr.io/***/restate:1.8.0-20261019@sha256:2614a4e3a2102ef0cd4733e324574ee29a77e19e7e29262fa5660c9c55df70e5 0.7s done"
+  ],
+  "registry_index_sha256": "sha256:2614a4e3a2102ef0cd4733e324574ee29a77e19e7e29262fa5660c9c55df70e5",
+  "platform_manifests": [
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:d89c6903fafa50a8d0bee313f7aa38ab76d7728663d7f3c5aeef3cef1394ac2c",
+      "size": 2198,
+      "platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:f1941113fd08b0a43514d9ce86d8c238a7e616389958219411ded5d788292839",
+      "size": 2198,
+      "platform": {
+        "architecture": "arm64",
+        "os": "linux"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:3fc472b8cfac89356ca3957f2229d3837ed1019e91a054c3a1b96eeaa0285dd8",
+      "size": 838,
+      "annotations": {
+        "vnd.docker.reference.digest": "sha256:d89c6903fafa50a8d0bee313f7aa38ab76d7728663d7f3c5aeef3cef1394ac2c",
+        "vnd.docker.reference.type": "attestation-manifest"
+      },
+      "platform": {
+        "architecture": "unknown",
+        "os": "unknown"
+      }
+    },
+    {
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "digest": "sha256:5c328b6d4e19ba0910d2c45822a4b09ebf99416a0f545ff0d7580fc6f928bbcd",
+      "size": 838,
+      "annotations": {
+        "vnd.docker.reference.digest": "sha256:f1941113fd08b0a43514d9ce86d8c238a7e616389958219411ded5d788292839",
+        "vnd.docker.reference.type": "attestation-manifest"
+      },
+      "platform": {
+        "architecture": "unknown",
+        "os": "unknown"
+      }
+    }
+  ],
+  "publisher_signature_verified": false,
+  "evidence_type": "authenticated-github-workflow-and-registry-publication"
+}

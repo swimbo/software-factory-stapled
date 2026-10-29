@@ -12,7 +12,7 @@ import subprocess
 import uuid
 
 from egress_guard import inspect
-from provision_check import validate_identity, validate_volume
+from provision_check import validate_identity, validate_volume, resource_arguments
 from netns_firewall import install_proxy_firewall, verify_proxy_firewall
 
 
@@ -88,14 +88,14 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
         _run(['network', 'create', '--driver', 'bridge', *labels, network])
         created.append(('network', network))
         # Initialization is isolated, transient, and limited to the new volumes.
-        _run(['run', '--rm', '--network', 'none', '--cap-drop', 'ALL', '--cap-add', 'CHOWN',
+        _run(['run', '--rm', *resource_arguments('helper'), '--network', 'none', '--cap-drop', 'ALL', '--cap-add', 'CHOWN',
               '--security-opt', 'no-new-privileges', '--user', '0:0',
               '--mount', 'type=volume,src=' + sock + ',dst=/gateway',
               '--mount', 'type=volume,src=' + budget + ',dst=/budget',
               '--mount', 'type=volume,src=' + anchor + ',dst=/anchor',
               '--entrypoint', '/bin/chown', helper_image, str(uid) + ':' + str(uid), '/gateway', '/budget', '/anchor'])
         common = ['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--user', f'{uid}:{uid}']
-        _run(['create', '-i', '--name', proxy, *labels, '--label', 'factory.role=proxy', *common,
+        _run(['create', '-i', '--name', proxy, *labels, '--label', 'factory.role=proxy', *common, *resource_arguments('proxy'),
               '--network', network, '--mount', 'type=volume,src=' + sock + ',dst=/gateway',
               '--mount', 'type=volume,src=' + budget + ',dst=/budget',
               '--mount', 'type=volume,src=' + anchor + ',dst=/anchor',
@@ -104,7 +104,7 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
         # docker start -ai keeps stdin connected; key is never in argv or env.
         process = subprocess.Popen(['docker', 'start', '-ai', proxy], stdin=subprocess.PIPE,
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        _run(['create', '--name', worker, *labels, '--label', 'factory.role=worker', *common,
+        _run(['create', '--name', worker, *labels, '--label', 'factory.role=worker', *common, *resource_arguments('worker'),
               '--network', 'none', '--mount', 'type=volume,src=' + sock + ',dst=/gateway,readonly',
               '--mount', 'type=bind,src=' + workspace + ',dst=/workspace',
               '--entrypoint', worker_command[0], worker_image, *worker_command[1:]])
