@@ -1,0 +1,168 @@
+{
+  "binary_sha256": "9458a2973b141a8bc0a2ef32ad31be93e459f854e253104f8b76ad69d1bd3756",
+  "packages": [
+    {
+      "name": "MarkupSafe",
+      "version": "3.0.2",
+      "license": "Copyright 2010 Pallets\n        \n        Redistribution and use in source and binary forms, with or without\n        modification, are permitted provided that the following conditions are\n        met:\n        \n        1.  Redistributions of source code must retain the above copyright\n            notice, this list of conditions and the following disclaimer.\n        \n        2.  Redistributions in binary form must reproduce the above copyright\n            notice, this list of conditions and the following disclaimer in the\n            documentation and/or other materials provided with the distribution.\n        \n        3.  Neither the name of the copyright holder nor the names of its\n            contributors may be used to endorse or promote products derived from\n            this software without specific prior written permission.\n        \n        THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS\n        \"AS IS\" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT\n        LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A\n        PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT\n        HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,\n        SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED\n        TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR\n        PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF\n        LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING\n        NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS\n        SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.\n        ",
+      "metadata_sha256": "680c1b6614a65dd7c5b8c33eac41e97a21d1901386112c952c922ec331cffa7c"
+    },
+    {
+      "name": "aiofile",
+      "version": "3.9.0",
+      "license": "Apache-2.0",
+      "metadata_sha256": "ce5ae6768911f93bcf31a313786be9f6bb69aaaa1290c206efa40fa9f079d252"
+    },
+    {
+      "name": "attrs",
+      "version": "25.3.0",
+      "license": "MIT",
+      "metadata_sha256": "5b7f1c4448fbb35c2a35fd5f838855c1998bd7187401d4a9e0886d4cc44e8a7c"
+    },
+    {
+      "name": "browser-use-sdk",
+      "version": "2.0.15",
+      "license": null,
+      "metadata_sha256": "68a48770fba596e87d6ebdf5212cb40eb95af3c58c3b34927b6651bd8fbe0158"
+    },
+    {
+      "name": "cryptography",
+      "version": "50.0.0",
+      "license": "Apache-2.0 OR BSD-3-Clause",
+      "metadata_sha256": "d4e345f82cb783877d73261f00303577cdf20d13229176c2d03a0a5603cb3ab5"
+    },
+    {
+      "name": "email-validator",
+      "version": "2.3.0",
+      "license": "Unlicense",
+      "metadata_sha256": "2a97b81eefcd856bc80b0346f47fa2d800b9a438bf8f9231ae00fe931d5c9fbc"
+    },
+    {
+      "name": "fakeredis",
+      "version": "2.34.1",
+      "license": "BSD-3-Clause",
+      "metadata_sha256": "f79a15f5b5721502613843344c7faa96698c974511b2d0fbc39a6e7c6a569ee5"
+    },
+    {
+      "name": "fastmcp",
+      "version": "3.2.0",
+      "license": "Apache-2.0",
+      "metadata_sha256": "dcb54e9ad7949961c0c98fefffcd808488c92fc6d0f9681e42db84937729b2d9"
+    },
+    {
+      "name": "importlib_metadata",
+      "version": "8.5.0",
+      "license": null,
+      "metadata_sha256": "1d78a40e966eb78ad8d83e19ba10315e72d40dbf9ffd73ff0b2a7d898985e06d"
+    },
+    {
+      "name": "itsdangerous",
+      "version": "2.2.0",
+      "license": null,
+      "metadata_sha256": "d2b934fb56708a1b94e439f0255c0f5a8108e3258ec827b18a1dc9c991db9611"
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.23.0",
+      "license": "MIT",
+      "metadata_sha256": "1ddf7a8007dd3b4bf946915e4f6e6a8f2a3b3ef8404b2e7a178270dc55144e5a"
+    },
+    {
+      "name": "litellm",
+      "version": "1.93.0",
+      "license": "MIT",
+      "metadata_sha256": "2079a96229cf0dabfb2c2f87b5109a7b36108818fa790a2a1da86bd0db97a1ce"
+    },
+    {
+      "name": "mcp",
+      "version": "1.28.1",
+      "license": "MIT",
+      "metadata_sha256": "d418a04b73eb6520d801fe6383b501283b66e21fc2f36bfda8dec6e42e3a877c"
+    },
+    {
+      "name": "ollama",
+      "version": "0.6.0",
+      "license": "MIT",
+      "metadata_sha256": "62834a25a1b20add341b38a1c97acf46ecfaa43a28746f871cd21fcd58ce3e74"
+    },
+    {
+      "name": "openai",
+      "version": "2.33.0",
+      "license": "Apache-2.0",
+      "metadata_sha256": "98f2e14e9f613cf6ecd719ea1a3a35d5327203ae7086518373cdab44e79bb1ba"
+    },
+    {
+      "name": "openhands-agent-server",
+      "version": "1.58.2",
+      "license": null,
+      "metadata_sha256": "7355540fd2de7d7995a8a9c8dece4d392e16c1b4d7ea9b2f07646d8555dde8ca"
+    },
+    {
+      "name": "openhands-sdk",
+      "version": "1.58.2",
+      "license": null,
+      "metadata_sha256": "ef9cf4f89d5094518bfd50829709ea6817b5e61fea224f32f7c8ddb305cc8cae"
+    },
+    {
+      "name": "openhands-tools",
+      "version": "1.58.2",
+      "license": null,
+      "metadata_sha256": "9611aac7b32ab05a348470ac5d334c2771cdf7fe9c8b52e8bd7ff21c736349d5"
+    },
+    {
+      "name": "openhands-workspace",
+      "version": "1.58.2",
+      "license": null,
+      "metadata_sha256": "2ce7fb3d0d2900e3b32485419cdff9b029e4da264228fc0ec303df2994ab69ad"
+    },
+    {
+      "name": "opentelemetry-api",
+      "version": "1.39.1",
+      "license": "Apache-2.0",
+      "metadata_sha256": "fc8fe7937002f224391d2038aac9ef231720bc9355d2ff9e23c36022ceb490d0"
+    },
+    {
+      "name": "opentelemetry-exporter-otlp-proto-grpc",
+      "version": "1.39.1",
+      "license": "Apache-2.0",
+      "metadata_sha256": "b50281cb7041efa486ea012b2962fd862b9d8390accdf94fa9ee82e059ea2206"
+    },
+    {
+      "name": "opentelemetry-exporter-otlp-proto-http",
+      "version": "1.39.1",
+      "license": "Apache-2.0",
+      "metadata_sha256": "6f55593be05756019fa6fe52c860093e519e0dff18f24709d0a7cb99e7d3cb4d"
+    },
+    {
+      "name": "opentelemetry-instrumentation",
+      "version": "0.60b1",
+      "license": "Apache-2.0",
+      "metadata_sha256": "1764874a00ea877b31643b9d288251e66bdb8aefdac98ae3affd3fedde08425f"
+    },
+    {
+      "name": "opentelemetry-sdk",
+      "version": "1.39.1",
+      "license": "Apache-2.0",
+      "metadata_sha256": "319e763ac2456dae69175cfe2d2dd4a52e08a39bb5a036c6d642ae68647a0528"
+    },
+    {
+      "name": "pydantic",
+      "version": "2.13.5",
+      "license": "MIT",
+      "metadata_sha256": "0685830d13647bd6f3f05526043d32a8b2a221d86b53773053d6c52bb17a9c07"
+    },
+    {
+      "name": "redis",
+      "version": "7.2.1",
+      "license": "MIT",
+      "metadata_sha256": "f89e020b8f6b36e9090995a2a2fb657d7c43cb61c7862c9d0f465e93424ca047"
+    },
+    {
+      "name": "websockets",
+      "version": "15.0.1",
+      "license": "BSD-3-Clause",
+      "metadata_sha256": "551e4ae9e806fcfa49dbe190e21c9df8293581e22544c2d0a6f841e6a7e71254"
+    }
+  ],
+  "coverage": "Only retained metadata; modules lacking metadata remain unknown."
+}

@@ -1,0 +1,82 @@
+{
+  "revision": "19b6a9a2a4bfc46d625d34242b5390d746b369cb",
+  "tree": "b731215e6d916a0778ba262e3759169b7d4cad3d",
+  "started_at": "2026-10-28T03:14:57.307978+00:00",
+  "runner": "local",
+  "steps": [
+    {
+      "name": "secrets",
+      "command": [
+        "gitleaks",
+        "dir",
+        ".",
+        "--redact",
+        "--no-banner"
+      ],
+      "exit_code": 0,
+      "log_sha256": "4d452b32c1ed2b6c7eacd0a0a81ab1538a228da2c2637f4146f86fba2a98190c"
+    },
+    {
+      "name": "python",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "worker/tests",
+        "security/tests",
+        "wall/tests",
+        "wall/isolation",
+        "spine/python_tests",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "c63b199821212aaea1af59d45fb74c997888068981f57405995fb1e85cb51194"
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "54c2e76a958a7ecdb93d72beb033dbba6179eeb5f9f03f2c8f1d8550ac546a85"
+    },
+    {
+      "name": "audit",
+      "command": [
+        "npm",
+        "audit",
+        "--audit-level=high"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "name": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f78a4b179b39a62de1f139ab98ad784486d0ff3aa0a49605d3db25bf38eb470d"
+    },
+    {
+      "name": "node",
+      "command": [
+        "node",
+        "--test",
+        "tests/build.test.mjs",
+        "tests/endpoint.test.mjs",
+        "tests/ingress.test.mjs",
+        "tests/reconcile.test.mjs",
+        "tests/wall.test.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "e11a3f679f7f0f5b57ef1fadcb4a9808375b84d85c6929e274905f8901b52659"
+    }
+  ],
+  "passed": true,
+  "finished_at": "2026-10-28T03:15:26.409001+00:00"
+}

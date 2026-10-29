@@ -1,0 +1,10 @@
+{
+  "official_amd64_manifest": "sha256:2da881bd22aae1dfdc43f4c17a885b006bf4b147e92b8faa3e28e0c58edc690c",
+  "manifest_hash_verified": true,
+  "official_base_config_id": "sha256:d927cd6db8aff349e014861b6b3f6f52dabbdb0755109bad6cd33ac19e76d6e9",
+  "config_hash_verified": true,
+  "worker_config_id": "sha256:048bd5f7e85d99dde3eb97a9223504877ee58c4954441c6e46fd6df185118919",
+  "official_base_layer_prefix_verified": true,
+  "base_layers": 22,
+  "worker_layers": 25
+}

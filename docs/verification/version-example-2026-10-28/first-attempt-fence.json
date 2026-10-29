@@ -1,0 +1,79 @@
+{
+  "reason": "AgentServererrorafter6requestlimit;controlledfreshunitretry",
+  "allocation_id": "81443b9a472442de8960dd8b4b01f540",
+  "binding": {
+    "network_id": "cb8455e3360c88dfd65bd0a4ab08281f098bc8234f3f99a54050509e52bea04f",
+    "proxy_id": "5f5edb7d1369341fd35faee4403236d6c9de76767260e918cd24495a2d458c57",
+    "proxy_lifecycle": {
+      "Pid": 3119630,
+      "StartedAt": "2026-10-28T17:03:47.903822879Z"
+    },
+    "volumes": {
+      "factory-81443b9a472442de8960dd8b4b01f540-anchor": {
+        "CreatedAt": "2026-10-28T13:03:47-04:00",
+        "Driver": "local",
+        "Labels": {
+          "factory.allocation": "81443b9a472442de8960dd8b4b01f540",
+          "factory.role": "anchor"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/factory-81443b9a472442de8960dd8b4b01f540-anchor/_data",
+        "Name": "factory-81443b9a472442de8960dd8b4b01f540-anchor",
+        "Options": null,
+        "Scope": "local"
+      },
+      "factory-81443b9a472442de8960dd8b4b01f540-budget": {
+        "CreatedAt": "2026-10-28T13:03:47-04:00",
+        "Driver": "local",
+        "Labels": {
+          "factory.allocation": "81443b9a472442de8960dd8b4b01f540",
+          "factory.role": "budget"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/factory-81443b9a472442de8960dd8b4b01f540-budget/_data",
+        "Name": "factory-81443b9a472442de8960dd8b4b01f540-budget",
+        "Options": null,
+        "Scope": "local"
+      },
+      "factory-81443b9a472442de8960dd8b4b01f540-socket": {
+        "CreatedAt": "2026-10-28T13:03:47-04:00",
+        "Driver": "local",
+        "Labels": {
+          "factory.allocation": "81443b9a472442de8960dd8b4b01f540",
+          "factory.role": "socket"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/factory-81443b9a472442de8960dd8b4b01f540-socket/_data",
+        "Name": "factory-81443b9a472442de8960dd8b4b01f540-socket",
+        "Options": null,
+        "Scope": "local"
+      }
+    },
+    "worker_id": "4154fef69e511db401239fbdac69becf175d9f6fd2bc0ab26f5fa20ac4a6feff",
+    "worker_lifecycle": {
+      "Pid": 3119718,
+      "StartedAt": "2026-10-28T17:03:48.007213794Z"
+    },
+    "workspace_baseline": "81ac9aea0421faf268b7e218d8761a66eac12a0e"
+  },
+  "ledger": {
+    "budgets": [
+      [
+        "nuc-version-example-20261028-01:0",
+        "auto",
+        6,
+        6,
+        "6b958dcd07f1f608bd8f8547cd70a205a48cae360dded118791f53b53352a03f"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "nuc-version-example-20261028-01:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-best-effort",
+        1793210539,
+        449232
+      ]
+    ]
+  },
+  "both_containers_stopped": true,
+  "state_not_forged_completed": true
+}

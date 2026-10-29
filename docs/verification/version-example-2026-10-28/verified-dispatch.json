@@ -1,0 +1,116 @@
+{
+  "unit": "nuc-version-example-20261028-02",
+  "worker_revision": "d8bf750a3c8c0b03c3481b9d8c07b508fc3fc3f3",
+  "factory_revision": "e636f92636cd19688bed62129ab2f0f52b55aa49",
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "nuc-version-example-20261028-02:0",
+      "status": "completed",
+      "conversation_id": "8222ca33-ac0b-56a7-ab83-7395e37f50d8",
+      "git_revision": "d8bf750a3c8c0b03c3481b9d8c07b508fc3fc3f3"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793208288484
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "nuc-version-example-20261028-02",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "operator-canary-no-wall-acceptance",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-version-example-20261028-02/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-version-example-20261028-02/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "duplicate_dispatch_unchanged": true,
+  "duplicate_http_status": 409,
+  "runtime_snapshot": {
+    "state": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "nuc-version-example-20261028-02:0",
+        "status": "completed",
+        "conversation_id": "8222ca33-ac0b-56a7-ab83-7395e37f50d8",
+        "git_revision": "d8bf750a3c8c0b03c3481b9d8c07b508fc3fc3f3"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793208288484
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "nuc-version-example-20261028-02",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-canary-no-wall-acceptance",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-version-example-20261028-02/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-version-example-20261028-02/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "attempt": [
+      "completed",
+      "{\"conversation_id\": \"8222ca33-ac0b-56a7-ab83-7395e37f50d8\", \"git_revision\": \"d8bf750a3c8c0b03c3481b9d8c07b508fc3fc3f3\", \"status\": \"completed\"}"
+    ],
+    "metadata": [
+      [
+        "1b889a60-bdb1-4994-bc75-3bd826fdd0ef",
+        15
+      ]
+    ],
+    "anchor": {
+      "store_id": "1b889a60-bdb1-4994-bc75-3bd826fdd0ef",
+      "generation": 15
+    },
+    "containers": {
+      "worker": {
+        "id": "d1b97edf58c534dce862ef130158312655d4432d777a7db5129b2c155baa5220",
+        "image": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77",
+        "running": true,
+        "pid": 3133160,
+        "started": "2026-10-28T17:14:49.556166014Z"
+      },
+      "proxy": {
+        "id": "52908c477de2d7f2a87fd52e3aa2935972e8aedd677ba6a44bd3913593598818",
+        "image": "sha256:fdf080d514cc5225b85fd7fe0a2c8177f65ca2d439f979246839d34c16ebda82",
+        "running": true,
+        "pid": 3133057,
+        "started": "2026-10-28T17:14:49.454283557Z"
+      }
+    },
+    "allocation_id": "4d3f184e82194ada8b56b48ac77d0a16",
+    "budget": {
+      "budgets": [
+        [
+          "nuc-version-example-20261028-02:0",
+          "auto",
+          12,
+          6,
+          "0ef7188b651233747653dd864920692cc04eb12e4f8c22f2676c79e3dcb18aa5"
+        ]
+      ],
+      "monetary_budgets": [
+        [
+          "nuc-version-example-20261028-02:0",
+          2000000,
+          1398176,
+          "request-size-pro-2026-10-28-v2-best-effort",
+          1793211274,
+          446516
+        ]
+      ]
+    }
+  },
+  "best_effort_budget": true,
+  "actual_charges": "unknown",
+  "scope": "operator-selected sandbox task; needs_validation; no candidate acceptance or enterprise promotion"
+}

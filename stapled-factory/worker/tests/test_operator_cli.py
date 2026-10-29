@@ -113,3 +113,22 @@ def test_nuc_private_key_reference_and_negative_controls(tmp_path, monkeypatch):
     monkeypatch.setenv('FACTORY_GATEWAY_KEY_FILE', str(link))
     with pytest.raises(OSError):
         operator_cli._credential()
+
+
+def test_router_config_requires_its_own_policy_and_full_body_bound(tmp_path, monkeypatch):
+    from pricing_policy import policy_id
+    args, config, path = configured(tmp_path, monkeypatch)
+    command=config['provision']['proxy_command']
+    command[command.index('--model')+1]='auto'
+    config['payload']['agent_settings']['llm']['model']='anthropic/auto'
+    command[command.index('--pricing-policy-id')+1]=policy_id('auto')
+    command[command.index('--worst-case-request-microdollars')+1]=str(reservation_microdollars('auto'))
+    path.write_text(json.dumps(config))
+    assert operator_cli.load_config(args)[1]['agent_settings']['llm']['model']=='anthropic/auto'
+    command[command.index('--pricing-policy-id')+1]=POLICY_ID
+    path.write_text(json.dumps(config))
+    with pytest.raises(ValueError,match='reservation policy'):operator_cli.load_config(args)
+    command[command.index('--pricing-policy-id')+1]=policy_id('auto')
+    command[command.index('--worst-case-request-microdollars')+1]='315802'
+    path.write_text(json.dumps(config))
+    with pytest.raises(ValueError,match='reservation policy'):operator_cli.load_config(args)

@@ -1,0 +1,19 @@
+{
+  "scope": "Local Docker-save config\u2192OCI manifest verified; NUC immutable IDs and amd64 readback matched before disposable checks",
+  "images": {
+    "docker.io/library/stapled-phase9-production-helper:20261028": {
+      "manifest": "sha256:73570499e4f9272b8e96a1115a13f9c4d186a32cf3968621f5ae602e55083d19",
+      "config": "sha256:a8a3e0a84b0d5fab2b3b4b32e89715a7384b7af2f81b5e82d203d12828cb2578"
+    },
+    "docker.io/library/stapled-phase9-production-proxy:20261028": {
+      "manifest": "sha256:6623375f4e0503fb51cbf20cf05220907904e42c50df96752c68dd4115c42aa4",
+      "config": "sha256:ac4c89a0a35f444e63698368e7378e097807b7f9ad01c4cd47d5ad44dd17111c"
+    },
+    "docker.io/library/stapled-phase9-production-firewall:20261028": {
+      "manifest": "sha256:f3a4d140558c50f81f1f5e1519652a1722a55738d364317fe9c7568716049baa",
+      "config": "sha256:2ee14cd1a78377ae297ed17da1755df31eae18de7ec92607711498d426166216"
+    }
+  },
+  "nuc_verified": true,
+  "nuc_free_gib": 21
+}

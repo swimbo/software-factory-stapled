@@ -1,0 +1,22 @@
+[
+  {
+    "role": "base",
+    "local_config": "sha256:1ba42ef4e94c8e45e52e3a68e4c42245a30e50936d02e4722872b9343be7b531",
+    "oci_manifest": "sha256:9b09eb2859006ce36d3a5223bb7c697282c1ac8b5c7a96bed8135f4ffc9ed057"
+  },
+  {
+    "role": "firewall",
+    "local_config": "sha256:842e0706bcd1e63de31b5f5bb6eca5128fbee3321bcb329c4f067e5f9110facb",
+    "oci_manifest": "sha256:0e95faf5bdcbe6030ea7ede690af1f22af37645747ea8792a254912daf97233d"
+  },
+  {
+    "role": "proxy",
+    "local_config": "sha256:f881fce221dd37af5414746e790bbaf098dfd8c16a0d2d2f6ce9328109812fcb",
+    "oci_manifest": "sha256:b5b719613906f4ac3a3d680b0ecd39cf5c8d018229b26bda544961dbb8b26dee"
+  },
+  {
+    "role": "worker",
+    "local_config": "sha256:048bd5f7e85d99dde3eb97a9223504877ee58c4954441c6e46fd6df185118919",
+    "oci_manifest": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77"
+  }
+]

@@ -1,0 +1,43 @@
+"""Regression tests for the read-only service version endpoint."""
+import json
+import threading
+import unittest
+import urllib.error
+import urllib.request
+from http.server import HTTPServer
+
+from app import Handler
+
+
+class VersionEndpointTest(unittest.TestCase):
+    def setUp(self):
+        self.server = HTTPServer(("127.0.0.1", 0), Handler)
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+        self.thread.start()
+        self.base = "http://127.0.0.1:%d" % self.server.server_address[1]
+
+    def tearDown(self):
+        self.server.shutdown()
+        self.server.server_close()
+        self.thread.join(timeout=5)
+
+    def _get(self, path):
+        try:
+            with urllib.request.urlopen(self.base + path, timeout=5) as response:
+                return response.status, json.loads(response.read())
+        except urllib.error.HTTPError as exc:
+            return exc.code, json.loads(exc.read())
+
+    def test_version_returns_service_and_version(self):
+        status, body = self._get("/version")
+        self.assertEqual(status, 200)
+        self.assertEqual(body, {"service": "factory-example", "version": "1.0.0"})
+
+    def test_unknown_route_returns_404(self):
+        status, body = self._get("/does-not-exist")
+        self.assertEqual(status, 404)
+        self.assertEqual(body, {"error": "not found"})
+
+
+if __name__ == "__main__":
+    unittest.main()

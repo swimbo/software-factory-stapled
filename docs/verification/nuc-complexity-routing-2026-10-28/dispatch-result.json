@@ -1,0 +1,171 @@
+{
+  "unit": "nuc-router-dispatch-20261028-01",
+  "worker_revision": "dfcfdf4470a443f4f82d191a291aba95992bae52",
+  "factory_revision": "36cec5b2d3d52ebeb8273d255e3c0bb2469f51d0",
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "nuc-router-dispatch-20261028-01:0",
+      "status": "completed",
+      "conversation_id": "4e99d26e-f899-519e-b930-9232b44e1afa",
+      "git_revision": "dfcfdf4470a443f4f82d191a291aba95992bae52"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793201882442
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "nuc-router-dispatch-20261028-01",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "operator-canary-no-wall-acceptance",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-router-dispatch-20261028-01/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-router-dispatch-20261028-01/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "duplicate_dispatch_unchanged": true,
+  "duplicate_http_status": 409,
+  "runtime_snapshot": {
+    "state": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "nuc-router-dispatch-20261028-01:0",
+        "status": "completed",
+        "conversation_id": "4e99d26e-f899-519e-b930-9232b44e1afa",
+        "git_revision": "dfcfdf4470a443f4f82d191a291aba95992bae52"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793201882442
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "nuc-router-dispatch-20261028-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-canary-no-wall-acceptance",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-router-dispatch-20261028-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-router-dispatch-20261028-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "attempt": [
+      "completed",
+      "{\"conversation_id\": \"4e99d26e-f899-519e-b930-9232b44e1afa\", \"git_revision\": \"dfcfdf4470a443f4f82d191a291aba95992bae52\", \"status\": \"completed\"}"
+    ],
+    "metadata": [
+      [
+        "1b889a60-bdb1-4994-bc75-3bd826fdd0ef",
+        8
+      ]
+    ],
+    "anchor": {
+      "store_id": "1b889a60-bdb1-4994-bc75-3bd826fdd0ef",
+      "generation": 8
+    },
+    "containers": {
+      "worker": {
+        "id": "6cb31eca26fa5863b9e233d3efc861564f0569b393c627b3e7e517435974cf6f",
+        "image": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77",
+        "running": true,
+        "pid": 3062494,
+        "started": "2026-10-28T15:28:03.818171284Z"
+      },
+      "proxy": {
+        "id": "877ee85c3408fe710b6957c75591e389917ec3662ff8d369ef3b93002962d23f",
+        "image": "sha256:4a52b0a7b179ef38d4c573b30c743c04174b08779d6d1550882be433bbc95b65",
+        "running": true,
+        "pid": 3062403,
+        "started": "2026-10-28T15:28:03.711075121Z"
+      }
+    },
+    "allocation_id": "dc2fc7d192fd4792af4647cea39977cf",
+    "budget": {
+      "budgets": [
+        [
+          "nuc-router-dispatch-20261028-01:0",
+          "auto",
+          6,
+          3,
+          "4e9ecf6682ccc73bca99d0fe790ca1b730c1c3002b5b4bb48fb5bfa3121f6d88"
+        ]
+      ],
+      "monetary_budgets": [
+        [
+          "nuc-router-dispatch-20261028-01:0",
+          2000000,
+          1398176,
+          "request-size-pro-2026-10-28-best-effort",
+          1793204654,
+          173515
+        ]
+      ]
+    }
+  },
+  "best_effort_budget": true,
+  "actual_charges": "unknown",
+  "scope": "operator-selected sandbox task; needs_validation; no candidate acceptance or enterprise promotion",
+  "actual_live_boundary": {
+    "worker_cgroup": {
+      "cpu.max": "200000 100000",
+      "memory.max": "3221225472",
+      "memory.swap.max": "0",
+      "pids.max": "512"
+    },
+    "proxy_cgroup": {
+      "cpu.max": "100000 100000",
+      "memory.max": "536870912",
+      "memory.swap.max": "0",
+      "pids.max": "128"
+    },
+    "private_host_paths_denied": true,
+    "worker_isolation_positive_and_negatives_passed": true,
+    "proxy_firewall_reverified": true
+  },
+  "router_session_id": "a36a9f29-2a4b-5a57-b52e-d22653882b98",
+  "gateway_logs": [
+    {
+      "id": "ed920327-49e3-4cdb-9198-d276771b80d2",
+      "session_id": "a36a9f29-2a4b-5a57-b52e-d22653882b98",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic default Flash",
+      "complexity_tier": "SIMPLE",
+      "complexity_mechanism": "llm",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "id": "5fad4291-43f4-42ee-8a26-d8a5f25479b9",
+      "session_id": "a36a9f29-2a4b-5a57-b52e-d22653882b98",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic default Flash",
+      "complexity_tier": "SIMPLE",
+      "complexity_mechanism": "llm",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "id": "274ddfe7-2ac1-4fc1-a9e1-ca706a171c4f",
+      "session_id": "a36a9f29-2a4b-5a57-b52e-d22653882b98",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic default Flash",
+      "complexity_tier": "SIMPLE",
+      "complexity_mechanism": "session",
+      "status": "success",
+      "cost": null
+    }
+  ],
+  "prior_attempt_preserved": true,
+  "verified_at": "2026-10-28T15:31:20.201957+00:00"
+}

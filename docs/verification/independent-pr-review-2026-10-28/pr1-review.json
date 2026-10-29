@@ -1,0 +1,48 @@
+{
+  "status": "complete",
+  "verdict": "Ready with fixes",
+  "scope": {
+    "pr": 1,
+    "head_sha": "c97b52ef4ffe2322b9d504d8731b3bdbfcc69ab4",
+    "head_verified_live": true
+  },
+  "reviewers": [
+    "independent correctness/security/recovery source reviewer"
+  ],
+  "findings": [
+    {
+      "title": "Preserve wall request semantics through the candidate bridge",
+      "severity": "P2",
+      "file": "stapled-factory/spine/prebuilt_validation.py",
+      "line": 81,
+      "end_line": 81,
+      "confidence": "high",
+      "why_it_matters": "Forwarder silently removes all request headers except Authorization and Content-Type; it also handles only GET/POST. A negative test for an invalid X-Api-Key can pass because the bridge turns that request into a missing-key request, even if the application wrongly accepts the invalid supplied key. PUT returns bridge-generated501 without exercising candidate. The wall verdict therefore can describe a different request than the signed scenario.",
+      "evidence": "Executed AST-extracted exact Forwarder from PR1 c97b52ef; X-Api-Key was absent from captured candidate request, Authorization retained; PUT produced501 and no candidate transport call.",
+      "suggested_fix": "Forward end-to-end headers while replacing/filtering Host, Connection and framing headers; forward supported request methods or reject unsupported scenario methods explicitly before wall evaluation. Add a negative control distinguishing invalid versus absent custom auth header and method forwarding.",
+      "reproduction": "/tmp/stapled-independent-review-20261028/repro_transport.py"
+    }
+  ],
+  "actionable_findings": [
+    {
+      "title": "Preserve wall request semantics through the candidate bridge",
+      "severity": "P2",
+      "file": "stapled-factory/spine/prebuilt_validation.py",
+      "line": 81,
+      "end_line": 81,
+      "confidence": "high",
+      "why_it_matters": "Forwarder silently removes all request headers except Authorization and Content-Type; it also handles only GET/POST. A negative test for an invalid X-Api-Key can pass because the bridge turns that request into a missing-key request, even if the application wrongly accepts the invalid supplied key. PUT returns bridge-generated501 without exercising candidate. The wall verdict therefore can describe a different request than the signed scenario.",
+      "evidence": "Executed AST-extracted exact Forwarder from PR1 c97b52ef; X-Api-Key was absent from captured candidate request, Authorization retained; PUT produced501 and no candidate transport call.",
+      "suggested_fix": "Forward end-to-end headers while replacing/filtering Host, Connection and framing headers; forward supported request methods or reject unsupported scenario methods explicitly before wall evaluation. Add a negative control distinguishing invalid versus absent custom auth header and method forwarding.",
+      "reproduction": "/tmp/stapled-independent-review-20261028/repro_transport.py"
+    }
+  ],
+  "coverage": {
+    "reviewed": "Exact-ref source inspection of changed executable behavior and related contracts; PR1 validator, build attestation, signed acceptance, dispatch preparation, router budget changes, firewall resource limits, backup/recovery. PR2 evaluator diff and all five added regression tests.",
+    "limits": "No live NUC changes, Docker integration, model calls, full local CI, or independent human approval. This is a single reviewer receipt, not the complete CE multi-reviewer orchestration. Large recorded evidence inventories not exhaustively re-audited."
+  },
+  "validation": [
+    "PR1 exact Forwarder AST reproduction confirmed header stripping and method interception"
+  ],
+  "completed_at": "2026-10-28T21:04:57.740247+00:00"
+}

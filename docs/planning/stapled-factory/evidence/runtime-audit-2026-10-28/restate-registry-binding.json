@@ -1,0 +1,6 @@
+{
+  "official_amd64_manifest": "sha256:d89c6903fafa50a8d0bee313f7aa38ab76d7728663d7f3c5aeef3cef1394ac2c",
+  "manifest_hash_verified": true,
+  "config_id": "sha256:c798307cbfc2ba9805bfc622293c58cab9273595bb25b52a486d09b116b2b5ec",
+  "nuc_docker_save_manifest": "sha256:e7310221711eef6096e82a5e4c37aed061b22a60c2109c5190cea707b16a636e"
+}

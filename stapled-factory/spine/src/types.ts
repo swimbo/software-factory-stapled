@@ -57,6 +57,7 @@ export interface BuildEvidence {
 
 export interface WorkUnitState {
   stage: Stage;
+  validation?: import("./validation.js").ValidationEvidence;
   recovery?: { request: OrchestrateRequest; attemptDb: string; attemptAnchor?: string } | null;
   build?: BuildEvidence | null;
   successor?: BuildEvidence | null;

@@ -312,6 +312,11 @@ finally:
                 row = db.execute('select allocation_id from allocations where attempt_id=?', ('unit:0',)).fetchone()
             if row:
                 prefix = 'factory-' + row[0]
+                if os.environ.get('FACTORY_PROBE_RETAIN_ROOT'):
+                    retained = Path(os.environ['FACTORY_PROBE_RETAIN_ROOT'])
+                    docker('stop', prefix + '-proxy')
+                    docker('cp', prefix + '-proxy:/budget/b.db', str(retained / 'budget.db'))
+                    docker('cp', prefix + '-proxy:/anchor/b.json', str(retained / 'budget-anchor.json'))
                 for role in ('successor', 'worker', 'proxy'):
                     subprocess.run(['docker','rm','-f',prefix+'-'+role],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
                 subprocess.run(['docker','network','rm',prefix+'-network'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
@@ -328,6 +333,13 @@ finally:
         # The deterministic name is unique to this probe's allocation and also
         # catches a failed create/start before a successor ID was returned.
         subprocess.run(['docker','rm','-f','factory-'+allocation['allocation_id']+'-successor'],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        if os.environ.get('FACTORY_PROBE_RETAIN_ROOT'):
+            retained = Path(os.environ['FACTORY_PROBE_RETAIN_ROOT'])
+            # At this point Restate is stopped and the fixture received done.
+            # Stop the proxy before retaining its budget pair for cold backup.
+            docker('stop', allocation['proxy'])
+            docker('cp', allocation['proxy'] + ':/budget/b.db', str(retained / 'budget.db'))
+            docker('cp', allocation['proxy'] + ':/anchor/b.json', str(retained / 'budget-anchor.json'))
         allocation['proxy_process'].terminate()
         for container in (allocation['worker'], allocation['proxy']):
             subprocess.run(['docker','rm','-f',container],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
