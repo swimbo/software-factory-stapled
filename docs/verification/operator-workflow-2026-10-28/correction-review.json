@@ -1,0 +1,27 @@
+{
+  "reviewer": "independent-correction-review",
+  "scope": "Committed corrections through b1f2c7a plus narrow uncommitted PR_OPEN re-observation preservation and regression",
+  "verified_head_sha": "b1f2c7a5b39fccf0201816b46795897ab0dd7bab",
+  "source_hashes_match_committed_head": false,
+  "source_sha256": {
+    "stapled-factory/operator/cli.py": "2b678d035cc2c0779d8abedf3cf1db18d776ca725134d8aecf3fc4724b9f4370",
+    "stapled-factory/operator/nuc.py": "abe5441fa10756a5177f3fb235c7f99adee64b262c24cc7f16599c255e1a8ea9",
+    "stapled-factory/deployment/nuc/test_operator_workflow.py": "e3f888676e3e351831c1120b664336b9f200fc7bc39ce105feaab20897c1b10a"
+  },
+  "verdict": "PASS",
+  "resolved": [
+    "Completed exports are reused without executing stopped containers; retries can resume endpoint restoration, and the durable completion result precedes active-marker removal.",
+    "Preparation rejects baselines differing from live main, and publication checks that the captured baseline remains an ancestor of fetched main.",
+    "Binding establishment precedes dispatch, existing uncertain intents forbid rebinding, and uncertain accepted responses retain a single dispatch intent.",
+    "Acceptance and local CI failures prevent push/status/PR publication.",
+    "Export bundle hashing rejects symlinks and nonregular paths before reading bytes on the operator host, both initial collection and cached cleanup. Independent narrow delta inspection and synthetic symlink regression passed.",
+    "Re-observing a locally published PR_OPEN task returns the stored publication status and URL without remote calls or overwriting local status. Narrow delta inspection and regression passed."
+  ],
+  "residual_findings": [],
+  "test_result": {
+    "command": "python3 -m pytest stapled-factory/deployment/nuc/test_operator_workflow.py -q",
+    "exit_code": 0,
+    "summary": "21 passed in 0.04s"
+  },
+  "verification_boundary": "Source inspection and local mocked regression tests only; no NUC execution, provider calls, or GitHub publication performed."
+}

@@ -1,0 +1,83 @@
+{
+  "unit": "operator-policy-docs-20261028-01",
+  "operator_abandoned": true,
+  "reason": "AgentServer execution error after 12-request allowance; partial uncommitted docs retained, no successful completion claimed",
+  "allocation_id": "ab5fab3a7e484df6bbe2af0eb5c415ca",
+  "binding": {
+    "network_id": "87c03820b8244bb964fd7c083219e494ad411314a3b9457462ec6abe245ce596",
+    "proxy_id": "41dcda0d4ea731ebc5e72c7d541432e741e1d8bb12d96de103d09d873b748da9",
+    "proxy_lifecycle": {
+      "Pid": 3522189,
+      "StartedAt": "2026-10-29T02:46:01.430845733Z"
+    },
+    "volumes": {
+      "factory-ab5fab3a7e484df6bbe2af0eb5c415ca-anchor": {
+        "CreatedAt": "2026-10-28T22:45:37-04:00",
+        "Driver": "local",
+        "Labels": {
+          "factory.allocation": "ab5fab3a7e484df6bbe2af0eb5c415ca",
+          "factory.role": "anchor"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/factory-ab5fab3a7e484df6bbe2af0eb5c415ca-anchor/_data",
+        "Name": "factory-ab5fab3a7e484df6bbe2af0eb5c415ca-anchor",
+        "Options": null,
+        "Scope": "local"
+      },
+      "factory-ab5fab3a7e484df6bbe2af0eb5c415ca-budget": {
+        "CreatedAt": "2026-10-28T22:45:37-04:00",
+        "Driver": "local",
+        "Labels": {
+          "factory.allocation": "ab5fab3a7e484df6bbe2af0eb5c415ca",
+          "factory.role": "budget"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/factory-ab5fab3a7e484df6bbe2af0eb5c415ca-budget/_data",
+        "Name": "factory-ab5fab3a7e484df6bbe2af0eb5c415ca-budget",
+        "Options": null,
+        "Scope": "local"
+      },
+      "factory-ab5fab3a7e484df6bbe2af0eb5c415ca-socket": {
+        "CreatedAt": "2026-10-28T22:45:36-04:00",
+        "Driver": "local",
+        "Labels": {
+          "factory.allocation": "ab5fab3a7e484df6bbe2af0eb5c415ca",
+          "factory.role": "socket"
+        },
+        "Mountpoint": "/var/lib/docker/volumes/factory-ab5fab3a7e484df6bbe2af0eb5c415ca-socket/_data",
+        "Name": "factory-ab5fab3a7e484df6bbe2af0eb5c415ca-socket",
+        "Options": null,
+        "Scope": "local"
+      }
+    },
+    "worker_id": "bae8d03cbf7d9b637f9b52845db73e3664c6520746fe49138c8a33fb7557585f",
+    "worker_lifecycle": {
+      "Pid": 3522234,
+      "StartedAt": "2026-10-29T02:46:01.521082034Z"
+    },
+    "workspace_baseline": "11fe53f1da1631644230f94fa07b9218499ab0ff"
+  },
+  "ledger": {
+    "budgets": [
+      [
+        "operator-policy-docs-20261028-01:0",
+        "auto",
+        12,
+        12,
+        "00b13758bd594100457f352cf5e7a7e1a7ca26eb20dd60041de61ea15d306cc9"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "operator-policy-docs-20261028-01:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-v2-best-effort",
+        1793245363,
+        1501144
+      ]
+    ]
+  },
+  "both_containers_stopped": true,
+  "prior_binding_restored": true,
+  "old_attempt_store_and_ledger_not_reset": true,
+  "fresh_task_must_use_original_baseline": true
+}
