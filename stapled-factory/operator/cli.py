@@ -69,6 +69,9 @@ def prepare(spec_file):
     if command('git', '-C', repo, 'status', '--porcelain'):
         raise ValueError('source repository must be clean')
     origin = command('git', '-C', repo, 'remote', 'get-url', 'origin')
+    main = command('git', '-C', repo, 'ls-remote', origin, 'refs/heads/main').split()
+    if len(main) != 2 or baseline != main[0]:
+        raise ValueError('baseline must be the current GitHub main commit; feature-branch baselines are not publishable')
     match = re.fullmatch(r'(?:https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?', origin)
     if not match:raise ValueError('GitHub origin required')
     run = RUNS / spec['unit'];run.mkdir(mode=0o700, parents=True, exist_ok=False)
@@ -110,6 +113,16 @@ def prepare(spec_file):
     return {'run': str(run), 'status': 'PREPARED', 'next': 'Review operator.json and task.txt, then run'}
 
 
+
+def budget_summary(ledger):
+    requests = ledger.get('budgets')
+    money = ledger.get('monetary_budgets')
+    return {'requests_used': sum(row[3] for row in requests) if requests else None,
+            'request_limit': sum(row[2] for row in requests) if requests else None,
+            'estimated_reserved_usd': sum(row[-1] for row in money) / 1000000 if money else None,
+            'estimated_target_usd': sum(row[1] for row in money) / 1000000 if money else None,
+            'actual_charges': 'unknown; estimates are not actual charges or a hard cap'}
+
 def run_task(run):
     plan = json.loads((run / 'operator.json').read_text())
     result = remote('run', {'unit': plan['unit']})
@@ -130,7 +143,7 @@ def run_task(run):
         raise ValueError('candidate path scope mismatch')
     (run / 'candidate.diff').write_text(command('git', '-C', repo, 'diff', plan['baseline'], result['revision']) + '\n')
     save(run / 'status.json', {'status': 'AWAITING_OPERATOR_DIFF_REVIEW', 'revision': result['revision'],
-                              'changed': changed, 'budget': result['budget'], 'actual_charges': 'unknown',
+                              'changed': changed, 'budget': result['budget'], 'spending': budget_summary(result['budget']), 'actual_charges': 'unknown',
                               'runtime_validation': result['runtime_validation']})
     return {'status': 'AWAITING_OPERATOR_DIFF_REVIEW', 'diff': str(run / 'candidate.diff'),
             'next': 'Review source and tests before publish executes candidate CI'}
@@ -143,6 +156,9 @@ def publish(run):
         raise ValueError('candidate changed since collection')
     if hashlib.sha256((run / 'check.py').read_bytes()).hexdigest() != plan['check_sha256']:
         raise ValueError('operator acceptance script changed')
+    command('git', '-C', repo, 'remote', 'set-url', 'origin', plan['origin'])
+    command('git', '-C', repo, 'fetch', '--no-tags', 'origin', 'main')
+    command('git', '-C', repo, 'merge-base', '--is-ancestor', plan['baseline'], 'FETCH_HEAD')
     subprocess.run([sys.executable, str(run / 'check.py'), str(repo)], check=True)
     # This repository's trusted local gate is required; a worker cannot replace it.
     path = 'scripts/verify-local.py'
@@ -151,7 +167,6 @@ def publish(run):
         raise ValueError('local CI runner changed; manual verification required')
     subprocess.run([sys.executable, str(repo / path)], check=True)
     branch = 'codex/' + plan['unit']
-    command('git', '-C', repo, 'remote', 'set-url', 'origin', plan['origin'])
     command('git', '-C', repo, 'push', 'origin', result['revision'] + ':refs/heads/' + branch)
     command('gh', 'api', 'repos/' + plan['github'] + '/statuses/' + result['revision'],
             '-f', 'state=success', '-f', 'context=local-ci/verified',
@@ -170,7 +185,7 @@ def publish(run):
         url = command('gh', 'pr', 'create', '-R', plan['github'], '--base', 'main', '--head', branch,
                       '--title', plan['task'].splitlines()[0][:70], '--body-file', run / 'pr.md')
     save(run / 'status.json', {'status': 'PR_OPEN', 'url': url, 'revision': result['revision'],
-                              'budget': result['budget'], 'actual_charges': 'unknown',
+                              'budget': result['budget'], 'spending': budget_summary(result['budget']), 'actual_charges': 'unknown',
                               'runtime_validation': result['runtime_validation'], 'merged': False, 'deployed': False})
     return json.loads((run / 'status.json').read_text())
 

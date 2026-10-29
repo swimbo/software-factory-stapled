@@ -10,6 +10,7 @@ import sqlite3
 import subprocess
 import sys
 import time
+import tempfile
 import urllib.error
 import urllib.request
 
@@ -21,8 +22,13 @@ def command(*args):
 
 
 def private(path, data):
-    path.write_text(json.dumps(data, indent=2) + '\n')
-    path.chmod(0o600)
+    fd, name = tempfile.mkstemp(dir=path.parent, prefix=path.name + '.')
+    with os.fdopen(fd, 'w') as stream:
+        stream.write(json.dumps(data, indent=2) + '\n');stream.flush();os.fsync(stream.fileno())
+    os.replace(name, path)
+    fd = os.open(path.parent, os.O_RDONLY)
+    try:os.fsync(fd)
+    finally:os.close(fd)
 
 
 def post(route, data):
@@ -46,12 +52,55 @@ def release():
     return path
 
 
+
+
+def assert_idle(service):
+    line = next(x for x in service.splitlines() if x.startswith('Environment=FACTORY_RUNTIME_CONFIG='))
+    cfg = json.loads(Path(line.split('=', 2)[2]).read_text())
+    unit = cfg['attempt_id'].rsplit(':', 1)[0]
+    if post('WorkUnit/' + unit + '/getState', {}).get('stage') not in ('unclaimed', 'needs_validation', 'validated', 'failed'):
+        raise ValueError('existing binding has unresolved work; observe it before a new task')
+
+def endpoint_config():
+    pid = command('systemctl', '--user', 'show', 'factory-endpoint', '-p', 'MainPID', '--value')
+    environment = Path('/proc', pid, 'environ').read_bytes().split(b'\0')
+    return next((x.split(b'=', 1)[1].decode() for x in environment
+                 if x.startswith(b'FACTORY_RUNTIME_CONFIG=')), '')
+
+
+def ensure_binding(service, previous, desired, config, intent):
+    current = service.read_text()
+    if intent.exists():
+        if current != desired or endpoint_config() != str(config):
+            raise ValueError('uncertain dispatch binding changed; manual reconciliation required')
+        return
+    if current not in (previous, desired):
+        raise ValueError('endpoint changed during binding; manual intervention required')
+    service.write_text(desired)
+    command('systemctl', '--user', 'daemon-reload')
+    command('systemctl', '--user', 'restart', 'factory-endpoint')
+    for _ in range(30):
+        try:
+            if endpoint_config() == str(config):return
+        except OSError:pass
+        time.sleep(1)
+    raise ValueError('intended endpoint binding not established; no dispatch made')
+
+
+def restore_binding(service, previous, desired):
+    if service.read_text() not in (previous, desired):
+        raise ValueError('endpoint changed before restore; manual intervention required')
+    service.write_text(previous)
+    command('systemctl', '--user', 'daemon-reload')
+    command('systemctl', '--user', 'restart', 'factory-endpoint')
+
 def main(action, data):
     if action == 'describe':
         rel = release()
         service = (Path.home() / '.config/systemd/user/factory-endpoint.service').read_text()
         line = next(x for x in service.splitlines() if x.startswith('Environment=FACTORY_RUNTIME_CONFIG='))
         cfg = json.loads(Path(line.split('=', 2)[2]).read_text())
+        assert_idle(service)
         images = {k: cfg['provision'][k] for k in ('worker_image', 'proxy_image', 'helper_image', 'worker_environment')}
         images['firewall_image'] = cfg['provision']['firewall']['helper_image']
         paths = [rel / 'release-manifest.json', rel / 'local-ci.json']
@@ -108,93 +157,106 @@ def main(action, data):
         active = ROOT / 'operator-active.json'
         cached = approval / 'result.json'
         if cached.exists() and json.loads(cached.read_text()).get('binding_restored'):
+            if active.exists():
+                service = Path.home() / '.config/systemd/user/factory-endpoint.service'
+                if json.loads(active.read_text())['unit'] != unit or service.read_text() != (approval / 'previous.service').read_text():
+                    raise ValueError('stale active marker requires reconciliation')
+                active.unlink()
             return json.loads(cached.read_text())
         if active.exists() and json.loads(active.read_text())['unit'] != unit:
             raise ValueError('another task needs observation; do not rebind')
         plan = json.loads((approval / 'operator.json').read_text())
         service = Path.home() / '.config/systemd/user/factory-endpoint.service'
-        old = service.read_text()
         if not active.exists():
+            old = service.read_text()
+            assert_idle(old)
             if hashlib.sha256(old.encode()).hexdigest() != plan['service_sha256']:
                 raise ValueError('endpoint binding changed; prepare again')
             if str(release()) != plan['release']:
                 raise ValueError('runtime changed; prepare again')
             (approval / 'previous.service').write_text(old)
             (approval / 'previous.service').chmod(0o600)
-            private(active, {'unit': unit})  # Owner loss leaves a visible stop.
-            lines = old.splitlines()
-            lines = ['Environment=FACTORY_RUNTIME_CONFIG=' + str(run / 'runtime.json')
-                     if x.startswith('Environment=FACTORY_RUNTIME_CONFIG=') else x for x in lines]
-            service.write_text('\n'.join(lines) + '\n')
-            command('systemctl', '--user', 'daemon-reload')
-            command('systemctl', '--user', 'restart', 'factory-endpoint')
-        # An intent precedes HTTP. A lost response is observed, never resent.
+            private(active, {'unit': unit})
+        previous = (approval / 'previous.service').read_text()
+        desired = '\n'.join('Environment=FACTORY_RUNTIME_CONFIG=' + str(run / 'runtime.json')
+                            if x.startswith('Environment=FACTORY_RUNTIME_CONFIG=') else x
+                            for x in previous.splitlines()) + '\n'
         intent = approval / 'dispatch-intent.json'
-        for _ in range(30):
-            try:
+        # A recorded result survives stopped containers and needs only cleanup.
+        completed = json.loads(cached.read_text()) if cached.exists() else None
+        if completed is None:
+            ensure_binding(service, previous, desired, run / 'runtime.json', intent)
+            for _ in range(30):
+                try:
+                    state = post('WorkUnit/' + unit + '/getState', {})
+                    break
+                except (OSError, ValueError):
+                    time.sleep(1)
+            else:
+                raise ValueError('endpoint unavailable; binding retained for observation')
+            if not intent.exists():
+                if state.get('stage') != 'unclaimed':
+                    raise ValueError('unit already used')
+                private(intent, {'unit': unit, 'baseline': plan['baseline']})
+                cfg = json.loads((run / 'runtime.json').read_text())
+                try:
+                    post('orchestrate/' + unit + '/run', {'unitId': unit,
+                        'target': 'http://127.0.0.1:1', 'scenarios': 'operator-local-checks',
+                        'targetRepo': cfg['repo'], 'taskFile': cfg['task_file']})
+                except (OSError, ValueError):
+                    pass
+            last = None
+            for _ in range(data.get('polls', 120)):
                 state = post('WorkUnit/' + unit + '/getState', {})
-                break
-            except (OSError, ValueError):
-                time.sleep(1)
+                if state.get('stage') != last:
+                    last = state.get('stage')
+                    print(json.dumps({'stage': last}), flush=True)
+                if last in ('needs_validation', 'validated', 'failed'):
+                    break
+                time.sleep(5)
+            else:
+                raise ValueError('outcome unresolved; same binding retained, rerun run to observe')
+            if last == 'failed':
+                result = {'state': state, 'requires_intervention': True}
+                private(approval / 'result.json', result)
+            else:
+                revision = state['build']['git_revision']
+                with sqlite3.connect('file:' + str(ROOT / 'attempt-store/attempts.db') + '?mode=ro', uri=True) as db:
+                    binding = json.loads(db.execute('SELECT binding FROM allocation_bindings WHERE attempt_id=?',
+                                                   (unit + ':0',)).fetchone()[0])
+                worker, proxy = binding['worker_id'], binding['proxy_id']
+                def git(*args):return command('docker', 'exec', worker, 'git', '-C', '/workspace', *args)
+                if git('rev-parse', 'HEAD') != revision or git('status', '--porcelain'):
+                    raise ValueError('worker did not leave exact clean committed result')
+                changed = git('diff', '--name-only', plan['baseline'], revision).splitlines()
+                if not changed or not set(changed) <= set(plan['allowed_paths']):
+                    raise ValueError('changes outside operator scope; binding retained')
+                bundle = approval / 'result.bundle'
+                if not bundle.exists():
+                    git('bundle', 'create', '/tmp/operator-result.bundle', '--all')
+                    command('docker', 'cp', worker + ':/tmp/operator-result.bundle', bundle)
+                code = "import sqlite3,json;d=sqlite3.connect('file:/budget/b.db?mode=ro',uri=True);print(json.dumps({t:d.execute('SELECT * FROM '+t).fetchall() for t in ('budgets','monetary_budgets')}))"
+                ledger = json.loads(command('docker', 'exec', proxy, 'python3', '-c', code))
+                result = {'state': state, 'revision': revision, 'changed': changed, 'budget': ledger,
+                          'bundle_sha256': hashlib.sha256(bundle.read_bytes()).hexdigest(),
+                          'actual_charges': 'unknown', 'runtime_validation': last,
+                          'worker': worker, 'proxy': proxy}
+                private(approval / 'result.json', result)
         else:
-            raise ValueError('endpoint unavailable; binding retained for observation')
-        if not intent.exists():
-            if state.get('stage') != 'unclaimed':
-                raise ValueError('unit already used')
-            private(intent, {'unit': unit, 'baseline': plan['baseline']})
-            cfg = json.loads((run / 'runtime.json').read_text())
-            try:
-                post('orchestrate/' + unit + '/run', {'unitId': unit,
-                    'target': 'http://127.0.0.1:1', 'scenarios': 'operator-local-checks',
-                    'targetRepo': cfg['repo'], 'taskFile': cfg['task_file']})
-            except (OSError, ValueError):
-                pass
-        last = None
-        for _ in range(data.get('polls', 120)):
-            state = post('WorkUnit/' + unit + '/getState', {})
-            if state.get('stage') != last:
-                last = state.get('stage')
-                print(json.dumps({'stage': last}), flush=True)
-            if last in ('needs_validation', 'validated', 'failed'):
-                break
-            time.sleep(5)
-        else:
-            raise ValueError('outcome unresolved; same binding retained, rerun run to observe')
-        if last == 'failed':
-            result = {'state': state, 'requires_intervention': True}
-        else:
-            revision = state['build']['git_revision']
-            with sqlite3.connect('file:' + str(ROOT / 'attempt-store/attempts.db') + '?mode=ro', uri=True) as db:
-                binding = json.loads(db.execute('SELECT binding FROM allocation_bindings WHERE attempt_id=?',
-                                               (unit + ':0',)).fetchone()[0])
-            worker, proxy = binding['worker_id'], binding['proxy_id']
-            def git(*args):return command('docker', 'exec', worker, 'git', '-C', '/workspace', *args)
-            if git('rev-parse', 'HEAD') != revision or git('status', '--porcelain'):
-                raise ValueError('worker did not leave exact clean committed result')
-            changed = git('diff', '--name-only', plan['baseline'], revision).splitlines()
-            if not changed or not set(changed) <= set(plan['allowed_paths']):
-                raise ValueError('changes outside operator scope; binding retained')
-            bundle = approval / 'result.bundle'
-            if not bundle.exists():
-                git('bundle', 'create', '/tmp/operator-result.bundle', '--all')
-                command('docker', 'cp', worker + ':/tmp/operator-result.bundle', bundle)
-            code = "import sqlite3,json;d=sqlite3.connect('file:/budget/b.db?mode=ro',uri=True);print(json.dumps({t:d.execute('SELECT * FROM '+t).fetchall() for t in ('budgets','monetary_budgets')}))"
-            ledger = json.loads(command('docker', 'exec', proxy, 'python3', '-c', code))
-            result = {'state': state, 'revision': revision, 'changed': changed, 'budget': ledger,
-                      'bundle_sha256': hashlib.sha256(bundle.read_bytes()).hexdigest(),
-                      'actual_charges': 'unknown', 'runtime_validation': last}
-            private(approval / 'result.json', result)
+            result = completed
+            if result.get('revision') and hashlib.sha256((approval / 'result.bundle').read_bytes()).hexdigest() != result['bundle_sha256']:
+                raise ValueError('saved result bundle changed')
+        if result.get('revision'):
+            worker, proxy = result['worker'], result['proxy']
             # Keep ledgers/containers for audit; only stop this completed allocation.
             allocation = json.loads(command('docker', 'inspect', worker))[0]['Config']['Labels']['factory.allocation']
             if json.loads(command('docker', 'inspect', proxy))[0]['Config']['Labels']['factory.allocation'] != allocation:
                 raise ValueError('allocation mismatch')
             command('docker', 'stop', worker, proxy)
-        service.write_text((approval / 'previous.service').read_text())
-        command('systemctl', '--user', 'daemon-reload')
-        command('systemctl', '--user', 'restart', 'factory-endpoint')
-        active.unlink()
+        restore_binding(service, previous, desired)
         result['binding_restored'] = True
         private(approval / 'result.json', result)
+        active.unlink()
         return result
 
 

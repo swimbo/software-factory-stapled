@@ -28,7 +28,7 @@ The operator-owned stdlib Python check receives the collected candidate director
 as its only argument. It stays outside the generator repository; its captured
 hash is rechecked before publishing. Acceptance text goes to the worker, but the
 check script does not. A new task needs a new unique unit. The source checkout
-must be clean and the baseline must name an existing Git ref. Scope paths are
+must be clean and the baseline must name a Git ref at the current GitHub main commit; feature baselines are rejected. Scope paths are
 exact filenames, not wildcards. This version publishes to that GitHub repo's
 `main` branch via a new `codex/<unit>` PR and uses its existing
 `scripts/verify-local.py` gate.
