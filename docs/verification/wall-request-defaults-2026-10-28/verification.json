@@ -1,0 +1,241 @@
+{
+  "date": "2026-10-28",
+  "scope": "one real repository bug fix through NUC factory; disposable candidate accepted; no production runtime upgrade or main merge",
+  "unit": "nuc-wall-defaults-20261028-01",
+  "factory_revision": "e636f92636cd19688bed62129ab2f0f52b55aa49",
+  "source_baseline": "f5f18a4d848a687c9d9a2be7bd98dc3828bc4dd6",
+  "worker_revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa",
+  "worker_finished": true,
+  "changed_paths": [
+    "stapled-factory/wall/evaluator/evaluate.py",
+    "stapled-factory/wall/tests/test_request_defaults.py"
+  ],
+  "duplicate_dispatch_unchanged": true,
+  "duplicate_http_status": 409,
+  "budget": {
+    "budgets": [
+      [
+        "nuc-wall-defaults-20261028-01:0",
+        "auto",
+        12,
+        9,
+        "5b68cad92a8094c968f8c6a0ddec768e469e6914067dcf441cd85eea45cc1d37"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "nuc-wall-defaults-20261028-01:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-v2-best-effort",
+        1793216065,
+        890006
+      ]
+    ]
+  },
+  "actual_charges": "unknown; estimates and null gateway costs do not prove actual charges or a hard cap",
+  "routing": {
+    "session_id": "1060bf12-6af1-52e2-9b68-51ee4223a8d4",
+    "requests": 9,
+    "models": [
+      "deepseek-v4.1-flash:1017"
+    ],
+    "complexity_tiers": [
+      "MEDIUM"
+    ],
+    "all_statuses": [
+      "success"
+    ],
+    "gateway_costs": [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ]
+  },
+  "candidate_validation": {
+    "scope": "nuc-disposable-candidate",
+    "git_revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa",
+    "artifact_digest": "sha256:9029c1cc11d697e5090de26e1eddf4031ebfca74d49507a6fd126fbe6837d254",
+    "deployment_id": "82b7fb89804f930f26214ecc5fc5a1583fe143eeced9e0a021834cc5b5faf471",
+    "source_archive_digest": "5d7afc53805d905a00797490af3b4f21ab44cfdf6a8ef7ba1d0970dfb59dbca1",
+    "scenario_digest": "06e3e3e4940d5331e7316166d56461608fbe048e0cdafc916f1c560d0d1eda3e",
+    "security": {
+      "verdict": "pass",
+      "security_relevant": false,
+      "engines": {
+        "sast": "regex-fallback",
+        "secret": "regex-fallback",
+        "dependency": "manifest-flag"
+      },
+      "findings": []
+    },
+    "wall": {
+      "verdict": {
+        "passed": true,
+        "aggregate_pass_rate": 1.0,
+        "failure_message": "",
+        "per_scenario": {
+          "default-method-status": true,
+          "default-path-status": true,
+          "both-default-status": true,
+          "both-default-body": true,
+          "default-method-body": true,
+          "default-path-body": true,
+          "explicit-method-path": true,
+          "passing-defaults": true
+        }
+      },
+      "receipt": {
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "requests": 24,
+        "retries": 0,
+        "wall_clock_ms": 5844,
+        "tier": "unknown",
+        "pricing_mode": "subscription",
+        "cost_estimate_usd": null,
+        "ceiling_violation": ""
+      }
+    },
+    "passed": true
+  },
+  "accepted_state": {
+    "stage": "validated",
+    "build": {
+      "attempt_id": "nuc-wall-defaults-20261028-01:0",
+      "status": "completed",
+      "conversation_id": "6dd46276-1122-507d-bec8-5a2ce742067f",
+      "git_revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa"
+    },
+    "validation": {
+      "artifact_digest": "sha256:9029c1cc11d697e5090de26e1eddf4031ebfca74d49507a6fd126fbe6837d254",
+      "attempt_id": "nuc-wall-defaults-20261028-01:0",
+      "deployment_id": "82b7fb89804f930f26214ecc5fc5a1583fe143eeced9e0a021834cc5b5faf471",
+      "git_revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa",
+      "passed": true,
+      "scenario_digest": "06e3e3e4940d5331e7316166d56461608fbe048e0cdafc916f1c560d0d1eda3e",
+      "scope": "disposable-candidate",
+      "security_engines": {
+        "dependency": "manifest-flag",
+        "sast": "regex-fallback",
+        "secret": "regex-fallback"
+      },
+      "unit_id": "nuc-wall-defaults-20261028-01"
+    }
+  },
+  "local_build": {
+    "archive_sha256": "5d7afc53805d905a00797490af3b4f21ab44cfdf6a8ef7ba1d0970dfb59dbca1",
+    "baseline": "f5f18a4d848a687c9d9a2be7bd98dc3828bc4dd6",
+    "config_digest": "sha256:48e077b33fa8782146b1ec8d00e7cca0d83dca5eff92089193becfa23f8f4c3f",
+    "diff_sha256": "148f3967ef8005cc46a7b401ed313a363dd74cd43683488e5bbe9120288b33e3",
+    "dockerfile_sha256": "24e907a237975819c3e9a793f800dcba9f5d18ee60de20cf884a0008520c5781",
+    "revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa"
+  },
+  "baseline_control": {
+    "same_five_regressions_against_original_evaluator": true,
+    "tests": 5,
+    "missing_field_errors": 4,
+    "explicit_fields_test_passed": true
+  },
+  "candidate_unit_tests": {
+    "tests": 5,
+    "passed": 5,
+    "contained": "network-none, nonroot, read-only candidate image; no host mounts"
+  },
+  "worker_commit_local_ci": {
+    "revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa",
+    "tree": "d4129b4647eef25a5ac5dec72bf225e3556b5eaa",
+    "started_at": "2026-10-28T18:36:13.961932+00:00",
+    "runner": "local",
+    "steps": [
+      {
+        "name": "secrets",
+        "command": [
+          "gitleaks",
+          "dir",
+          ".",
+          "--redact",
+          "--no-banner"
+        ],
+        "exit_code": 0,
+        "log_sha256": "490df7835875ca57c04151a2fcbfe25767f007b3e771fa01cbdccacb24a9c77f"
+      },
+      {
+        "name": "python",
+        "command": [
+          "python3",
+          "-m",
+          "pytest",
+          "worker/tests",
+          "security/tests",
+          "wall/tests",
+          "wall/isolation",
+          "spine/python_tests",
+          "deployment/nuc",
+          "-q"
+        ],
+        "exit_code": 0,
+        "log_sha256": "e4f9056f943aef8d635fc0e00a1b3ebd617f16d6e8810c26fc88f59de513ea38"
+      },
+      {
+        "name": "dependencies",
+        "command": [
+          "npm",
+          "ci",
+          "--ignore-scripts"
+        ],
+        "exit_code": 0,
+        "log_sha256": "04e2d42cd9e9bb9fa94a06f43a3882d8454f1133dcbae35fd4494a3ad5c92a6a"
+      },
+      {
+        "name": "audit",
+        "command": [
+          "npm",
+          "audit",
+          "--audit-level=high"
+        ],
+        "exit_code": 0,
+        "log_sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+      },
+      {
+        "name": "build",
+        "command": [
+          "npm",
+          "run",
+          "build"
+        ],
+        "exit_code": 0,
+        "log_sha256": "f78a4b179b39a62de1f139ab98ad784486d0ff3aa0a49605d3db25bf38eb470d"
+      },
+      {
+        "name": "node",
+        "command": [
+          "node",
+          "--test",
+          "tests/build.test.mjs",
+          "tests/endpoint.test.mjs",
+          "tests/ingress.test.mjs",
+          "tests/reconcile.test.mjs",
+          "tests/wall.test.mjs"
+        ],
+        "exit_code": 0,
+        "log_sha256": "6a391a5dbada64add15028353b1a7588c4ea1146480971ecb138c546304bd4e6"
+      }
+    ],
+    "passed": true,
+    "finished_at": "2026-10-28T18:36:42.414347+00:00"
+  },
+  "local_ci_counts": {
+    "python": 263,
+    "node": 22
+  },
+  "operator_protocol_adapter": "Trusted Dockerfile entrypoint wraps actual candidate CLI against an in-container loopback fixture; operator test scenarios stayed outside the generator workspace. Signed Dockerfile binds this adapter. The factory evaluator itself remained frozen outside the candidate.",
+  "holdout_sha256": "06e3e3e4940d5331e7316166d56461608fbe048e0cdafc916f1c560d0d1eda3e",
+  "adapter_sha256": "766851d73cda41530d765613ad044a8504acd5bc6fa90770c0853e6ee4be12f3"
+}

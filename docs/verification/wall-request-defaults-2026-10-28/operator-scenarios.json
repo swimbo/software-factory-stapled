@@ -1,0 +1,240 @@
+{
+  "scenarios": [
+    {
+      "id": "default-method-status",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "default-method-status",
+                "steps": [
+                  {
+                    "request": {
+                      "path": "/missing"
+                    },
+                    "expect": {
+                      "status": 200
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "GET /missing returned 404 (expected 200)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "default-path-status",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "default-path-status",
+                "steps": [
+                  {
+                    "request": {
+                      "method": "GET"
+                    },
+                    "expect": {
+                      "status": 201
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "GET / returned 200 (expected 201)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "both-default-status",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "both-default-status",
+                "steps": [
+                  {
+                    "request": {},
+                    "expect": {
+                      "status": 201
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "GET / returned 200 (expected 201)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "both-default-body",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "both-default-body",
+                "steps": [
+                  {
+                    "request": {},
+                    "expect": {
+                      "body_contains": "wanted"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "GET / body missing 'wanted'"
+          }
+        }
+      ]
+    },
+    {
+      "id": "default-method-body",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "default-method-body",
+                "steps": [
+                  {
+                    "request": {
+                      "path": "/ok"
+                    },
+                    "expect": {
+                      "body_contains": "wanted"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "GET /ok body missing 'wanted'"
+          }
+        }
+      ]
+    },
+    {
+      "id": "default-path-body",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "default-path-body",
+                "steps": [
+                  {
+                    "request": {
+                      "method": "POST"
+                    },
+                    "expect": {
+                      "body_contains": "wanted"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "POST / body missing 'wanted'"
+          }
+        }
+      ]
+    },
+    {
+      "id": "explicit-method-path",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "explicit-method-path",
+                "steps": [
+                  {
+                    "request": {
+                      "method": "POST",
+                      "path": "/missing"
+                    },
+                    "expect": {
+                      "status": 200
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "POST /missing returned 404 (expected 200)"
+          }
+        }
+      ]
+    },
+    {
+      "id": "passing-defaults",
+      "steps": [
+        {
+          "request": {
+            "method": "POST",
+            "path": "/evaluate",
+            "body": {
+              "scenario": {
+                "id": "passing-defaults",
+                "steps": [
+                  {
+                    "request": {},
+                    "expect": {
+                      "status": 200,
+                      "body_contains": "root"
+                    }
+                  }
+                ]
+              }
+            }
+          },
+          "expect": {
+            "status": 200,
+            "body_contains": "\"passed\": true"
+          }
+        }
+      ]
+    }
+  ]
+}

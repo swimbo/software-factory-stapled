@@ -46,10 +46,12 @@ def _request(target_base: str, step: dict) -> tuple[int, str]:
 def _check_step(step: dict, status: int, body: str) -> str:
     """Return a one-line failure string, or "" when the step passed."""
     expect = step.get("expect", {})
+    method = step["request"].get("method", "GET")
+    path = step["request"].get("path", "/")
     if "status" in expect and status != expect["status"]:
-        return f"{step['request']['method']} {step['request']['path']} returned {status} (expected {expect['status']})"
+        return f"{method} {path} returned {status} (expected {expect['status']})"
     if "body_contains" in expect and expect["body_contains"] not in body:
-        return f"{step['request']['method']} {step['request']['path']} body missing '{expect['body_contains']}'"
+        return f"{method} {path} body missing '{expect['body_contains']}'"
     return ""
 
 
