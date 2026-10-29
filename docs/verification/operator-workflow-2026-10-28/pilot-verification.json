@@ -1,0 +1,54 @@
+{
+  "unit": "operator-nuc-readme-20261028-01",
+  "prior_binding_restored": true,
+  "completed_task_containers_stopped": true,
+  "runtime_source_unchanged": "/home/bo/.local/share/stapled-factory-control/releases/11fe53f1da1631644230f94fa07b9218499ab0ff/stapled-factory/spine",
+  "services": {
+    "factory-endpoint": "active",
+    "factory-restate": "active",
+    "factory-ingress": "active"
+  },
+  "routing": [
+    {
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic default Flash",
+      "complexity_tier": "SIMPLE",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "status": "success",
+      "cost": null
+    },
+    {
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "routing_rule_name": "Desktop automatic medium",
+      "complexity_tier": "MEDIUM",
+      "status": "success",
+      "cost": null
+    }
+  ],
+  "actual_charges": "unknown"
+}

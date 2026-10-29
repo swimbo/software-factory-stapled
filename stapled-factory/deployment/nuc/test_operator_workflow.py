@@ -208,3 +208,11 @@ def test_export_does_not_dereference_worker_symlink_on_host(tmp_path):
     export = tmp_path / 'result.bundle';export.symlink_to(secret)
     with pytest.raises(ValueError, match='worker symlink'):nuc.bundle_hash(export)
     assert secret.read_text() == 'synthetic host fixture'
+
+
+def test_observing_published_task_preserves_pr_link_without_redispatch(tmp_path, monkeypatch):
+    status = {'status': 'PR_OPEN', 'url': 'https://github.com/example/repo/pull/1', 'revision': 'a'*40}
+    (tmp_path / 'status.json').write_text(json.dumps(status))
+    monkeypatch.setattr(cli, 'remote', lambda *a: pytest.fail('published result must not dispatch or rebind'))
+    assert cli.run_task(tmp_path) == status
+    assert json.loads((tmp_path / 'status.json').read_text()) == status

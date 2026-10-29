@@ -1,0 +1,11 @@
+{
+  "independent_correction_verdict": "PASS",
+  "source_sha256": {
+    "stapled-factory/operator/cli.py": "2b678d035cc2c0779d8abedf3cf1db18d776ca725134d8aecf3fc4724b9f4370",
+    "stapled-factory/operator/nuc.py": "abe5441fa10756a5177f3fb235c7f99adee64b262c24cc7f16599c255e1a8ea9",
+    "stapled-factory/deployment/nuc/test_operator_workflow.py": "e3f888676e3e351831c1120b664336b9f200fc7bc39ce105feaab20897c1b10a"
+  },
+  "current_source_matches_review": true,
+  "tests": 21,
+  "review_limits": "Source inspection and local mocked regression tests only; no NUC execution, provider calls, or GitHub publication performed."
+}

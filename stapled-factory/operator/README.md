@@ -73,8 +73,8 @@ not be changed by a worker through this path. Do not publish an unreviewed diff.
 A rejected check produces no push or success status. Merging and deployment are
 separate operator actions; this CLI has no such commands.
 
-The status report includes reserved request/spending counters and the Restate
-stage. Reservations use the existing $2 best-effort policy; actual charges are
+The status command prints the last recorded result, reserved request/spending counters and Restate
+stage; it does not monitor GitHub after publication. Reservations use the existing $2 best-effort policy; actual charges are
 unknown and not capped. A repository-only task can open a locally verified PR
 while Restate remains `needs_validation`: that accurately means the separate
 signed application-candidate validator has not accepted a deployed app. This

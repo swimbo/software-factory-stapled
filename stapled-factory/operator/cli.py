@@ -124,6 +124,11 @@ def budget_summary(ledger):
             'actual_charges': 'unknown; estimates are not actual charges or a hard cap'}
 
 def run_task(run):
+    status_path = run / 'status.json'
+    if status_path.exists():
+        status = json.loads(status_path.read_text())
+        if status.get('status') == 'PR_OPEN':
+            return status  # Re-observation must not erase the publication result.
     plan = json.loads((run / 'operator.json').read_text())
     result = remote('run', {'unit': plan['unit']})
     save(run / 'result.json', result)

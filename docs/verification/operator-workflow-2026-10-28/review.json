@@ -1,0 +1,333 @@
+{
+  "status": "complete",
+  "verdict": "Ready with fixes",
+  "verdict_reason": "Frozen original revision has three confirmed P2 findings. Bind publication review to main, make completed-export restoration resumable, and test uncertain sends. Parent corrections have a separate receipt and are outside this scope.",
+  "scope": {
+    "base": "11fe53f1da1631644230f94fa07b9218499ab0ff",
+    "branch": "codex/operator-task-workflow",
+    "head_sha": "4afaca1fe6feb6fab9558c7c1401b8b7b1803a84",
+    "pr_url": null,
+    "files_changed": 5,
+    "mode": "standalone",
+    "tree_is_reviewed_head": false
+  },
+  "intent": "Small operator CLI connects signed NUC provisioning and Restate/OpenHands execution to clean committed export, independent checks/local CI and GitHub PR; preserve uncertain-send observation, singleton ownership and best-effort budget. Never merges or deploys.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "security",
+    "reliability",
+    "testing",
+    "maintainability",
+    "adversarial"
+  ],
+  "findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/operator/cli.py:170 --         url = command('gh', 'pr', 'create', '-R', plan['github'], '--base', 'main', '--head', branch,",
+        "stapled-factory/operator/cli.py:68 --     baseline = command('git', '-C', repo, 'rev-parse', spec['baseline'] + '^{commit}')",
+        "stapled-factory/operator/cli.py:128 --     changed = command('git', '-C', repo, 'diff', '--name-only', plan['baseline'], result['revision']).splitlines()",
+        "stapled-factory/operator/cli.py:131 --     (run / 'candidate.diff').write_text(command('git', '-C', repo, 'diff', plan['baseline'], result['revision']) + '\\n')",
+        "Construct main=A, feature=B changing outside.py, worker=C changing allowed README.md; baseline=B passes input validation and the B..C scope gate. The generated review shows only README.md, while the main...C PR includes outside.py and README.md."
+      ],
+      "file": "stapled-factory/operator/cli.py",
+      "first_evidence": "stapled-factory/operator/cli.py:170 --         url = command('gh', 'pr', 'create', '-R', plan['github'], '--base', 'main', '--head', branch,",
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "line": 170,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Resolve live origin/main and require the captured baseline to be its ancestor before preparation and publication, or explicitly calculate, scope-check, and present the complete main...candidate PR diff for review. Test a feature baseline with an out-of-scope file followed by an in-scope worker change.",
+      "title": "Feature-branch baseline publishes changes absent from reviewed diff",
+      "why_it_matters": "A valid task can select a clean feature-branch baseline containing changes outside allowed_paths. The generated candidate.diff and both scope checks examine only the worker's additions after that baseline, but publication always targets main, so the PR also contains the baseline's earlier changes that the operator was never shown in the review artifact. Binding the review scope to the actual PR comparison prevents a locally approved narrow task from publishing a broader change set.",
+      "validation_status": "confirmed",
+      "validation_reason": "At frozen head 4afaca1, a clean feature ref containing earlier out-of-scope changes is accepted by cli.py:68-86 and README.md:31-34, both scope gates and candidate.diff compare only baseline to candidate (cli.py:128-131; nuc.py:174-176), while cli.py:170 targets main, so that reachable input publishes changes outside the reviewed diff; incidence was not measured.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 2,
+      "autofix_class": "gated_auto",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/operator/nuc.py:191 --             command('docker', 'stop', worker, proxy)",
+        "stapled-factory/operator/nuc.py:110 --         if cached.exists() and json.loads(cached.read_text()).get('binding_restored'):",
+        "stapled-factory/operator/nuc.py:172 --             if git('rev-parse', 'HEAD') != revision or git('status', '--porcelain'):",
+        "stapled-factory/operator/nuc.py:194 --         command('systemctl', '--user', 'restart', 'factory-endpoint')",
+        "stapled-factory/operator/nuc.py:196 --         result['binding_restored'] = True"
+      ],
+      "file": "stapled-factory/operator/nuc.py",
+      "first_evidence": "stapled-factory/operator/nuc.py:191 --             command('docker', 'stop', worker, proxy)",
+      "independent_reviewers": [
+        "correctness",
+        "reliability"
+      ],
+      "line": 191,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "correctness",
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Persist a completed-export phase with the verified bundle hash and allocation IDs before stopping containers. On retry, verify the saved export and resume idempotent stop/binding restoration without docker exec; retain the active marker until restoration is complete. Add fault-injection coverage immediately after docker stop and during service restart.",
+      "title": "Resume completed exports without executing stopped containers",
+      "why_it_matters": "A failed endpoint restart or interruption after docker stop leaves a completed task permanently unable to finish through the documented run command. Its durable result is ignored until binding_restored is true, so the retry first executes Git and ledger queries inside containers that were already stopped, fails again, and leaves the singleton task marker blocking subsequent tasks. Persist separate export/stop/restore phases and resume restoration from the verified cached export so a known completed allocation can recover without restarting worker execution.",
+      "validation_status": "confirmed",
+      "validation_reason": "At frozen head 4afaca1, interruption or service-restart failure after nuc.py:191 stops the completed containers before binding_restored is persisted at :196-197, and retry ignores the saved export at :110 then requires docker exec at :171-182 (or fails observing the unavailable endpoint), so the documented same-unit run cannot finish restoration and the active marker remains; incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 3,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/test_operator_workflow.py:51 --     monkeypatch.setattr(cli, 'remote', lambda *a: (_ for _ in ()).throw(ValueError('uncertain')))",
+        "stapled-factory/operator/nuc.py:141 --         if not intent.exists():",
+        "stapled-factory/operator/nuc.py:144 --             private(intent, {'unit': unit, 'baseline': plan['baseline']})",
+        "stapled-factory/operator/nuc.py:147 --                 post('orchestrate/' + unit + '/run', {'unitId': unit,",
+        "Frozen-head git grep finds NUC main calls only for completed-cache return and other-unit rejection; neither reaches the intent/send branch."
+      ],
+      "file": "stapled-factory/deployment/nuc/test_operator_workflow.py",
+      "first_evidence": "stapled-factory/deployment/nuc/test_operator_workflow.py:51 --     monkeypatch.setattr(cli, 'remote', lambda *a: (_ for _ in ()).throw(ValueError('uncertain')))",
+      "independent_reviewers": [
+        "testing"
+      ],
+      "line": 51,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "testing"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Build a temporary control-root fixture with an active binding, operator plan, runtime, and service file; fake post and time.sleep. Have the first orchestrate post record acceptance then raise OSError, poll an unresolved state, and rerun main for the same unit. Assert exactly one orchestrate send across both invocations, an intent persisted before that send, no rebind, and rejection of another unit.",
+      "title": "Exercise uncertain HTTP sends through the NUC state machine",
+      "why_it_matters": "The central no-redispatch guarantee is untested: the uncertainty test replaces the entire remote operation with an exception, and the completed-run test returns before the intent/send logic. Removing the durable intent guard or resending after a lost HTTP response would leave all added tests green. A deterministic NUC test across two invocations must prove that only state observation occurs after the first ambiguous send and that the same binding remains reserved.",
+      "validation_status": "confirmed",
+      "validation_reason": "At frozen head 4afaca1, an accepted orchestrate request with a lost response requires a subsequent same-unit observation, but test_operator_workflow.py:49-54 mocks cli.remote entirely and the only nuc.main callers (:46 and :69, confirmed by revision-wide test search) exit before nuc.py:141-151, leaving durable intent and no-redispatch behavior unexercised; coverage absence was established by inspecting all callers, without running mutation tests."
+    }
+  ],
+  "actionable_findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/operator/cli.py:170 --         url = command('gh', 'pr', 'create', '-R', plan['github'], '--base', 'main', '--head', branch,",
+        "stapled-factory/operator/cli.py:68 --     baseline = command('git', '-C', repo, 'rev-parse', spec['baseline'] + '^{commit}')",
+        "stapled-factory/operator/cli.py:128 --     changed = command('git', '-C', repo, 'diff', '--name-only', plan['baseline'], result['revision']).splitlines()",
+        "stapled-factory/operator/cli.py:131 --     (run / 'candidate.diff').write_text(command('git', '-C', repo, 'diff', plan['baseline'], result['revision']) + '\\n')",
+        "Construct main=A, feature=B changing outside.py, worker=C changing allowed README.md; baseline=B passes input validation and the B..C scope gate. The generated review shows only README.md, while the main...C PR includes outside.py and README.md."
+      ],
+      "file": "stapled-factory/operator/cli.py",
+      "first_evidence": "stapled-factory/operator/cli.py:170 --         url = command('gh', 'pr', 'create', '-R', plan['github'], '--base', 'main', '--head', branch,",
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "line": 170,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Resolve live origin/main and require the captured baseline to be its ancestor before preparation and publication, or explicitly calculate, scope-check, and present the complete main...candidate PR diff for review. Test a feature baseline with an out-of-scope file followed by an in-scope worker change.",
+      "title": "Feature-branch baseline publishes changes absent from reviewed diff",
+      "why_it_matters": "A valid task can select a clean feature-branch baseline containing changes outside allowed_paths. The generated candidate.diff and both scope checks examine only the worker's additions after that baseline, but publication always targets main, so the PR also contains the baseline's earlier changes that the operator was never shown in the review artifact. Binding the review scope to the actual PR comparison prevents a locally approved narrow task from publishing a broader change set.",
+      "validation_status": "confirmed",
+      "validation_reason": "At frozen head 4afaca1, a clean feature ref containing earlier out-of-scope changes is accepted by cli.py:68-86 and README.md:31-34, both scope gates and candidate.diff compare only baseline to candidate (cli.py:128-131; nuc.py:174-176), while cli.py:170 targets main, so that reachable input publishes changes outside the reviewed diff; incidence was not measured.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 2,
+      "autofix_class": "gated_auto",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/operator/nuc.py:191 --             command('docker', 'stop', worker, proxy)",
+        "stapled-factory/operator/nuc.py:110 --         if cached.exists() and json.loads(cached.read_text()).get('binding_restored'):",
+        "stapled-factory/operator/nuc.py:172 --             if git('rev-parse', 'HEAD') != revision or git('status', '--porcelain'):",
+        "stapled-factory/operator/nuc.py:194 --         command('systemctl', '--user', 'restart', 'factory-endpoint')",
+        "stapled-factory/operator/nuc.py:196 --         result['binding_restored'] = True"
+      ],
+      "file": "stapled-factory/operator/nuc.py",
+      "first_evidence": "stapled-factory/operator/nuc.py:191 --             command('docker', 'stop', worker, proxy)",
+      "independent_reviewers": [
+        "correctness",
+        "reliability"
+      ],
+      "line": 191,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "correctness",
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Persist a completed-export phase with the verified bundle hash and allocation IDs before stopping containers. On retry, verify the saved export and resume idempotent stop/binding restoration without docker exec; retain the active marker until restoration is complete. Add fault-injection coverage immediately after docker stop and during service restart.",
+      "title": "Resume completed exports without executing stopped containers",
+      "why_it_matters": "A failed endpoint restart or interruption after docker stop leaves a completed task permanently unable to finish through the documented run command. Its durable result is ignored until binding_restored is true, so the retry first executes Git and ledger queries inside containers that were already stopped, fails again, and leaves the singleton task marker blocking subsequent tasks. Persist separate export/stop/restore phases and resume restoration from the verified cached export so a known completed allocation can recover without restarting worker execution.",
+      "validation_status": "confirmed",
+      "validation_reason": "At frozen head 4afaca1, interruption or service-restart failure after nuc.py:191 stops the completed containers before binding_restored is persisted at :196-197, and retry ignores the saved export at :110 then requires docker exec at :171-182 (or fails observing the unavailable endpoint), so the documented same-unit run cannot finish restoration and the active marker remains; incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 3,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/test_operator_workflow.py:51 --     monkeypatch.setattr(cli, 'remote', lambda *a: (_ for _ in ()).throw(ValueError('uncertain')))",
+        "stapled-factory/operator/nuc.py:141 --         if not intent.exists():",
+        "stapled-factory/operator/nuc.py:144 --             private(intent, {'unit': unit, 'baseline': plan['baseline']})",
+        "stapled-factory/operator/nuc.py:147 --                 post('orchestrate/' + unit + '/run', {'unitId': unit,",
+        "Frozen-head git grep finds NUC main calls only for completed-cache return and other-unit rejection; neither reaches the intent/send branch."
+      ],
+      "file": "stapled-factory/deployment/nuc/test_operator_workflow.py",
+      "first_evidence": "stapled-factory/deployment/nuc/test_operator_workflow.py:51 --     monkeypatch.setattr(cli, 'remote', lambda *a: (_ for _ in ()).throw(ValueError('uncertain')))",
+      "independent_reviewers": [
+        "testing"
+      ],
+      "line": 51,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "testing"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Build a temporary control-root fixture with an active binding, operator plan, runtime, and service file; fake post and time.sleep. Have the first orchestrate post record acceptance then raise OSError, poll an unresolved state, and rerun main for the same unit. Assert exactly one orchestrate send across both invocations, an intent persisted before that send, no rebind, and rejection of another unit.",
+      "title": "Exercise uncertain HTTP sends through the NUC state machine",
+      "why_it_matters": "The central no-redispatch guarantee is untested: the uncertainty test replaces the entire remote operation with an exception, and the completed-run test returns before the intent/send logic. Removing the durable intent guard or resending after a lost HTTP response would leave all added tests green. A deterministic NUC test across two invocations must prove that only state observation occurs after the first ambiguous send and that the same binding remains reserved.",
+      "validation_status": "confirmed",
+      "validation_reason": "At frozen head 4afaca1, an accepted orchestrate request with a lost response requires a subsequent same-unit observation, but test_operator_workflow.py:49-54 mocks cli.remote entirely and the only nuc.main callers (:46 and :69, confirmed by revision-wide test search) exit before nuc.py:141-151, leaving durable intent and no-redispatch behavior unexercised; coverage absence was established by inspecting all callers, without running mutation tests."
+    }
+  ],
+  "triage_groups": [
+    {
+      "title": "Recover and prove single-task observation",
+      "findings": [
+        2,
+        3
+      ],
+      "context": "The operator must recover a completed export and observe ambiguous sends without starting another task.",
+      "preferred_resolution": "Implement resumable completed-export restoration for #2, then add the two-invocation uncertainty regression for #3.",
+      "why": "Both protect singleton task ownership across interruptions; the tests exercise different recovery boundaries."
+    }
+  ],
+  "pre_existing_findings": [],
+  "requirements_completeness": null,
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [],
+  "testing_gaps": [
+    "Add publication cases where operator acceptance or trusted local CI fails and assert no push or success status; add a passing case asserting the exact verified revision is pushed.",
+    "Add a fixture-driven happy path using temporary Git repositories and mocked remote commands to verify baseline bundling/seeding and exact completed revision/path collection without paid calls or NUC mutation."
+  ],
+  "coverage": {
+    "depth": "full",
+    "reviewer_count": 6,
+    "reviewer_reasons": [
+      {
+        "reviewer": "correctness",
+        "tier": "session",
+        "reason": "always-on"
+      },
+      {
+        "reviewer": "security",
+        "tier": "session",
+        "reason": "trusted provisioning and publish authority"
+      },
+      {
+        "reviewer": "reliability",
+        "tier": "session",
+        "reason": "crash/retry/rebinding"
+      },
+      {
+        "reviewer": "testing",
+        "tier": "session",
+        "reason": "new workflow tests"
+      },
+      {
+        "reviewer": "maintainability",
+        "tier": "session",
+        "reason": "403 executable new lines"
+      },
+      {
+        "reviewer": "adversarial",
+        "tier": "session",
+        "reason": "persistence and external APIs"
+      }
+    ],
+    "suppressed_by_confidence": {},
+    "mode_aware_demotions": 0,
+    "semantic_duplicates_merged": 1,
+    "first_evidence_backfilled": 4,
+    "quote_gate_demotions": 0,
+    "malformed_findings": 0,
+    "malformed_returns": 0,
+    "failed_reviewers": [],
+    "timed_out_reviewers": [],
+    "standards": {
+      "criteria": [],
+      "fallback_named": false,
+      "not_run_reason": "Successful search found no governing coding criteria files."
+    },
+    "compound_packs": {
+      "roots": [],
+      "warnings": [],
+      "errors": []
+    },
+    "settlement_suppression_evaluated": false,
+    "validation": {
+      "outcome": "verdicts",
+      "batch_count": 1,
+      "selected": 3,
+      "confirmed": 3,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0,
+      "verdicts_landed": true,
+      "bound_exceeded": false,
+      "skip_basis": "No independent serving-family peer; same-family agreement permits no shortcut.",
+      "protected_subject_reclassifications": [
+        {
+          "#": 2,
+          "from": null,
+          "to": "concurrency",
+          "reason": "The alleged stop/restore ordering leaves the singleton binding locked and blocks subsequent tasks."
+        }
+      ],
+      "degraded_blockers": []
+    },
+    "notes": [
+      "All six selected reviewers completed against frozen original commit 4afaca1fe6feb6fab9558c7c1401b8b7b1803a84. The working tree is outside this receipt.",
+      "Cross-model pass not run: caller prohibited paid model APIs; in-process adversarial reviewer covered the lens. Same serving family; no cross-model promotion.",
+      "No paid API calls, NUC mutations, GitHub publication, or local apply occurred in this review.",
+      "Settlement suppression was not evaluated because no plan was discovered.",
+      "Correctness and reliability corroborated #2; same-family agreement did not raise confidence.",
+      "Validator confirmed all three original findings in one batch; runtime incidence for #1 and #2 was not measured.",
+      "A separate hash-bound correction-review.json records PASS for the parent corrective delta and 18 mocked local tests. Those corrections are outside the frozen scope and do not erase this receipt's findings.",
+      "Simplification five rubric passes completed inline; no worthwhile changes; proof tests preserved."
+    ]
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "Cross-model pass not run: caller prohibited paid model APIs; in-process adversarial reviewer covered the lens. Same serving family; no cross-model promotion."
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/operator-workflow-20261028",
+  "run_id": "operator-workflow-20261028"
+}

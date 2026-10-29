@@ -1,0 +1,59 @@
+{
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "operator-nuc-readme-20261028-01:0",
+      "status": "completed",
+      "conversation_id": "0461809b-bc08-51d5-8715-6ecbb87fb9fe",
+      "git_revision": "0227f9123d17f29cecb10151c316afc4032a9640"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793242962325
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "operator-nuc-readme-20261028-01",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "operator-local-checks",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/operator-nuc-readme-20261028-01/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/operator-nuc-readme-20261028-01/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "revision": "0227f9123d17f29cecb10151c316afc4032a9640",
+  "changed": [
+    ".github/README.md"
+  ],
+  "budget": {
+    "budgets": [
+      [
+        "operator-nuc-readme-20261028-01:0",
+        "auto",
+        12,
+        5,
+        "0117b565e6ba0b16fa4f7bdd8b0c1bce41a554990644e8a6bd9b0b0416cc3515"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "operator-nuc-readme-20261028-01:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-v2-best-effort",
+        1793245931,
+        348036
+      ]
+    ]
+  },
+  "bundle_sha256": "68ec333b45119fd5dc1d48a9d01746d97d61e9a7a3c8a79b67c21b9268d5c13f",
+  "actual_charges": "unknown",
+  "runtime_validation": "needs_validation",
+  "worker": "cc8f0ccc3c7499ded8eb2fb93f8fe7e95aba95612e652802eae37e8d59e8b4fd",
+  "proxy": "0a036e186a0757e64fc65b04af36ddbccb8ec1ba0658df70e63035a3749278e2",
+  "binding_restored": true
+}

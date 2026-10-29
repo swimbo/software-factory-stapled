@@ -1,0 +1,21 @@
+# Operator workflow audit
+
+Already present: signed per-task preparation, trusted frozen NUC runtime, durable Restate/OpenHands dispatch and observation, isolated gateway-only execution, committed-output verification, local CI, GitHub status publication and signed application-candidate validation. Missing: durable operator intake, safe task binding/collection, and a reusable route from task/checks to an unmerged PR. Earlier pilots depended on temporary scripts.
+
+The CLI reuses those pieces; it adds no service, scheduler, runtime deployment, merge command or budget system. The explicit prepare/run/publish/status boundary keeps diff review before candidate CI executes on the operator host. Frozen runtime identity is verified, task input is signed, checks remain outside the worker, execution uncertainty is observed rather than resent, and Git exports cannot dereference worker symlinks on the host. Only current-main baselines are accepted.
+
+Independent six-lens source review confirmed three original issues; the correction review and21 focused tests cover baseline scope, binding/cleanup interruptions, lost accepted responses, check failures without publication, and export symlinks. Same-family adversarial review was used; no external paid review API was called. This is code review, not enterprise release approval.
+
+The first pilot attempted two documentation files. The worker reached the existing12-call allowance after editing but before committing, and Agent Server reported error. Factory state stayed unresolved. The operator stopped only that observed worker/proxy, retained the dirty workspace, ledger and guarded attempt, restored the prior binding, and recorded first-pilot-fence.json. No attempt was reset or falsely completed. A smaller, explicitly selected one-file task starts from the original clean main baseline in a fresh work unit; it is not an automatic shared-budget successor.
+
+Merge and deployment remain explicit operator decisions. No runtime source or provider settings are changed by this workflow. Per-task rebinding temporarily restarts only the existing endpoint, restores the previous binding after committed completion, and leaves unknown execution bound for intervention. Repository local checks do not forge signed application acceptance.
+
+## Live useful task result
+
+The smaller task completed under unit `operator-nuc-readme-20261028-01:0` at commit `0227f9123d17f29cecb10151c316afc4032a9640`. Only `.github/README.md` changed: NUC replaces Railway and human review becomes optional while the strict local CI/admin/force-push/deletion policies remain. The real CLI prepared and signed the main baseline, dispatched through Restate/OpenHands/Bifrost auto, exported a clean committed result, restored the previous binding, stopped its completed worker/proxy, and exposed the diff for operator review. The operator reviewed the exact diff and invoked publish; external read-only acceptance and full isolated local CI passed326 Python/23 Node tests. PR3 is open and unmerged: https://github.com/swimbo/software-factory-stapled/pull/3 .
+
+Five real gateway calls selected Flash under existing SIMPLE/MEDIUM rules; costs were null, not zero. Reservations were$0.348036 for the successful task, plus$1.501144 for the explicitly fenced earlier attempt: combined$1.849180 estimated, actual charges unknown. This was a controlled new work unit from main after fencing, not an automatic successor, ledger reset, or increased old allowance.
+
+The operator workflow code is proposed separately; the NUC runtime source remains11fe53f. All three factory services are active, original endpoint configuration is restored, no active marker remains, and the completed task containers are stopped with state retained. Restate correctly remains needs_validation for this repository-only task: no signed application-candidate acceptance is claimed. No PR was merged and no runtime code was deployed in this turn.
+
+The final task result can be re-observed without changing its PR_OPEN status/link or issuing another dispatch. These receipt files preserve exact source, counters, current result, original failure and review coverage. The public acceptance criteria/check output was recorded only after the worker finished; its operator check script was outside the generator throughout execution.
