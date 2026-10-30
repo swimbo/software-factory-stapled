@@ -36,6 +36,29 @@ def test_task_requires_acceptance_and_rejects_unknown_authority():
     assert cli.validate_spec(spec())['unit'] == 'sample-1'
 
 
+@pytest.mark.parametrize('data', [None, [], 'spec', 42, {}, {'unit': 'sample-1'}])
+def test_spec_must_be_object_with_exact_fields(data):
+    with pytest.raises(ValueError):cli.validate_spec(data)
+
+
+@pytest.mark.parametrize('field,value', [
+    ('unit', None), ('unit', 1), ('unit', ''), ('unit', '  '), ('unit', 'bad unit!'),
+    ('repo', None), ('repo', ''), ('repo', '   '), ('baseline', []), ('baseline', ''),
+    ('task', {}), ('task', '\n'), ('check_script', 3), ('check_script', ''),
+    ('acceptance', 'criterion'), ('acceptance', []), ('acceptance', ['']),
+    ('acceptance', [' ', 1]), ('allowed_paths', 'README.md'),
+])
+def test_spec_rejects_invalid_field_values(field, value):
+    data = spec();data[field] = value
+    with pytest.raises(ValueError):cli.validate_spec(data)
+
+
+def test_spec_accepts_unicode_text():
+    data = spec();data['task'] = 'Dokumentation prüfen — 日本語'
+    data['acceptance'] = ['Grüße ✓']
+    assert cli.validate_spec(data) is data
+
+
 def test_completed_run_is_observed_without_rebinding_or_dispatch(tmp_path, monkeypatch):
     monkeypatch.setattr(nuc, 'ROOT', tmp_path)
     approval = tmp_path / 'approvals/unit-1';approval.mkdir(parents=True)
