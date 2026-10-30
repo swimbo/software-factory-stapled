@@ -12,6 +12,7 @@ import * as restate from "@restatedev/restate-sdk";
 
 import { BuildEvidence, Claim, Receipt, Stage, WorkUnitState } from "./types.js";
 import { conversationId } from "./build.js";
+import { commitAbandonment, verifyAbandonment, type AbandonmentEnvelope } from "./abandonment.js";
 
 import { verifyValidation, type SignedValidation } from "./validation.js";
 
@@ -111,6 +112,29 @@ export const workUnit = restate.object({
           build.status !== "completed" || !/^[0-9a-f]{40}([0-9a-f]{24})?$/.test(build.git_revision ?? "")) return false;
       s.successor = build;
       s.stage = "needs_validation";
+      ctx.set(KEY, s);
+      return true;
+    },
+
+    // Operator-only signed closure; the guarded ledger fences late completion.
+    abandon: async (ctx: restate.ObjectContext, envelope: AbandonmentEnvelope): Promise<boolean> => {
+      const s = (await ctx.get<WorkUnitState>(KEY)) ?? empty();
+      const evidence = await ctx.run(() => {
+        try { return verifyAbandonment(envelope); }
+        catch { throw new restate.TerminalError("Invalid operator abandonment authority"); }
+      });
+      if (evidence.unit_id !== ctx.key || !s.build || !s.recovery || s.successor || s.validation ||
+          evidence.attempt_id !== s.build.attempt_id || evidence.conversation_id !== s.build.conversation_id ||
+          !["unknown", "blocked"].includes(s.build.status) ||
+          !["needs_reconciliation", "abandoned"].includes(s.stage) ||
+          (s.abandonment && s.abandonment.payload !== envelope.payload)) return false;
+      await ctx.run(() => {
+        try { return commitAbandonment(envelope, s.recovery!.attemptDb, s.recovery!.attemptAnchor ?? "", ctx.key); }
+        catch { throw new restate.TerminalError("Abandonment refused: reconcile stopped allocation and guarded store"); }
+      });
+      if (s.stage === "abandoned") return true;
+      s.abandonment = { payload: envelope.payload, evidence };
+      s.stage = "abandoned";
       ctx.set(KEY, s);
       return true;
     },

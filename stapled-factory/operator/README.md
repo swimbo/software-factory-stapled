@@ -80,3 +80,41 @@ while Restate remains `needs_validation`: that accurately means the separate
 signed application-candidate validator has not accepted a deployed app. This
 CLI does not forge application acceptance from local tests or conflate an open
 PR with merge, deployment or enterprise release approval.
+
+## Close an already fenced attempt
+
+After safely fencing the allocation and restoring its endpoint binding:
+
+```sh
+python3 stapled-factory/operator/cli.py abandon /absolute/private/run --reason "Request allowance exhausted; recovered source reviewed separately"
+```
+
+This command requires a deployed runtime containing the abandonment handler.
+It refuses active observer/binding markers, running or restarted containers,
+changed identities/volumes, completed attempts, and reserved successors. It does
+not stop a worker, interrupt an observer, or bypass fencing. Never delete an
+active marker to make it pass; resolve the existing observer/fence first.
+
+The Mac operator key signs a domain-separated closure payload. The private key
+stays on the Mac. The NUC rechecks the stopped allocation under the guarded-store
+lock, fences late completion and records `abandoned`; Restate records a matching
+terminal state. The raw loopback handler is not added to bearer ingress routes.
+Both stores retain the original result and abandonment reason. Budgets, ledgers,
+containers, workspaces and output remain intact; no spend is refunded and no
+successful result is manufactured. Repeating the same reason/payload is
+idempotent, including after a lost response; conflicting reasons or stale
+identity/store evidence are rejected. A restarted container makes even a
+duplicate closure fail. Host/Docker administrators remain trusted.
+
+`status` preserves prior budget/PR evidence and shows `ABANDONED`. `run` will not
+rebind an abandoned unit. No merge, deployment or successor is authorized.
+
+For an isolated real local Restate/Docker verification (no NUC changes or paid
+calls), build the spine and run `worker/probes/operator_abandon.py --out NEW_DIR`.
+The probe uses only preloaded images, retains file evidence, and removes only
+its own Docker fixtures. Its seed endpoint is test-only and never registered by
+the production endpoint.
+
+A crash between the guarded ledger commit and its independent watermark update
+quarantines the store. Abandonment does not repair that mismatch or authorize
+restoring either file to an older snapshot.
