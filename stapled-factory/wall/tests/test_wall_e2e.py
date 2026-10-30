@@ -1,4 +1,5 @@
 """End-to-end: run the wall against the correct and broken target fixtures."""
+import json
 import sys
 import threading
 from contextlib import contextmanager
@@ -81,3 +82,97 @@ def test_rate_limit_negative_control(monkeypatch):
         verdict, _ = evaluate(_url(srv), HOLDOUT)
     assert verdict.per_scenario["auth-rate-limit"] is False
     assert verdict.passed is False
+
+
+def _write_scenarios(tmp_path, scenarios):
+    path = tmp_path / "scenarios.json"
+    path.write_text(json.dumps({"unit": "test", "scenarios": scenarios}))
+    return path
+
+
+def _get(path, status=200):
+    return {"request": {"method": "GET", "path": path}, "expect": {"status": status}}
+
+
+def test_receipt_counts_only_requests_attempted_before_early_failure(tmp_path):
+    scenarios = _write_scenarios(tmp_path, [{
+        "id": "early-failure",
+        "steps": [
+            {"delay_seconds": 0},
+            _get("/missing"),
+            _get("/health"),
+        ],
+    }])
+    with _serve(CorrectHandler) as srv:
+        verdict, receipt = evaluate(_url(srv), scenarios, runs_per_scenario=3)
+    assert verdict.passed is False
+    assert verdict.failure_message == "early-failure: GET /missing returned 404 (expected 200)"
+    assert receipt.requests == 3
+
+
+def test_receipt_counts_all_steps_executed_before_later_failure(tmp_path):
+    scenarios = _write_scenarios(tmp_path, [{
+        "id": "later-failure",
+        "steps": [
+            {"delay_seconds": 0},
+            _get("/health"),
+            _get("/missing"),
+            _get("/health"),
+        ],
+    }])
+    with _serve(CorrectHandler) as srv:
+        verdict, receipt = evaluate(_url(srv), scenarios, runs_per_scenario=3)
+    assert verdict.passed is False
+    assert verdict.failure_message == "later-failure: GET /missing returned 404 (expected 200)"
+    assert receipt.requests == 6
+
+
+def test_receipt_counts_mixed_repeat_outcomes_and_ignores_delay_steps(tmp_path):
+    class FlakyHandler(CorrectHandler):
+        hits = 0
+        statuses = [200, 500, 200]
+
+        def do_GET(self):
+            type(self).hits += 1
+            if self.path == "/flaky":
+                status = type(self).statuses.pop(0)
+                return self._send(status, {"status": "ok" if status == 200 else "boom"})
+            return super().do_GET()
+
+    scenarios = _write_scenarios(tmp_path, [{
+        "id": "flaky",
+        "steps": [
+            {"delay_seconds": 0.01},
+            _get("/flaky"),
+            {"delay_seconds": 0.01},
+            _get("/health"),
+        ],
+    }])
+    with _serve(FlakyHandler) as srv:
+        verdict, receipt = evaluate(_url(srv), scenarios, runs_per_scenario=3)
+    assert verdict.passed is True
+    assert verdict.per_scenario["flaky"] is True
+    assert FlakyHandler.hits == 6
+    assert receipt.requests == 6
+
+
+def test_receipt_counts_all_successes_across_scenarios_and_repeats(tmp_path):
+    scenarios = _write_scenarios(tmp_path, [
+        {
+            "id": "one-request",
+            "steps": [{"delay_seconds": 0.01}, _get("/health")],
+        },
+        {
+            "id": "two-requests",
+            "steps": [{"delay_seconds": 0}, _get("/health"), _get("/health")],
+        },
+        {
+            "id": "delay-only",
+            "steps": [{"delay_seconds": 0.01}],
+        },
+    ])
+    with _serve(CorrectHandler) as srv:
+        verdict, receipt = evaluate(_url(srv), scenarios, runs_per_scenario=3)
+    assert verdict.passed is True
+    assert verdict.aggregate_pass_rate == 1.0
+    assert receipt.requests == 9
