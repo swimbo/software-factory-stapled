@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Operator-controlled prepare, run/observe, and publish. Never merges or deploys."""
 import argparse
+import base64
 import hashlib
 import json
 from pathlib import Path
@@ -137,10 +138,14 @@ def run_task(run):
     status_path = run / 'status.json'
     if status_path.exists():
         status = json.loads(status_path.read_text())
-        if status.get('status') == 'PR_OPEN':
+        if status.get('status') in ('PR_OPEN', 'ABANDONED'):
             return status  # Re-observation must not erase the publication result.
     plan = json.loads((run / 'operator.json').read_text())
     result = remote('run', {'unit': plan['unit']})
+    if result.get('abandoned'):
+        prior = json.loads(status_path.read_text()) if status_path.exists() else {}
+        save(status_path, {**prior, 'status': 'ABANDONED', 'completed': False, 'state': result['state']})
+        return result
     save(run / 'result.json', result)
     if result.get('requires_intervention'):
         save(run / 'status.json', {'status': 'NEEDS_INTERVENTION', 'state': result['state']})
@@ -205,10 +210,27 @@ def publish(run):
     return json.loads((run / 'status.json').read_text())
 
 
+def abandon(run, reason):
+    plan = json.loads((run / 'operator.json').read_text())
+    payload = remote('prepare_abandon', {'unit': plan['unit'], 'reason': reason})['payload']
+    document, signature = run / 'abandonment.json', run / 'abandonment.sig'
+    document.write_text(payload);document.chmod(0o600)
+    command('openssl', 'dgst', '-sha256', '-sign', SIGNER, '-out', signature, document)
+    signature.chmod(0o600)
+    result = remote('abandon', {'unit': plan['unit'], 'envelope': {
+        'payload': payload, 'signature': base64.b64encode(signature.read_bytes()).decode()}})
+    save(run / 'abandonment-result.json', result)
+    prior = json.loads((run / 'status.json').read_text()) if (run / 'status.json').exists() else {}
+    save(run / 'status.json', {**prior, 'status': 'ABANDONED', 'unit': plan['unit'],
+                              'reason': reason, 'completed': False, 'artifacts_retained': True})
+    return result
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('action', choices=['prepare', 'run', 'publish', 'status'])
+    p.add_argument('action', choices=['prepare', 'run', 'publish', 'status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
+    p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     a = p.parse_args()
     if a.action == 'prepare':result = prepare(a.path)
     elif a.action == 'run':
@@ -218,6 +240,9 @@ def main():
                  'next': 'Inspect preserved run and NUC binding; rerun run only to observe same intent'})
             raise
     elif a.action == 'publish':result = publish(a.path.resolve())
+    elif a.action == 'abandon':
+        if not a.reason or not a.reason.strip() or len(a.reason) > 500:p.error('abandon requires a nonblank --reason of at most 500 characters')
+        result = abandon(a.path.resolve(), a.reason)
     else:result = json.loads((a.path / 'status.json').read_text())
     print(json.dumps(result, indent=2))
 

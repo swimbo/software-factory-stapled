@@ -12,7 +12,8 @@ export type Stage =
   | "gated"
   | "merged"
   | "deployed"
-  | "failed";
+  | "failed"
+  | "abandoned";
 
 export type PricingMode = "subscription" | "metered";
 
@@ -57,6 +58,7 @@ export interface BuildEvidence {
 
 export interface WorkUnitState {
   stage: Stage;
+  abandonment?: { payload: string; evidence: import("./abandonment.js").AbandonmentEvidence };
   validation?: import("./validation.js").ValidationEvidence;
   recovery?: { request: OrchestrateRequest; attemptDb: string; attemptAnchor?: string } | null;
   build?: BuildEvidence | null;

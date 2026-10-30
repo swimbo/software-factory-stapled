@@ -278,3 +278,46 @@ def test_prepare_guides_offline_worker_past_missing_test_tools(tmp_path, monkeyp
     assert 'If a test runner is unavailable' in task
     assert 'write custom test harnesses' in task
     assert 'commit' in task and 'external' in task
+
+
+def test_abandoned_run_never_observes_or_rebinds(tmp_path, monkeypatch):
+    status = {'status': 'ABANDONED', 'completed': False, 'budget': {'retained': True}}
+    (tmp_path / 'status.json').write_text(json.dumps(status))
+    monkeypatch.setattr(cli, 'remote', lambda *a: pytest.fail('abandoned unit must not rebind'))
+    assert cli.run_task(tmp_path) == status
+
+
+def test_abandon_preserves_status_evidence_and_signs_only_operator_payload(tmp_path, monkeypatch):
+    (tmp_path / 'operator.json').write_text(json.dumps({'unit': 'unit'}))
+    (tmp_path / 'status.json').write_text(json.dumps({'status': 'NEEDS_INTERVENTION', 'budget': {'used': 12}}))
+    calls = []
+    def remote(action, data):
+        calls.append(action)
+        if action == 'prepare_abandon':return {'payload': '{"kind":"operator-abandon-v1"}'}
+        assert action == 'abandon' and data['envelope']['signature'] == 'c2ln'
+        return {'status': 'ABANDONED', 'completed': False}
+    def command(*args, **kwargs):
+        assert args[:3] == ('openssl', 'dgst', '-sha256')
+        Path(args[args.index('-out') + 1]).write_bytes(b'sig')
+    monkeypatch.setattr(cli, 'remote', remote);monkeypatch.setattr(cli, 'command', command)
+    assert cli.abandon(tmp_path, 'explicit closure')['completed'] is False
+    status = json.loads((tmp_path / 'status.json').read_text())
+    assert status['status'] == 'ABANDONED' and status['budget'] == {'used': 12}
+    assert calls == ['prepare_abandon', 'abandon']
+
+
+def test_lost_abandon_response_is_observed_without_creating_active_binding(tmp_path, monkeypatch):
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    (tmp_path / 'approvals/unit').mkdir(parents=True)
+    (tmp_path / 'approvals/unit/operator.json').write_text('{}')
+    monkeypatch.setattr(nuc, 'post', lambda *a: {'stage': 'abandoned'})
+    monkeypatch.setattr(nuc, 'command', lambda *a: pytest.fail('terminal unit must not touch runtime'))
+    assert nuc.main('run', {'unit': 'unit'})['abandoned'] is True
+    assert not (tmp_path / 'operator-active.json').exists()
+    (tmp_path / 'operator.json').write_text(json.dumps({'unit': 'unit'}))
+    (tmp_path / 'status.json').write_text(json.dumps({'status': 'NEEDS_INTERVENTION', 'budget': {'used': 12}}))
+    monkeypatch.setattr(cli, 'remote', lambda *a: {'abandoned': True, 'state': {'stage': 'abandoned'}})
+    monkeypatch.setattr(cli, 'copy', lambda *a, **k: pytest.fail('no result export after abandonment'))
+    assert cli.run_task(tmp_path)['abandoned']
+    assert json.loads((tmp_path / 'status.json').read_text())['budget'] == {'used': 12}
+    assert not (tmp_path / 'result.json').exists()

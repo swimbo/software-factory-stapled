@@ -66,7 +66,7 @@ def assert_idle(service):
     line = next(x for x in service.splitlines() if x.startswith('Environment=FACTORY_RUNTIME_CONFIG='))
     cfg = json.loads(Path(line.split('=', 2)[2]).read_text())
     unit = cfg['attempt_id'].rsplit(':', 1)[0]
-    if post('WorkUnit/' + unit + '/getState', {}).get('stage') not in ('unclaimed', 'needs_validation', 'validated', 'failed'):
+    if post('WorkUnit/' + unit + '/getState', {}).get('stage') not in ('unclaimed', 'needs_validation', 'validated', 'failed', 'abandoned'):
         raise ValueError('existing binding has unresolved work; observe it before a new task')
 
 def endpoint_config():
@@ -158,6 +158,28 @@ def main(action, data):
             doc['build_inputs'][str(p)] = hashlib.sha256(p.read_bytes()).hexdigest()
         private(approval / 'image-approval.json', doc)
         return doc
+    if action in ('prepare_abandon', 'abandon'):
+        with (ROOT / 'operator.lock').open('a') as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            if (ROOT / 'operator-active.json').exists():
+                raise ValueError('active observer/binding must be safely fenced and restored first')
+            state = post('WorkUnit/' + unit + '/getState', {})
+            if state.get('stage') not in ('needs_reconciliation', 'abandoned') or state.get('successor'):
+                raise ValueError('unit is not an abandoned or unresolved original attempt')
+            rel = release()
+            helper = rel / 'stapled-factory/worker/abandon_attempt.py'
+            if not helper.is_file():raise ValueError('deployed runtime does not support abandonment')
+            if action == 'prepare_abandon':
+                args = ['python3', str(helper), '--db', str(ROOT / 'attempt-store/attempts.db'),
+                        '--anchor', str(ROOT / 'attempt-anchor/watermark.json'), '--unit', unit, '--reason=' + data['reason']]
+                return {'payload': command(*args)}
+            req = urllib.request.Request('http://127.0.0.1:18080/WorkUnit/' + unit + '/abandon',
+                json.dumps(data['envelope']).encode(), headers={'Content-Type': 'application/json'})
+            with urllib.request.urlopen(req, timeout=45) as response:
+                if json.load(response) is not True:raise ValueError('abandonment refused by durable state')
+            result = post('WorkUnit/' + unit + '/getState', {})
+            if result.get('stage') != 'abandoned':raise ValueError('abandonment not committed')
+            return {'status': 'ABANDONED', 'state': result, 'completed': False, 'artifacts_retained': True}
     if action != 'run':
         raise ValueError('unsupported operation')
     with (ROOT / 'operator.lock').open('a') as lock:
@@ -176,6 +198,10 @@ def main(action, data):
         plan = json.loads((approval / 'operator.json').read_text())
         service = Path.home() / '.config/systemd/user/factory-endpoint.service'
         if not active.exists():
+            if not cached.exists():
+                terminal = post('WorkUnit/' + unit + '/getState', {})
+                if terminal.get('stage') == 'abandoned':
+                    return {'abandoned': True, 'state': terminal, 'completed': False}
             old = service.read_text()
             assert_idle(old)
             if hashlib.sha256(old.encode()).hexdigest() != plan['service_sha256']:
