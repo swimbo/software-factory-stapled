@@ -34,7 +34,7 @@ Create a JSON file with exactly these fields (absolute local paths):
   "baseline": "main",
   "task": "Correct current operator deployment and review policy instructions",
   "acceptance": ["Current instructions use the NUC and retain strict local CI"],
-  "allowed_paths": [".github/README.md", "docs/planning/stapled-factory/release-approval.md"],
+  "allowed_paths": [".github/LOCAL_CI.md", "docs/planning/stapled-factory/release-approval.md"],
   "check_script": "/absolute/path/outside/repository/check_policy.py"
 }
 ```
