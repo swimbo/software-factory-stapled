@@ -248,6 +248,7 @@ def test_prepare_guides_offline_worker_past_missing_test_tools(tmp_path, monkeyp
     data = spec();data.update(repo=str(repo), check_script=str(check))
     task_file = tmp_path / 'task.json';task_file.write_text(json.dumps(data))
     monkeypatch.setattr(cli, 'RUNS', tmp_path / 'runs')
+    monkeypatch.setattr(cli, 'CONTROL', '/test/control')
     revision = 'a' * 40
     def command(*args, **kwargs):
         if 'rev-parse' in args:return revision
@@ -321,3 +322,98 @@ def test_lost_abandon_response_is_observed_without_creating_active_binding(tmp_p
     assert cli.run_task(tmp_path)['abandoned']
     assert json.loads((tmp_path / 'status.json').read_text())['budget'] == {'used': 12}
     assert not (tmp_path / 'result.json').exists()
+
+
+def test_operator_config_selects_local_and_remote_installation(tmp_path):
+    path = tmp_path / 'operator.json'
+    settings = {'ssh_host': 'operator@example-host', 'control_dir': '/srv/factory',
+                'signer': str(tmp_path / 'key.pem'), 'runs_dir': str(tmp_path / 'runs'),
+                'ingress_port': 29081, 'raw_ingress_port': 28080}
+    path.write_text(json.dumps(settings));path.chmod(0o600)
+    assert cli.load_config(path) == settings
+
+
+@pytest.mark.parametrize('mutation', ['missing', 'public', 'symlink', 'unknown', 'relative', 'host_option', 'port'])
+def test_operator_config_rejects_unsafe_or_incomplete_settings(tmp_path, mutation):
+    path = tmp_path / 'operator.json'
+    settings = {'ssh_host': 'factory-control', 'control_dir': '/srv/factory',
+                'signer': str(tmp_path / 'key.pem'), 'runs_dir': str(tmp_path / 'runs'),
+                'ingress_port': 29081, 'raw_ingress_port': 28080}
+    if mutation == 'unknown':settings['api_key'] = 'not-a-real-key'
+    if mutation == 'relative':settings['control_dir'] = 'relative/path'
+    if mutation == 'host_option':settings['ssh_host'] = '-oProxyCommand=bad'
+    if mutation == 'port':settings['ingress_port'] = True
+    path.write_text(json.dumps(settings));path.chmod(0o644 if mutation == 'public' else 0o600)
+    if mutation == 'missing':path.unlink()
+    if mutation == 'symlink':
+        target = tmp_path / 'target.json';path.rename(target);path.symlink_to(target)
+    with pytest.raises((ValueError, FileNotFoundError)):cli.load_config(path)
+
+
+def test_remote_helper_uses_configured_root_and_ports(tmp_path, monkeypatch):
+    config = {'control_dir': str(tmp_path), 'ingress_port': 29081, 'raw_ingress_port': 28080}
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path / 'old')
+    monkeypatch.setattr(nuc, 'INGRESS_PORT', 19081)
+    monkeypatch.setattr(nuc, 'RAW_INGRESS_PORT', 18080)
+    nuc.configure(config)
+    assert nuc.ROOT == tmp_path
+    assert nuc.INGRESS_PORT == 29081 and nuc.RAW_INGRESS_PORT == 28080
+    (tmp_path / 'ingress.token').write_text('synthetic-token')
+    class Response:
+        def __enter__(self):return self
+        def __exit__(self, *args):pass
+        def read(self):return b'{}'
+    def open_request(req, **kwargs):
+        assert req.full_url == 'http://127.0.0.1:29081/WorkUnit/unit/getState'
+        return Response()
+    monkeypatch.setattr(nuc.urllib.request, 'urlopen', open_request)
+    assert nuc.post('WorkUnit/unit/getState', {}) == {}
+
+
+def test_cli_config_flag_overrides_environment_without_contacting_host(tmp_path):
+    import os
+    import subprocess
+    run = tmp_path / 'run';run.mkdir()
+    (run / 'status.json').write_text(json.dumps({'status': 'PREPARED'}))
+    config = tmp_path / 'config.json'
+    config.write_text(json.dumps({'ssh_host': 'unused-host', 'control_dir': '/srv/factory',
+        'signer': '/private/key.pem', 'runs_dir': '/private/runs',
+        'ingress_port': 29081, 'raw_ingress_port': 28080}));config.chmod(0o600)
+    env = dict(os.environ, FACTORY_OPERATOR_CONFIG=str(tmp_path / 'missing.json'))
+    result = subprocess.run([sys.executable, str(BASE / 'cli.py'), '--config', str(config),
+        'status', str(run)], env=env, capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == {'status': 'PREPARED'}
+    missing = subprocess.run([sys.executable, str(BASE / 'cli.py'), 'status', str(run)],
+        env=env, capture_output=True, text=True)
+    assert missing.returncode == 2 and 'Cannot load operator config' in missing.stderr
+
+
+def test_remote_transport_forwards_only_remote_settings(tmp_path, monkeypatch):
+    import io
+    settings = {'ssh_host': 'operator@other-host', 'control_dir': '/srv/other-factory',
+                'signer': str(tmp_path / 'private-key.pem'), 'runs_dir': str(tmp_path / 'private-runs'),
+                'ingress_port': 29081, 'raw_ingress_port': 28080}
+    path = tmp_path / 'config.json';path.write_text(json.dumps(settings));path.chmod(0o600)
+    for name in ('HOST', 'CONTROL', 'SIGNER', 'RUNS', 'INGRESS_PORT', 'RAW_INGRESS_PORT'):
+        monkeypatch.setattr(cli, name, getattr(cli, name))
+    cli.configure(cli.load_config(path))
+    sent = {}
+    class Input(io.StringIO):
+        def close(self):
+            sent['request'] = json.loads(self.getvalue())
+            super().close()
+    class Process:
+        stdin = Input()
+        stdout = io.StringIO('{"result":{"observed":true}}\n')
+        def wait(self):return 0
+    def launch(argv, **kwargs):
+        sent['argv'] = argv
+        return Process()
+    monkeypatch.setattr(cli.subprocess, 'Popen', launch)
+    assert cli.remote('describe', {}) == {'observed': True}
+    assert sent['argv'][:6] == ['ssh', '-o', 'BatchMode=yes', '-o', 'ForwardAgent=no', 'operator@other-host']
+    assert sent['request'] == {'action': 'describe', 'data': {}, 'config': {
+        'control_dir': '/srv/other-factory', 'ingress_port': 29081, 'raw_ingress_port': 28080}}
+    assert settings['signer'] not in json.dumps(sent)
+    assert settings['runs_dir'] not in json.dumps(sent)

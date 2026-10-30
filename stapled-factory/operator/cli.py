@@ -4,17 +4,49 @@ import argparse
 import base64
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shlex
+import stat
 import subprocess
 import sys
 import time
 
-HOST = 'hermes-control'
-CONTROL = '/home/bo/.local/share/stapled-factory-control'
-SIGNER = Path.home() / '.local/share/stapled-factory-release/keys/image-approval.pem'
-RUNS = Path.home() / '.local/share/stapled-factory-operator/runs'
+HOST = CONTROL = SIGNER = RUNS = None
+INGRESS_PORT = RAW_INGRESS_PORT = None
+
+
+def load_config(path):
+    path = Path(path).expanduser()
+    st = path.lstat()
+    if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077:
+        raise ValueError('operator config must be an owner-only regular file (chmod 600)')
+    config = json.loads(path.read_text())
+    fields = {'ssh_host', 'control_dir', 'signer', 'runs_dir', 'ingress_port', 'raw_ingress_port'}
+    if not isinstance(config, dict) or set(config) != fields:
+        raise ValueError('operator config must contain exactly the example template fields')
+    if not isinstance(config['ssh_host'], str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.@-]*', config['ssh_host']):
+        raise ValueError('ssh_host must be an SSH alias or user@host, not command options')
+    for field in ('control_dir', 'signer', 'runs_dir'):
+        value = config[field]
+        if not isinstance(value, str) or not value or not Path(value).expanduser().is_absolute() or '..' in Path(value).parts:
+            raise ValueError(field + ' must be an absolute path without parent traversal')
+        config[field] = str(Path(value).expanduser())
+    # This path is also an scp remote operand; reject shell/glob syntax.
+    if not re.fullmatch(r'/[A-Za-z0-9_./-]+', config['control_dir']):
+        raise ValueError('control_dir must be an absolute remote path without shell metacharacters')
+    for field in ('ingress_port', 'raw_ingress_port'):
+        if type(config[field]) is not int or not 1 <= config[field] <= 65535:
+            raise ValueError(field + ' must be a port between 1 and 65535')
+    return config
+
+
+def configure(config):
+    global HOST, CONTROL, SIGNER, RUNS, INGRESS_PORT, RAW_INGRESS_PORT
+    HOST, CONTROL = config['ssh_host'], config['control_dir']
+    SIGNER, RUNS = Path(config['signer']), Path(config['runs_dir'])
+    INGRESS_PORT, RAW_INGRESS_PORT = config['ingress_port'], config['raw_ingress_port']
 
 
 def command(*args, cwd=None):
@@ -29,7 +61,9 @@ def remote(action, data):
     code = Path(__file__).with_name('nuc.py').read_text()
     proc = subprocess.Popen(['ssh', '-o', 'BatchMode=yes', '-o', 'ForwardAgent=no', HOST,
         'python3 -c ' + shlex.quote(code)], stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
-    proc.stdin.write(json.dumps({'action': action, 'data': data}));proc.stdin.close()
+    proc.stdin.write(json.dumps({'action': action, 'data': data, 'config': {
+        'control_dir': CONTROL, 'ingress_port': INGRESS_PORT,
+        'raw_ingress_port': RAW_INGRESS_PORT}}));proc.stdin.close()
     result = None
     for line in proc.stdout:
         message = json.loads(line)
@@ -228,10 +262,15 @@ def abandon(run, reason):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
+        str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
+        help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
     p.add_argument('action', choices=['prepare', 'run', 'publish', 'status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     a = p.parse_args()
+    try:configure(load_config(a.config))
+    except (OSError, ValueError) as exc:p.error('Cannot load operator config: ' + str(exc))
     if a.action == 'prepare':result = prepare(a.path)
     elif a.action == 'run':
         try:result = run_task(a.path.resolve())

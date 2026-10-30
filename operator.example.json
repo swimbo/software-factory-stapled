@@ -1,0 +1,8 @@
+{
+  "ssh_host": "factory-control",
+  "control_dir": "/home/operator/.local/share/stapled-factory-control",
+  "signer": "/absolute/path/to/private/image-approval.pem",
+  "runs_dir": "/absolute/path/to/private/operator-runs",
+  "ingress_port": 19081,
+  "raw_ingress_port": 18080
+}
