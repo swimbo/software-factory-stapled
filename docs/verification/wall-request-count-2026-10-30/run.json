@@ -1,0 +1,25 @@
+{
+  "unit": "wall-request-count-20261030-01",
+  "baseline": "34ab4c8e3211ee7749f4b16417a64d42cfea7652",
+  "worker_revision": "5a403f4dd1d713cd806edf81b80d67b911110bcc",
+  "worker_completion": "natural",
+  "worker_build_status": "completed",
+  "restate_stage": "needs_validation",
+  "requests_used": 12,
+  "request_limit": 12,
+  "manual_runtime_recovery": false,
+  "operator_corrections": [
+    {
+      "file": "stapled-factory/wall/tests/test_wall_e2e.py",
+      "change": "Correct mixed-outcome hit and receipt expectations from 6 to 5 (2 + 1 + 2)."
+    }
+  ],
+  "estimated_reserved_usd": 1.399713,
+  "estimated_target_usd": 2.0,
+  "actual_charges": null,
+  "hard_charge_cap": false,
+  "binding_restored": true,
+  "worker_and_proxy_stopped": true,
+  "merged": false,
+  "deployed": false
+}
