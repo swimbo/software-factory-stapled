@@ -47,27 +47,40 @@ historical “merged” demonstrations do not establish automatic merging today.
 
 ## Architecture
 
-```text
-Trusted operator workstation
-  signed task + clean Git baseline
-                  |
-                  v
-NUC: authenticated ingress -> Restate -> signed spine endpoint
-                                               |
-                                      guarded attempt ledger
-                                               |
-                                               v
-                                  isolated OpenHands worker
-                                               |
-                                    bridge / trusted proxy
-                                               |
-                                               v
-                                     existing Bifrost gateway
+```mermaid
+flowchart TB
+    subgraph workstation["Trusted operator workstation"]
+        operator["Operator CLI<br/>Signed task + clean Git baseline"]
+        review["Collect candidate<br/>Review diff + run local checks"]
+    end
+    subgraph control["Trusted NUC control plane"]
+        ingress["Authenticated ingress"]
+        restate["Restate<br/>Durable workflow state"]
+        spine["Signed spine endpoint"]
+        ledger["Guarded attempt ledger<br/>Independent watermark"]
+        proxy["Trusted proxy<br/>Gateway credential + budget reservations"]
+    end
+    subgraph sandbox["Isolated worker container"]
+        worker["OpenHands<br/>Task workspace + Git commit"]
+        bridge["Local API bridge"]
+    end
+    gateway["Existing Bifrost gateway<br/>Model routing"]
+    pr["GitHub pull request"]
 
-Worker commit -> operator collection -> diff review -> checks -> GitHub PR
-
-Application validation, merge, and deployment are separate operator actions.
+    operator -->|"Submit / observe"| ingress
+    ingress --> restate --> spine
+    spine -->|"Reserve / reconcile"| ledger
+    ledger -->|"Guarded allocation + dispatch"| worker
+    worker --> bridge -->|"Restricted Unix socket"| proxy
+    proxy -->|"Pinned gateway TLS"| gateway
+    worker -.->|"Export committed candidate via operator SSH"| review
+    review -->|"Explicit publish"| pr
 ```
+
+The boxes identify trust boundaries, not separate physical machines. Worker API
+traffic reaches Bifrost through the trusted proxy. Candidate collection uses the
+operator's control channel. Application validation, merge, and deployment remain
+separate operator actions.
 
 Restate preserves workflow state. The guarded ledger controls attempt reservation
 and recovery. An ambiguous result is observed under its original identity rather
@@ -135,6 +148,21 @@ Node dependencies, and local CI receipts are also ignored. These checks need no
 `.env` file.
 
 ## Evaluator demo
+
+The wall evaluates a running candidate through HTTP. Private scenarios and
+evaluation results belong to the evaluator side of the boundary:
+
+```mermaid
+flowchart LR
+    scenarios["Evaluator-owned<br/>Holdout scenarios"] --> runner["Run each scenario<br/>HTTP requests + assertions"]
+    candidate["Running candidate<br/>HTTP service"] <-->|"Requests / responses"| runner
+    runner --> quorum["Per-scenario quorum<br/>2 of 3 with --runs 3"]
+    quorum --> verdict["Aggregate threshold: 90%<br/>JSON verdict + usage receipt"]
+    verdict --> feedback["On failure<br/>One-line feedback"]
+```
+
+This standalone evaluator is not automatically called by the current build
+workflow. A real candidate requires trusted binding to the exact built revision.
 
 The auth targets are disposable fixtures with hardcoded test credentials and
 short session lifetimes. They are not authentication services to deploy for users.
@@ -234,7 +262,7 @@ and all Node test files. Logs and a machine-readable receipt are stored in
 
 The repository uses operator-run local CI rather than GitHub-hosted runners.
 Its documented merge gate is `local-ci/verified` for the exact commit. A receipt
-does not itself publish that GitHub status. See [local CI policy](.github/README.md).
+does not itself publish that GitHub status. See [local CI policy](.github/LOCAL_CI.md).
 
 Docker probes in `stapled-factory/worker/probes/` are separate integration
 experiments. Read each before running it: prerequisites and resource effects
@@ -282,6 +310,26 @@ the NUC. The Railway Restate image is an alternative control-plane foundation,
 not a complete worker deployment or a drop-in Docker host.
 
 ### Prepare, run, review, publish
+
+There are two distinct outcomes after a completed build: publishing a checked
+repository change as a PR, and accepting a separately validated application
+candidate. One does not imply the other.
+
+```mermaid
+flowchart TD
+    prepare["prepare<br/>Capture baseline + sign task"] --> run["run<br/>Dispatch once / observe same intent"]
+    run --> outcome{"Build outcome"}
+    outcome -->|"Completed + verified commit"| pending["needs_validation"]
+    outcome -->|"Unknown or blocked"| reconcile["needs_reconciliation<br/>Preserve attempt identity"]
+    outcome -->|"Failed"| failed["failed"]
+    reconcile -->|"Read-only observation proves completion"| pending
+    reconcile -->|"Still uncertain"| intervention["Operator intervention<br/>No automatic redispatch"]
+    pending --> collect["Collect candidate + inspect diff"]
+    collect --> publish["publish<br/>Acceptance checks + exact-commit CI"]
+    publish -->|"Checks pass"| pr["PR open<br/>Merge remains an operator action"]
+    pending -.->|"Separate operator-only path"| validate["Exact-revision candidate validation<br/>Signed acceptance"]
+    validate --> accepted["validated<br/>Production readiness still separate"]
+```
 
 Once the deployment is verified, create task JSON with exactly these fields.
 Replace the paths and choose a new unique unit:
@@ -336,6 +384,21 @@ ready for review while Restate remains `needs_validation`, since application
 candidate acceptance is separate.
 
 ## Configuration
+
+Configuration selection happens locally. Only the remote directory and ingress
+ports from the selected file are forwarded in the SSH helper's settings payload:
+
+```mermaid
+flowchart TD
+    flag{"--config supplied?"}
+    flag -->|"Yes"| selected["Selected private JSON file<br/>Owner-only regular file"]
+    flag -->|"No"| env{"FACTORY_OPERATOR_CONFIG set?"}
+    env -->|"Yes: use its path"| selected
+    env -->|"No"| default["Ignored operator.local.json<br/>Repository root"]
+    default --> selected
+    selected --> local["Local CLI<br/>SSH host + signer path + run directory"]
+    selected --> remote["SSH helper settings<br/>Remote control directory + ingress ports"]
+```
 
 These settings are not a complete deployment recipe. Private files, ledgers,
 images, workspaces, and signed inputs must already exist.
@@ -407,7 +470,7 @@ evidence without refunding spend or declaring success. Follow
 3. Run relevant component checks and `git diff --check`.
 4. Commit intended files, then run `python3 scripts/verify-local.py` against that
    exact commit before pushing.
-5. Push and open a PR. Follow [local CI policy](.github/README.md) for the exact-SHA
+5. Push and open a PR. Follow [local CI policy](.github/LOCAL_CI.md) for the exact-SHA
    `local-ci/verified` status and the [PR template](.github/PULL_REQUEST_TEMPLATE.md).
 
 Passing tests do not establish live isolation, publisher provenance, recovery,
