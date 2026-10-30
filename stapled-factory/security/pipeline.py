@@ -100,26 +100,38 @@ def run_gitleaks(target: str) -> list[Finding] | None:
     # v8 writes the JSON report to --report-path (not stdout).
     with NamedTemporaryFile(suffix=".json", delete=False) as tmp:
         report_path = tmp.name
-    r = subprocess.run(
-        ["gitleaks", "dir", "--report-format", "json", "--report-path", report_path, target],
-        capture_output=True, text=True,
-    )
+    original_error = None
     try:
-        data = json.loads(Path(report_path).read_text())
-    except (json.JSONDecodeError, OSError):
-        return None
-    # Gitleaks v8 emits a top-level array; older versions nest under "Findings".
-    raw = data if isinstance(data, list) else (data.get("Findings") or data.get("Leaks") or [])
-    out = []
-    for f in raw:
-        out.append(Finding(
-            severity="high",
-            category="secret",
-            rule=f.get("RuleID", f.get("ruleId", "secret")),
-            location=str(f.get("File", f.get("file", "?"))),
-            message=f.get("Description", "secret detected"),
-        ))
-    return out
+        subprocess.run(
+            ["gitleaks", "dir", "--report-format", "json", "--report-path", report_path, target],
+            capture_output=True, text=True,
+        )
+        try:
+            data = json.loads(Path(report_path).read_text())
+        except (json.JSONDecodeError, OSError):
+            return None
+        # Gitleaks v8 emits a top-level array; older versions nest under "Findings".
+        raw = data if isinstance(data, list) else (data.get("Findings") or data.get("Leaks") or [])
+        out = []
+        for f in raw:
+            out.append(Finding(
+                severity="high",
+                category="secret",
+                rule=f.get("RuleID", f.get("ruleId", "secret")),
+                location=str(f.get("File", f.get("file", "?"))),
+                message=f.get("Description", "secret detected"),
+            ))
+        return out
+    except BaseException as error:
+        original_error = error
+        raise
+    finally:
+        try:
+            Path(report_path).unlink(missing_ok=True)
+        except OSError:
+            if original_error is None:
+                raise
+            original_error.add_note("Gitleaks temporary report cleanup also failed")
 
 
 def run_osv_scanner(lockfile: str) -> list[Finding] | None:
