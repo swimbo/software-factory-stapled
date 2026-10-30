@@ -1,0 +1,17 @@
+{
+  "real_restate_and_docker": true,
+  "unit": "abandon-204deb2f89c0483691f6d60da771a8b0",
+  "stage": "abandoned",
+  "guarded_attempt_status": "abandoned",
+  "running_allocation_rejected": true,
+  "invalid_signature_rejected": true,
+  "duplicate_no_ledger_or_anchor_writes": true,
+  "real_restate_restart_preserved_state": true,
+  "restarted_worker_duplicate_rejected": true,
+  "result_not_fabricated": true,
+  "budget_fixture_unchanged": true,
+  "production_nuc_untouched": true,
+  "paid_calls": 0,
+  "real_cli_signature_and_status": true,
+  "ssh_transport": "local fixture adapter; production SSH not exercised"
+}
