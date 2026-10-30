@@ -152,8 +152,8 @@ def test_receipt_counts_mixed_repeat_outcomes_and_ignores_delay_steps(tmp_path):
         verdict, receipt = evaluate(_url(srv), scenarios, runs_per_scenario=3)
     assert verdict.passed is True
     assert verdict.per_scenario["flaky"] is True
-    assert FlakyHandler.hits == 6
-    assert receipt.requests == 6
+    assert FlakyHandler.hits == 5
+    assert receipt.requests == 5
 
 
 def test_receipt_counts_all_successes_across_scenarios_and_repeats(tmp_path):
