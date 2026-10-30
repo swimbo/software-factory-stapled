@@ -55,23 +55,27 @@ def _check_step(step: dict, status: int, body: str) -> str:
     return ""
 
 
-def _run_once(target_base: str, scenario: dict) -> tuple[bool, str]:
+def _run_once(target_base: str, scenario: dict) -> tuple[bool, str, int]:
+    requests = 0
     for step in scenario["steps"]:
         if "delay_seconds" in step:
             time.sleep(step["delay_seconds"])
             continue
+        requests += 1
         status, body = _request(target_base, step)
         failure = _check_step(step, status, body)
         if failure:
-            return False, failure
-    return True, ""
+            return False, failure, requests
+    return True, "", requests
 
 
 def run_scenario(target_base: str, scenario: dict, runs: int) -> ScenarioResult:
     passed = 0
+    requests = 0
     first_failure = ""
     for _ in range(runs):
-        ok, failure = _run_once(target_base, scenario)
+        ok, failure, attempted = _run_once(target_base, scenario)
+        requests += attempted
         if ok:
             passed += 1
         elif not first_failure:
@@ -81,6 +85,7 @@ def run_scenario(target_base: str, scenario: dict, runs: int) -> ScenarioResult:
         runs_passed=passed,
         runs_total=runs,
         failure=first_failure,
+        requests=requests,
     )
 
 
@@ -101,7 +106,7 @@ def evaluate(
 
     wall_clock_ms = int((time.perf_counter() - start) * 1000)
     receipt = UsageRecord(
-        requests=sum("request" in step for s in scenarios for step in s["steps"]) * runs_per_scenario,
+        requests=sum(r.requests for r in results),
         wall_clock_ms=wall_clock_ms,
         tier=tier,
         pricing_mode=pricing_mode,

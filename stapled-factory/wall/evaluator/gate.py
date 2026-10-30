@@ -13,6 +13,7 @@ class ScenarioResult:
     runs_passed: int
     runs_total: int
     failure: str = ""  # one-line message, or "" when the scenario passed
+    requests: int = 0  # HTTP requests actually attempted across all runs
 
 
 @dataclass
