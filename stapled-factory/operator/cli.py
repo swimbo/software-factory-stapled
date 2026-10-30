@@ -51,9 +51,15 @@ def sign(run):
 
 def validate_spec(spec):
     required = {'unit', 'repo', 'baseline', 'task', 'acceptance', 'allowed_paths', 'check_script'}
-    if set(spec) != required or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', spec['unit']):
+    if not isinstance(spec, dict) or set(spec) != required:
         raise ValueError('invalid task fields or unit')
-    if not spec['task'].strip() or not isinstance(spec['acceptance'], list) or not spec['acceptance']:
+    scalars = ('unit', 'repo', 'baseline', 'task', 'check_script')
+    if any(not isinstance(spec[x], str) or not spec[x].strip() for x in scalars) or not re.fullmatch(
+            r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', spec['unit']):
+        raise ValueError('invalid task fields or unit')
+    acceptance = spec['acceptance']
+    if not isinstance(acceptance, list) or not acceptance or any(
+            not isinstance(x, str) or not x.strip() for x in acceptance):
         raise ValueError('task and acceptance criteria required')
     paths = spec['allowed_paths']
     if not isinstance(paths, list) or not paths or any(not isinstance(x, str) or x.startswith('/') or
