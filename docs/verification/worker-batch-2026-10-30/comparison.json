@@ -1,0 +1,39 @@
+{
+  "original_baseline": "34ab4c8e3211ee7749f4b16417a64d42cfea7652",
+  "same_original_task_plus_only_batching_paragraph": true,
+  "same_worker_images": true,
+  "same_request_allowance": 12,
+  "original": {
+    "unit": "wall-request-count-20261030-01",
+    "worker_revision": "5a403f4dd1d713cd806edf81b80d67b911110bcc",
+    "runtime_revision": "34ab4c8e3211ee7749f4b16417a64d42cfea7652",
+    "completion": "natural",
+    "requests_used": 12,
+    "visible_model_responses": 11,
+    "manual_runtime_recovery": false,
+    "operator_test_corrections": 1,
+    "external_http_acceptance_passed": 4,
+    "raw_focused_tests_failed": 1,
+    "estimated_reserved_usd": 1.399713
+  },
+  "replay": {
+    "unit": "wall-count-batched-replay-20261030-01",
+    "worker_revision": "3b31356bd48c6076e751d1362aed77eb5f512900",
+    "runtime_revision": "c15aceee9071bc8e59b083a3f547c7f1fc80cc4b",
+    "completion": "natural",
+    "requests_used": 11,
+    "visible_model_responses": 10,
+    "manual_runtime_recovery": false,
+    "operator_test_corrections": 0,
+    "external_http_acceptance_passed": 4,
+    "raw_focused_tests_passed": 17,
+    "raw_focused_tests_failed": 0,
+    "estimated_reserved_usd": 1.394777
+  },
+  "actual_charges": null,
+  "hard_charge_cap": false,
+  "replay_output_published": false,
+  "instruction_merged": false,
+  "instruction_deployed": false,
+  "limitation": "Single stochastic replay; differing existing host runtime revisions; no general causal or reliability claim."
+}

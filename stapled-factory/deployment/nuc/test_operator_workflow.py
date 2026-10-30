@@ -279,6 +279,9 @@ def test_prepare_guides_offline_worker_past_missing_test_tools(tmp_path, monkeyp
     assert 'If a test runner is unavailable' in task
     assert 'write custom test harnesses' in task
     assert 'commit' in task and 'external' in task
+    assert 'batching independent file reads and searches into one terminal call' in task
+    assert 'stopping on any failure' in task
+    assert 'do not skip them to save calls' in task
 
 
 def test_abandoned_run_never_observes_or_rebinds(tmp_path, monkeypatch):

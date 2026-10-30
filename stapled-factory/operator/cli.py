@@ -140,6 +140,9 @@ def prepare(spec_file):
              'If a test runner is unavailable, do not search for replacements, probe unrelated packages, or write custom test harnesses. '
              'Complete the scoped edit, run git diff --check, commit, and finish immediately without optional checks. '
              'Report skipped tests; the operator runs external acceptance checks and local CI after collection.\n')
+    task += ('\nReduce model round trips by batching independent file reads and searches into one terminal call. '
+             'After edits, combine available checks, git diff --check, the scoped commit, and final git status in one terminal call, '
+             'stopping on any failure. Keep required inspection and verification; do not skip them to save calls.\n')
     (run / 'task.txt').write_text(task);(run / 'task.txt').chmod(0o600)
     remote('mkdir', {'unit': spec['unit']})
     inputs = describe['build_inputs']
