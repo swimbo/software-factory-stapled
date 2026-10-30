@@ -29,9 +29,10 @@ class Handler(BaseHTTPRequestHandler):
         length = int(self.headers.get("Content-Length", 0) or 0)
         raw = self.rfile.read(length) if length else b""
         try:
-            return json.loads(raw) if raw else {}
-        except json.JSONDecodeError:
+            body = json.loads(raw) if raw else {}
+        except (json.JSONDecodeError, UnicodeDecodeError):
             return {}
+        return body if isinstance(body, dict) else {}
 
     def do_GET(self):
         if self.path == "/health":
