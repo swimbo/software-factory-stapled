@@ -14,7 +14,14 @@ import tempfile
 import urllib.error
 import urllib.request
 
-ROOT = Path('/home/bo/.local/share/stapled-factory-control')
+ROOT = None
+INGRESS_PORT = RAW_INGRESS_PORT = None
+
+
+def configure(config):
+    global ROOT, INGRESS_PORT, RAW_INGRESS_PORT
+    ROOT = Path(config['control_dir'])
+    INGRESS_PORT, RAW_INGRESS_PORT = config['ingress_port'], config['raw_ingress_port']
 
 
 def command(*args):
@@ -41,7 +48,7 @@ def bundle_hash(path):
 
 def post(route, data):
     token = (ROOT / 'ingress.token').read_text().strip()
-    req = urllib.request.Request('http://127.0.0.1:19081/' + route,
+    req = urllib.request.Request(f'http://127.0.0.1:{INGRESS_PORT}/' + route,
         json.dumps(data).encode(), headers={'Content-Type': 'application/json',
                                           'Authorization': 'Bearer ' + token})
     with urllib.request.urlopen(req, timeout=20) as response:
@@ -173,7 +180,7 @@ def main(action, data):
                 args = ['python3', str(helper), '--db', str(ROOT / 'attempt-store/attempts.db'),
                         '--anchor', str(ROOT / 'attempt-anchor/watermark.json'), '--unit', unit, '--reason=' + data['reason']]
                 return {'payload': command(*args)}
-            req = urllib.request.Request('http://127.0.0.1:18080/WorkUnit/' + unit + '/abandon',
+            req = urllib.request.Request(f'http://127.0.0.1:{RAW_INGRESS_PORT}/WorkUnit/' + unit + '/abandon',
                 json.dumps(data['envelope']).encode(), headers={'Content-Type': 'application/json'})
             with urllib.request.urlopen(req, timeout=45) as response:
                 if json.load(response) is not True:raise ValueError('abandonment refused by durable state')
@@ -297,6 +304,7 @@ def main(action, data):
 if __name__ == '__main__':
     req = json.load(sys.stdin)
     try:
+        configure(req['config'])
         result = main(req['action'], req['data'])
         print(json.dumps({'result': result}), flush=True)
     except Exception as exc:

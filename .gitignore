@@ -2,6 +2,7 @@
 /target/
 .env
 .env.*
+/operator.local.json
 # runtime data (Restate RocksDB, local sqlite stores)
 restate-data/
 *.db

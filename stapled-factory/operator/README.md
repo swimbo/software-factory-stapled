@@ -4,9 +4,24 @@ This CLI connects the existing signed NUC provisioning, Restate/OpenHands worker
 Git export, local checks and GitHub PR path. It does not install a new runtime,
 merge a PR, deploy candidate code, or schedule tasks. The NUC must already run a
 verified frozen factory release, with its existing image/public trust root and
-private gateway credential reference. SSH uses `hermes-control`, BatchMode and
+private gateway credential reference. SSH uses the configured host, BatchMode and
 no forwarded agent. The existing Mac image-approval key signs task preparations;
 its bytes never enter the worker, NUC command arguments or build context.
+
+## Machine configuration
+
+Copy repository-root `operator.example.json` to ignored `operator.local.json`,
+set mode `0600`, and replace the placeholders with your installation's SSH host,
+remote control directory, local signer and run paths, and ingress ports. The
+config must be an owner-only regular file; it contains paths, not key contents.
+Use absolute paths (local `signer`/`runs_dir` also accept `~`). The remote
+`control_dir` must not contain spaces or shell metacharacters.
+
+`--config /absolute/path/config.json` overrides `FACTORY_OPERATOR_CONFIG`, which
+overrides the repository default. Custom private files should stay outside the
+checkout. Missing or invalid configuration fails before SSH, signing, or dispatch.
+Do not change these settings while a run is active or uncertain. The ignored
+local file preserves this installation's settings; it is not shipped to others.
 
 ## Task input
 
