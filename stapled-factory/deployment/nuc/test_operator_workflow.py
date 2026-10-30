@@ -216,3 +216,42 @@ def test_observing_published_task_preserves_pr_link_without_redispatch(tmp_path,
     monkeypatch.setattr(cli, 'remote', lambda *a: pytest.fail('published result must not dispatch or rebind'))
     assert cli.run_task(tmp_path) == status
     assert json.loads((tmp_path / 'status.json').read_text()) == status
+
+
+def test_prepare_guides_offline_worker_past_missing_test_tools(tmp_path, monkeypatch):
+    """The actual transmitted task must prevent the missing-pytest detour."""
+    repo = tmp_path / 'source';repo.mkdir()
+    check = tmp_path / 'check.py';check.write_text('pass\n')
+    data = spec();data.update(repo=str(repo), check_script=str(check))
+    task_file = tmp_path / 'task.json';task_file.write_text(json.dumps(data))
+    monkeypatch.setattr(cli, 'RUNS', tmp_path / 'runs')
+    revision = 'a' * 40
+    def command(*args, **kwargs):
+        if 'rev-parse' in args:return revision
+        if 'status' in args:return ''
+        if 'remote' in args:return 'https://github.com/example/repo'
+        if 'ls-remote' in args:return revision + '\trefs/heads/main'
+        if 'bundle' in args and 'create' in args:
+            Path(args[-2]).write_bytes(b'baseline bundle');return ''
+        if 'list-heads' in args:return revision + ' refs/heads/main'
+        pytest.fail(str(args))
+    monkeypatch.setattr(cli, 'command', command)
+    def sign(run):(run / 'image-approval.sig').write_bytes(b'signature fixture')
+    monkeypatch.setattr(cli, 'sign', sign)
+    transmitted = {}
+    def copy(path, unit, **kwargs):transmitted[Path(path).name] = Path(path).read_bytes()
+    monkeypatch.setattr(cli, 'copy', copy)
+    def remote(action, value):
+        if action == 'describe':return {'release': '/frozen', 'service_sha256': 'b'*64,
+                                       'images': {}, 'build_inputs': {}}
+        if action == 'mkdir':return {}
+        if action == 'prepare':return json.loads(transmitted['image-approval.json'])
+        pytest.fail(action)
+    monkeypatch.setattr(cli, 'remote', remote)
+    cli.prepare(task_file)
+    task = transmitted['task.txt'].decode()
+    assert data['task'] in task and data['acceptance'][0] in task
+    assert 'Do not install dependencies' in task
+    assert 'If a test runner is unavailable' in task
+    assert 'write custom test harnesses' in task
+    assert 'commit' in task and 'external' in task

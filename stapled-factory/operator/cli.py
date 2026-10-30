@@ -95,6 +95,10 @@ def prepare(spec_file):
     save(run / 'images.json', describe['images'])
     task = spec['task'] + '\n\nAcceptance criteria:\n' + '\n'.join('- ' + x for x in spec['acceptance'])
     task += '\nChange only: ' + ', '.join(spec['allowed_paths']) + '. Commit the fix and finish with a clean worktree. Do not publish, merge or deploy.\n'
+    task += ('\nThe worker has no network access. Do not install dependencies. '
+             'If a test runner is unavailable, do not search for replacements, probe unrelated packages, or write custom test harnesses. '
+             'Complete the scoped edit, run git diff --check, commit, and finish immediately without optional checks. '
+             'Report skipped tests; the operator runs external acceptance checks and local CI after collection.\n')
     (run / 'task.txt').write_text(task);(run / 'task.txt').chmod(0o600)
     remote('mkdir', {'unit': spec['unit']})
     inputs = describe['build_inputs']
