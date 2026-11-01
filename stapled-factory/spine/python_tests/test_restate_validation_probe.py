@@ -19,8 +19,8 @@ def inputs(tmp_path, monkeypatch, *, baseline='f' * 40, config_digest='sha256:' 
     checks = {'git_revision': 'a' * 40, 'artifact_digest': 'sha256:' + 'b' * 64,
         'source_archive_digest': 'c' * 64, 'scenario_digest': 'd' * 64, 'deployment_id': 'e' * 64,
         'passed': True, 'security': {'verdict': 'pass', 'engines': {}},
-        'wall': {'verdict': {'passed': True, 'aggregate_pass_rate': 1., 'failure_message': ''},
-            'receipt': {'tokens_in': 0, 'tokens_out': 0, 'requests': 1, 'retries': 0,
+        'wall': {'verdict': {'passed': True, 'aggregate_pass_rate': 1., 'failure_message': '', 'per_scenario': {'fixture': True}},
+            'receipt': {'tokens_in': 0, 'tokens_out': 0, 'requests': 3, 'retries': 0,
                 'wall_clock_ms': 1, 'tier': 'fixture', 'pricing_mode': 'subscription',
                 'ceiling_violation': '', 'cost_estimate_usd': None}}}
     manifest = {'revision': checks['git_revision'], 'baseline': baseline,
