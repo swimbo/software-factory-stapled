@@ -110,7 +110,7 @@ def verify_vendor(archive, vendor, name, version, expected_sha256):
         raise ValueError('unsafe vendor directory') from exc
     if not stat.S_ISDIR(root_stat.st_mode) or root_stat.st_mode & 0o7000:
         raise ValueError('unsafe vendor directory mode')
-    vendor_files = {};checksum = None;total = 0
+    vendor_files = {};checksum = None;total = 0;inventory = []
     def traversal_error(error):
         raise ValueError('unreadable vendor directory') from error
 
@@ -132,6 +132,7 @@ def verify_vendor(archive, vendor, name, version, expected_sha256):
                 if relative == '.cargo-checksum.json':
                     data = stream.read(MAX_CHECKSUM_BYTES + 1)
                     if len(data) > MAX_CHECKSUM_BYTES:raise ValueError('vendor checksum too large')
+                    inventory.append([relative, hashlib.sha256(data).hexdigest(), stat.S_IMODE(info.st_mode)])
                     try:checksum = json.loads(data, object_pairs_hook=_unique)
                     except (UnicodeDecodeError, json.JSONDecodeError) as exc:
                         raise ValueError('invalid vendor checksum') from exc
@@ -139,6 +140,7 @@ def verify_vendor(archive, vendor, name, version, expected_sha256):
                     digest, length = _hash_stream(stream, MAX_EXPANDED_BYTES - total)
                     total += length
                     vendor_files[relative] = (digest, info.st_mode & 0o111)
+                    inventory.append([relative, digest, stat.S_IMODE(info.st_mode)])
                 if len(vendor_files) > MAX_FILES:raise ValueError('too many vendor files')
     omitted = sorted(path for path in archive_files.keys() - vendor_files.keys()
                      if path.rsplit('/', 1)[-1] in ('.gitignore', '.gitattributes'))
@@ -148,5 +150,8 @@ def verify_vendor(archive, vendor, name, version, expected_sha256):
         raise ValueError('vendor file contents differ from archive')
     if not isinstance(checksum, dict) or checksum.get('package') != expected_sha256 or checksum.get('files') != {path: data[0] for path, data in vendor_files.items()}:
         raise ValueError('vendor checksum metadata differs')
+    inventory_bytes = json.dumps(sorted(inventory), ensure_ascii=True, separators=(',', ':')).encode()
     return {'status': 'vendor-files-match-archive', 'coverage': 'incomplete',
-            'crate_sha256': expected_sha256, 'files': len(vendor_files), 'omitted_archive_files': omitted}
+            'crate_sha256': expected_sha256, 'files': len(vendor_files), 'omitted_archive_files': omitted,
+            'file_inventory_sha256': hashlib.sha256(inventory_bytes).hexdigest(),
+            'inventory_scope': 'regular file bytes and POSIX mode bits; excludes directories, ownership, ACLs and xattrs'}

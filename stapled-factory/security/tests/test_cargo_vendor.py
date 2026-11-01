@@ -163,3 +163,17 @@ def test_special_mode_bits_rejected(tmp_path):
     (vendor/'src/lib.rs').chmod(0o4644)
     with pytest.raises(ValueError, match='mode'):
         verify_vendor(archive, vendor, 'crate-a', '1.0.0', digest)
+
+
+def test_file_inventory_digest_binds_metadata_and_permission_bits(tmp_path):
+    archive, vendor, digest = fixture(tmp_path)
+    (vendor/'src/lib.rs').chmod(0o644)
+    first = verify_vendor(archive, vendor, 'crate-a', '1.0.0', digest)
+    assert len(first['file_inventory_sha256']) == 64
+    (vendor/'src/lib.rs').chmod(0o600)
+    second = verify_vendor(archive, vendor, 'crate-a', '1.0.0', digest)
+    assert second['file_inventory_sha256'] != first['file_inventory_sha256']
+    metadata = vendor/'.cargo-checksum.json'
+    metadata.write_text(json.dumps(json.loads(metadata.read_text()), indent=2))
+    third = verify_vendor(archive, vendor, 'crate-a', '1.0.0', digest)
+    assert third['file_inventory_sha256'] != second['file_inventory_sha256']
