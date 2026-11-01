@@ -36,6 +36,31 @@ def test_archive_lockfiles_are_discovered_and_symlink_lockfiles_rejected(tmp_pat
         m.archive_lockfiles(archive(True), tmp_path)
 
 
+def test_source_inventory_reports_manifests_without_matching_locks():
+    import io
+    import tarfile
+    data = io.BytesIO()
+    with tarfile.open(fileobj=data, mode='w') as tar:
+        for name in ('frontend/package.json', 'agents/package.json', 'frontend/package-lock.json',
+                     'backend/Cargo.toml', 'backend/Cargo.lock'):
+            entry = tarfile.TarInfo(name);entry.size = 2;tar.addfile(entry, io.BytesIO(b'{}'))
+    inventory = m.archive_dependency_inventory(data.getvalue())
+    assert inventory['missing_locks'] == ['agents/package.json']
+    assert inventory['manifests'] == ['agents/package.json', 'backend/Cargo.toml', 'frontend/package.json']
+    assert inventory['coverage'] == 'incomplete'
+
+
+def test_source_inventory_rejects_symlinked_dependency_manifest():
+    import io
+    import tarfile
+    data = io.BytesIO()
+    with tarfile.open(fileobj=data, mode='w') as tar:
+        entry = tarfile.TarInfo('package.json');entry.type = tarfile.SYMTYPE
+        entry.linkname = 'other';tar.addfile(entry)
+    with pytest.raises(ValueError, match='manifest'):
+        m.archive_dependency_inventory(data.getvalue())
+
+
 @pytest.fixture(params=['stream', 'production'])
 def bridge(request, monkeypatch):
     calls = []

@@ -1,0 +1,39 @@
+{
+  "date": "2026-11-01",
+  "scope": "Private fixture copied from the existing fullstack template, not a factory candidate or release",
+  "npm_version": "11.21.0",
+  "source_inventory_missing_locks": ["agents/package.json", "frontend/package.json"],
+  "frontend": {
+    "resolution": "npm install --package-lock-only --ignore-scripts --no-audit --no-fund succeeded in a private copy",
+    "lock_sha256": "66fdfc080e83514f88e1e3194023d033068c0ec15227c94a37b142a02a11665b",
+    "lock_package_entries": 220,
+    "osv_spdx_packages_emitted": 2,
+    "osv_findings": 1,
+    "affected_packages": 1,
+    "example": "zod GHSA-mrhx-c7xc-m3w5"
+  },
+  "agents": {
+    "resolution": "ERESOLVE: latest agent SDK requires Zod 4 while the manifest specifies Zod 3",
+    "lock_created": false,
+    "override_used": false,
+    "private_diagnostic": {
+      "change": "Pin agent SDK 0.3.316 and use Zod 4 in a private copy only",
+      "lock_sha256": "1bbe20a99dbc768a57f1ef200d88ff2406925bfac0625dcbac075c712a06f6ff",
+      "npm_ci_ignore_scripts": "passed",
+      "typescript_build": "passed",
+      "osv_extracted_packages": 167,
+      "osv_findings": 0
+    }
+  },
+  "backend": {
+    "lock_sha256": "1bd85c2ee33a37c5a8227149a5f0e3475b0d3740dd8d004184fc2ac36f75763a",
+    "osv_findings": 34,
+    "affected_packages": 11
+  },
+  "limitations": [
+    "The generated frontend lock was not present in or applied to the original template.",
+    "No agents lock was applied to the original template, and no complete source-to-image dependency inventory was established.",
+    "The OSV SPDX output in this probe did not enumerate all lockfile entries; it cannot serve alone as a completeness proof.",
+    "Findings are scanner observations, not an exploitability assessment or an accepted release decision."
+  ]
+}

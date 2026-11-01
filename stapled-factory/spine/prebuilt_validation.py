@@ -98,6 +98,41 @@ def archive_lockfiles(raw, source):
     return sorted(found)
 
 
+def archive_dependency_inventory(raw):
+    """Find obvious missing locks; presence alone never proves complete coverage."""
+    candidates = {
+        'package.json': ('package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'),
+        'Cargo.toml': ('Cargo.lock',),
+        'pyproject.toml': ('uv.lock', 'poetry.lock', 'pdm.lock'),
+        'Pipfile': ('Pipfile.lock',),
+        'requirements.txt': ('uv.lock', 'poetry.lock', 'pdm.lock', 'Pipfile.lock'),
+        'go.mod': ('go.sum',),
+        'composer.json': ('composer.lock',),
+        'Gemfile': ('Gemfile.lock', 'gems.locked'),
+        'pubspec.yaml': ('pubspec.lock',),
+        'mix.exs': ('mix.lock',),
+    }
+    regular = set(); manifests = []
+    with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
+        for member in tar.getmembers():
+            path = Path(member.name)
+            if path.is_absolute() or '..' in path.parts:
+                raise ValueError('unsafe candidate dependency path')
+            if path.name in candidates and not member.isfile():
+                raise ValueError('unsafe candidate dependency manifest')
+            if member.isfile():
+                if str(path) in regular:raise ValueError('duplicate candidate archive path')
+                regular.add(str(path))
+                if path.name in candidates:manifests.append(path)
+    missing = []
+    for manifest in manifests:
+        parents = (manifest.parent, *manifest.parent.parents)
+        if not any(str(parent/name) in regular for parent in parents for name in candidates[manifest.name]):
+            missing.append(str(manifest))
+    return {'manifests': sorted(map(str, manifests)), 'missing_locks': sorted(missing),
+            'coverage': 'incomplete'}
+
+
 def record(path, value):
     """Append an immutable, fsynced private recovery record before effects."""
     data = (json.dumps(value, sort_keys=True) + '\n').encode()
@@ -411,6 +446,10 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
             for lockfile in lockfiles:
                 security_args.extend(['--lockfile', lockfile])
             security=json.loads(command(*security_args,timeout=360))
+            inventory = archive_dependency_inventory(raw)
+            security['dependency_inventory'] = inventory
+            if inventory['missing_locks'] and security['verdict'] == 'pass':
+                security['verdict'] = 'needs_review'
     with candidate_lifecycle(evidence_dir, image) as container:
         def identity():
             state=json.loads(command('docker','inspect',container))[0]
