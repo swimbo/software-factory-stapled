@@ -57,6 +57,8 @@ First live probe evidence on the NUC:
 
 `/home/bo/.local/share/stapled-factory-control/probe-delivery-validation-20261101/attempt-1`
 
+A local isolated BuildKit feasibility check exported an OCI image from a pinned local base with the builder network disabled; a TCP negative check failed to connect as intended. Its default policy rejected the OCI source, so the successful fixture did not use that build-time policy. The builder was privileged. A new standalone OCI archive verifier checks the pinned descriptor graph and exact archive bytes, but is not connected to receipts. This is not a provenance or release verdict; the deployment hold remains. [Evidence and limitations](../verification/delivery-lifecycle-2026-11-01/isolated-builder-spike.md).
+
 ## Resume order
 
 1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.

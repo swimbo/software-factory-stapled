@@ -67,3 +67,8 @@ bits with its locked archive; it reports Cargo-omitted Git metadata. These are
 point-in-time local checks. They neither freeze inputs nor attest what a builder
 consumed, publisher identity, a complete dependency inventory, or a release.
 They are not connected to the runtime validation or publication gate.
+
+`oci_archive.py` verifies the descriptor graph and linux/amd64 image config of
+a pinned OCI archive and records an archive digest. Its result is deliberately
+incomplete: it does not establish publisher identity, build provenance, safe
+execution, or prevent later replacement. It is not yet connected to receipts.
