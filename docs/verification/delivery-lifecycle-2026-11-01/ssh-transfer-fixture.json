@@ -1,0 +1,28 @@
+{
+  "passed": true,
+  "unit": "ssh-fixture-73e95b86ee044ea889abbaa35aca1ff5",
+  "revision": "b5aa1f1a7970b0766fd66245bda7a675a6ab85de",
+  "baseline": "2115ac119eeef0588bbef16330c1c37086b78601",
+  "real_git": true,
+  "real_local_docker_build": true,
+  "real_fixture_signature": true,
+  "real_ssh_scp": true,
+  "synthetic_workunit": true,
+  "factory_dispatches": 0,
+  "model_calls": 0,
+  "live_runtime_activated": false,
+  "all_transferred_hashes_match": true,
+  "original_reobservation_unchanged": true,
+  "repeat_rejected": true,
+  "build_manifest_sha256": "a1fa1bb0302abb2c2bc77f78565cf0fad8ed1e0f709d854d1937f5ac1a5899b2",
+  "scope": "Disposable local Git/Docker plus actual SSH/SCP to private NUC fixture; WorkUnit state is synthetic and no validation or production activation occurred.",
+  "signature_independently_verified": true,
+  "docker_image_labels_independently_verified": true,
+  "local_image_id": "sha256:9ace8927971666d4f72bc7dd036f5b8f1de868aece2c71ecb07a6da8b6328626",
+  "probe_sha256": "db33009f7c4ad05f6af32f48b2956f7196e9b16ef1e6fc829ca37ebcdb20368e",
+  "private_evidence_sha256": {
+    "verified-result.json": "e3bc8c137a23868d9b3bfd24f295f4adfc80959bc8a37b36d96b7faa2b080422",
+    "run/build-intent.json": "bf7c31261f224b352233cc553c1440d3707619c17061ffc8a8c309d139054ab2",
+    "run/transfer-intent.json": "be345cc9dfdd07c9f3e7663fbae1d3cbb4ac24bc119ae92178d396a0f3d90fb5"
+  }
+}
