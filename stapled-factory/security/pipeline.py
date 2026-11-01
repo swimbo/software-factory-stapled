@@ -138,15 +138,18 @@ def run_osv_scanner(lockfile: str) -> list[Finding] | None:
     """Run OSV-Scanner (dependency vulnerabilities). Returns None if absent."""
     if not _which("osv-scanner"):
         return None
-    # v2 syntax: `osv-scanner scan <lockfile> --format json` (the old --lockfile flag is gone).
     r = subprocess.run(
-        ["osv-scanner", "scan", lockfile, "--format", "json"],
-        capture_output=True, text=True,
+        ["osv-scanner", "scan", "-L", lockfile, "--format", "json"],
+        capture_output=True, text=True, timeout=180,
     )
+    if r.returncode not in (0, 1):
+        raise ValueError('OSV scan failed or found no packages')
     try:
-        data = json.loads(r.stdout or "{}")
-    except json.JSONDecodeError:
-        return []
+        data = json.loads(r.stdout)
+    except (json.JSONDecodeError, TypeError) as error:
+        raise ValueError('OSV scan returned invalid JSON') from error
+    if not isinstance(data, dict) or not isinstance(data.get('results'), list):
+        raise ValueError('OSV scan returned invalid results')
     out = []
     for res in data.get("results", []):
         for pkg in res.get("packages", []):
@@ -159,6 +162,8 @@ def run_osv_scanner(lockfile: str) -> list[Finding] | None:
                     location=str(name),
                     message=vuln.get("summary", vuln.get("id", "")),
                 ))
+    if r.returncode == 1 and not out:
+        raise ValueError('OSV scan reported findings without parseable vulnerabilities')
     return out
 
 
@@ -280,7 +285,10 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
 
     # Dependencies
     if lockfile and _which("osv-scanner"):
-        findings += run_osv_scanner(lockfile) or []
+        dependency_findings = run_osv_scanner(lockfile)
+        if dependency_findings is None:
+            raise ValueError('OSV scanner became unavailable')
+        findings += dependency_findings
         engines["dependency"] = "osv-scanner"
     else:
         findings += _regex_dependencies(diff_text)

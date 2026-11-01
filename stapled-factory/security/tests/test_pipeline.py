@@ -58,3 +58,38 @@ def test_diff_checked_when_external_scanners_report_clean(monkeypatch, tmp_path)
     report = pipeline.scan("aws key: AKIAABCDEFGHIJKLMNOP", target=str(tmp_path))  # gitleaks:allow -- deliberate scanner fixture
     assert report.verdict == "fail"
     assert any(f.category == "secret" and f.severity == "critical" for f in report.findings)
+
+
+def test_osv_failure_or_invalid_output_cannot_pass(monkeypatch):
+    import pipeline
+    import subprocess
+    import pytest
+    monkeypatch.setattr(pipeline, '_which', lambda tool: '/fixture/osv-scanner' if tool == 'osv-scanner' else None)
+    for code, output in [(127, '{}'), (128, '{}'), (129, '{}'), (0, ''), (0, 'invalid'), (0, '[]')]:
+        monkeypatch.setattr(pipeline.subprocess, 'run', lambda *a, **kw: subprocess.CompletedProcess(a[0], code, output, ''))
+        with pytest.raises(ValueError, match='OSV'):
+            pipeline.scan('safe change', lockfile='package-lock.json')
+
+
+def test_osv_findings_and_clean_report_remain_distinct(monkeypatch):
+    import pipeline
+    import subprocess
+    monkeypatch.setattr(pipeline, '_which', lambda tool: '/fixture/osv-scanner' if tool == 'osv-scanner' else None)
+    reports = [(0, '{"results": []}'), (1, '{"results":[{"packages":[{"package":{"name":"p"},"vulnerabilities":[{"id":"TEST-1"}]}]}]}')]
+    for code, output in reports:
+        def run(args, **kwargs):
+            assert args == ['osv-scanner', 'scan', '-L', 'package-lock.json', '--format', 'json']
+            return subprocess.CompletedProcess(args, code, output, '')
+        monkeypatch.setattr(pipeline.subprocess, 'run', run)
+        report = pipeline.scan('safe change', lockfile='package-lock.json')
+        assert report.verdict == ('pass' if code == 0 else 'needs_review')
+        assert report.engines['dependency'] == 'osv-scanner'
+
+
+def test_osv_disappearing_after_discovery_cannot_pass(monkeypatch):
+    import pipeline
+    import pytest
+    monkeypatch.setattr(pipeline, '_which', lambda tool: '/fixture/osv-scanner' if tool == 'osv-scanner' else None)
+    monkeypatch.setattr(pipeline, 'run_osv_scanner', lambda path: None)
+    with pytest.raises(ValueError, match='OSV'):
+        pipeline.scan('safe change', lockfile='package-lock.json')
