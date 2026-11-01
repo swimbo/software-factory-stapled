@@ -206,6 +206,76 @@ def run_task(run):
             'next': 'Review source and tests before publish executes candidate CI'}
 
 
+def build_candidate(run, dockerfile, signing_key):
+    """Build and attest the collected original once; never redispatch a worker."""
+    plan = json.loads((run / 'operator.json').read_text())
+    result = json.loads((run / 'result.json').read_text())
+    unit, revision, attempt = plan['unit'], result['revision'], result['attempt_id']
+    if (not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', unit) or
+            not re.fullmatch(r'[a-f0-9]{40}', revision) or
+            attempt not in (unit + ':0', unit + ':0:successor') or
+            not re.fullmatch(r'[a-f0-9]{40}', plan['baseline'])):
+        raise ValueError('invalid collected build identity')
+    intent = run / 'build-intent.json'
+    output = run / 'attested-build'
+    if intent.exists() or output.exists():
+        raise ValueError('original image build exists; inspect retained evidence, never repeat')
+    repo = run / 'candidate'
+    bundle = run / 'result.bundle'
+    if bundle.is_symlink() or not bundle.is_file() or hashlib.sha256(bundle.read_bytes()).hexdigest() != result['bundle_sha256']:
+        raise ValueError('collected bundle differs')
+    if command('git', '-C', repo, 'rev-parse', 'HEAD') != revision or command('git', '-C', repo, 'status', '--porcelain'):
+        raise ValueError('candidate changed since collection')
+    selected = remote('validation_status', {'unit': unit})
+    if (selected.get('accepted') is not False or selected.get('stage') != 'needs_validation' or
+            selected.get('attempt_id') != attempt or selected.get('revision') != revision):
+        raise ValueError('selected build differs or is no longer awaiting validation')
+    dockerfile, signing_key = Path(dockerfile), Path(signing_key)
+    for path in (dockerfile, signing_key):
+        st = path.lstat()
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or path.resolve().is_relative_to(repo.resolve()):
+            raise ValueError('operator-owned inputs outside candidate required')
+    if signing_key.stat().st_mode & 0o077:
+        raise ValueError('owner-only signing key required')
+    archive = subprocess.check_output(['git', '-C', str(repo), 'archive', revision])
+    record = {'unit': unit, 'attempt_id': attempt, 'revision': revision, 'baseline': plan['baseline'],
+              'bundle_sha256': result['bundle_sha256'], 'archive_sha256': hashlib.sha256(archive).hexdigest(),
+              'dockerfile_sha256': hashlib.sha256(dockerfile.read_bytes()).hexdigest()}
+    fd = os.open(intent, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as stream:
+        json.dump(record, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+    fd = os.open(run, os.O_RDONLY)
+    try:os.fsync(fd)
+    finally:os.close(fd)
+    script = Path(__file__).resolve().parents[1] / 'deployment/nuc/build_candidate.py'
+    subprocess.run([sys.executable, str(script), '--repo', str(repo), '--revision', revision,
+                    '--baseline', plan['baseline'], '--dockerfile', str(dockerfile),
+                    '--tag', 'factory-candidate-' + unit.lower() + ':' + revision,
+                    '--output', str(output), '--signing-key', str(signing_key)], check=True, timeout=900)
+    return observe_candidate_build(run)
+
+
+def observe_candidate_build(run):
+    """Read original build output only; no build, signature or submission replay."""
+    record = json.loads((run / 'build-intent.json').read_text())
+    output = run / 'attested-build'
+    for name in ('build.json', 'build.sig', 'image.tar', 'source.tar', 'diff', 'Dockerfile'):
+        path = output / name
+        if path.is_symlink() or not path.is_file() or path.stat().st_size == 0:
+            raise ValueError('attested build output incomplete')
+    manifest = json.loads((output / 'build.json').read_text())
+    if (manifest.get('revision') != record['revision'] or manifest.get('baseline') != record['baseline'] or
+            manifest.get('archive_sha256') != record['archive_sha256'] or
+            manifest.get('dockerfile_sha256') != record['dockerfile_sha256'] or
+            hashlib.sha256((output / 'diff').read_bytes()).hexdigest() != manifest.get('diff_sha256') or
+            hashlib.sha256((output / 'source.tar').read_bytes()).hexdigest() != record['archive_sha256'] or
+            hashlib.sha256((output / 'Dockerfile').read_bytes()).hexdigest() != record['dockerfile_sha256']):
+        raise ValueError('attested build differs from original intent')
+    return {'status': 'BUILD_OUTPUT_PRESENT', 'unit': record['unit'], 'attempt_id': record['attempt_id'],
+            'revision': record['revision'], 'output': str(output), 'manifest': manifest,
+            'signature_verified': False, 'image_verified': False}
+
+
 def application_validation(run, plan, result):
     observed = remote('validation_status', {'unit': plan['unit']})
     proof = observed.get('validation') or {}
@@ -295,9 +365,11 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
+    p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
+    p.add_argument('--build-signing-key', type=Path, help='owner-only build attestation key')
     a = p.parse_args()
     try:configure(load_config(a.config))
     except (OSError, ValueError) as exc:p.error('Cannot load operator config: ' + str(exc))
@@ -309,6 +381,10 @@ def main():
                  'next': 'Inspect preserved run and NUC binding; rerun run only to observe same intent'})
             raise
     elif a.action == 'publish':result = publish(a.path.resolve())
+    elif a.action == 'build-candidate':
+        if not a.dockerfile or not a.build_signing_key:p.error('build-candidate requires --dockerfile and --build-signing-key')
+        result = build_candidate(a.path.resolve(), a.dockerfile, a.build_signing_key)
+    elif a.action == 'build-status':result = observe_candidate_build(a.path.resolve())
     elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)
     elif a.action == 'validation-status':
         plan = json.loads((a.path.resolve() / 'operator.json').read_text())

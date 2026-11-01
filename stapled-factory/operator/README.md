@@ -54,7 +54,7 @@ exact filenames, not wildcards. This version publishes to that GitHub repo's
 python3 stapled-factory/operator/cli.py prepare /absolute/path/task.json
 python3 stapled-factory/operator/cli.py run ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
 # Inspect candidate.diff and candidate source/tests before executing their CI.
-python3 stapled-factory/operator/cli.py publish ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
+python3 stapled-factory/operator/cli.py publish-repository ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
 python3 stapled-factory/operator/cli.py status ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
 ```
 
@@ -80,7 +80,23 @@ Interrupted or rejected execution leaves an explicit `NEEDS_INTERVENTION` state;
 its binding is retained until safely observed/reconciled. Never delete the
 NUC `operator-active.json` marker or change a binding while effects are uncertain.
 
-`publish` is the explicit diff-review boundary: it executes operator checks and
+For an application candidate, after reviewing the collected source, create the
+local attested build with operator-owned inputs outside the candidate:
+
+```sh
+python3 stapled-factory/operator/cli.py build-candidate /absolute/private/run --dockerfile /absolute/private/Dockerfile --build-signing-key /absolute/private/build-key.pem
+python3 stapled-factory/operator/cli.py build-status /absolute/private/run
+python3 stapled-factory/operator/cli.py validation-status /absolute/private/run
+```
+
+The first command records a one-shot intent before building. If interrupted,
+inspect the original with `build-status`; it does not rebuild or verify the
+image/signature. Transfer, isolated validation and signed acceptance still
+require separate operator steps; full security coverage remains incomplete.
+
+`publish` requires matching accepted application validation and complete
+scanner coverage. `publish-repository` is explicitly repository-only. Each is
+an explicit diff-review boundary: it executes operator checks and
 candidate local CI on the Mac, then pushes only the completed revision and opens
 or reuses an unmerged PR. Review all code, tests and dependency changes first;
 this command is not a host execution sandbox. The trusted CI runner itself may

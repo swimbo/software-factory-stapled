@@ -120,6 +120,83 @@ def test_cli_validation_status_observes_configured_unit(tmp_path, monkeypatch, c
     assert json.loads(capsys.readouterr().out) == {'accepted': False}
 
 
+def test_attested_build_is_bound_to_collected_attempt_and_never_repeated(tmp_path, monkeypatch):
+    import hashlib
+    plan = {'unit': 'unit-1', 'baseline': 'a'*40}
+    bundle = b'original bundle'
+    result = {'revision': 'b'*40, 'attempt_id': 'unit-1:0', 'bundle_sha256': hashlib.sha256(bundle).hexdigest()}
+    (tmp_path/'operator.json').write_text(json.dumps(plan));(tmp_path/'result.json').write_text(json.dumps(result))
+    (tmp_path/'result.bundle').write_bytes(bundle);(tmp_path/'candidate').mkdir()
+    dockerfile = tmp_path/'recipe';dockerfile.write_text('FROM scratch\n')
+    key = tmp_path/'fixture-key';key.write_bytes(b'fixture');key.chmod(0o600)
+    monkeypatch.setattr(cli, 'command', lambda *a, **k: 'b'*40 if 'rev-parse' in a else '')
+    monkeypatch.setattr(cli, 'remote', lambda action, data: {'accepted': False, 'stage': 'needs_validation',
+                         'attempt_id': 'unit-1:0', 'revision': 'b'*40})
+    monkeypatch.setattr(cli.subprocess, 'check_output', lambda args: b'exact archive')
+    calls = []
+    def build(args, **kwargs):
+        calls.append(args)
+        assert (tmp_path/'build-intent.json').is_file()
+        raise __import__('subprocess').CalledProcessError(1, args)
+    monkeypatch.setattr(cli.subprocess, 'run', build)
+    for _ in range(2):
+        with pytest.raises((ValueError, __import__('subprocess').CalledProcessError)):
+            cli.build_candidate(tmp_path, dockerfile, key)
+    assert len(calls) == 1
+    assert calls[0][calls[0].index('--revision')+1] == result['revision']
+    assert calls[0][calls[0].index('--baseline')+1] == plan['baseline']
+
+
+def test_attested_build_rejects_changed_selection_before_any_build(tmp_path, monkeypatch):
+    import hashlib
+    bundle = b'original bundle'
+    (tmp_path/'operator.json').write_text(json.dumps({'unit': 'unit-1', 'baseline': 'a'*40}))
+    (tmp_path/'result.json').write_text(json.dumps({'revision': 'b'*40, 'attempt_id': 'unit-1:0',
+                                                   'bundle_sha256': hashlib.sha256(bundle).hexdigest()}))
+    (tmp_path/'result.bundle').write_bytes(bundle);(tmp_path/'candidate').mkdir()
+    dockerfile = tmp_path/'recipe';dockerfile.write_text('FROM scratch\n')
+    key = tmp_path/'fixture-key';key.write_bytes(b'fixture');key.chmod(0o600)
+    monkeypatch.setattr(cli, 'command', lambda *a, **k: 'b'*40 if 'rev-parse' in a else '')
+    monkeypatch.setattr(cli, 'remote', lambda action, data: {'accepted': False, 'stage': 'needs_validation',
+                         'attempt_id': 'unit-1:0:successor', 'revision': 'c'*40})
+    monkeypatch.setattr(cli.subprocess, 'run', lambda *a, **k: pytest.fail('must not build stale attempt'))
+    with pytest.raises(ValueError, match='selected'):
+        cli.build_candidate(tmp_path, dockerfile, key)
+    assert not (tmp_path/'build-intent.json').exists()
+
+
+def test_attested_build_returns_verified_original_manifest(tmp_path, monkeypatch):
+    import hashlib
+    bundle, archive, recipe = b'bundle', b'archive', b'FROM scratch\n'
+    (tmp_path/'operator.json').write_text(json.dumps({'unit': 'unit-1', 'baseline': 'a'*40}))
+    (tmp_path/'result.json').write_text(json.dumps({'revision': 'b'*40, 'attempt_id': 'unit-1:0',
+                                                   'bundle_sha256': hashlib.sha256(bundle).hexdigest()}))
+    (tmp_path/'result.bundle').write_bytes(bundle);(tmp_path/'candidate').mkdir()
+    dockerfile = tmp_path/'recipe';dockerfile.write_bytes(recipe)
+    key = tmp_path/'fixture-key';key.write_bytes(b'fixture');key.chmod(0o600)
+    monkeypatch.setattr(cli, 'command', lambda *a, **k: 'b'*40 if 'rev-parse' in a else '')
+    monkeypatch.setattr(cli, 'remote', lambda action, data: {'accepted': False, 'stage': 'needs_validation',
+                         'attempt_id': 'unit-1:0', 'revision': 'b'*40})
+    monkeypatch.setattr(cli.subprocess, 'check_output', lambda args: archive)
+    def build(args, **kwargs):
+        out = Path(args[args.index('--output')+1]);out.mkdir()
+        (out/'source.tar').write_bytes(archive);(out/'Dockerfile').write_bytes(recipe)
+        (out/'diff').write_bytes(b'diff');(out/'build.sig').write_bytes(b'fixture signature');(out/'image.tar').write_bytes(b'fixture image')
+        (out/'build.json').write_text(json.dumps({'revision': 'b'*40, 'baseline': 'a'*40,
+            'archive_sha256': hashlib.sha256(archive).hexdigest(), 'dockerfile_sha256': hashlib.sha256(recipe).hexdigest(),
+            'diff_sha256': hashlib.sha256(b'diff').hexdigest()}))
+    monkeypatch.setattr(cli.subprocess, 'run', build)
+    receipt = cli.build_candidate(tmp_path, dockerfile, key)
+    assert receipt['status'] == 'BUILD_OUTPUT_PRESENT' and receipt['attempt_id'] == 'unit-1:0'
+    assert receipt['signature_verified'] is False and receipt['image_verified'] is False
+    assert receipt['manifest']['archive_sha256'] == hashlib.sha256(archive).hexdigest()
+    monkeypatch.setattr(cli.subprocess, 'run', lambda *a, **k: pytest.fail('observation must not rebuild'))
+    assert cli.observe_candidate_build(tmp_path) == receipt
+    (tmp_path/'attested-build/source.tar').write_bytes(b'changed')
+    with pytest.raises(ValueError, match='differs'):
+        cli.observe_candidate_build(tmp_path)
+
+
 def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):
     import hashlib
     archive = b'exact candidate archive'

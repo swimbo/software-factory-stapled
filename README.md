@@ -375,13 +375,16 @@ This command executes candidate local CI on the operator machine; it is not a
 host execution sandbox:
 
 ```sh
-python3 stapled-factory/operator/cli.py publish /absolute/path/to/run-directory
+python3 stapled-factory/operator/cli.py publish-repository /absolute/path/to/run-directory
 ```
 
 After successful checks, it pushes the completed revision to `codex/<unit>` and
 opens or reuses a PR. It does not merge or deploy. A repository-only PR can be
 ready for review while Restate remains `needs_validation`, since application
-candidate acceptance is separate.
+candidate acceptance is separate. Application `publish` requires a matching
+accepted validation receipt and full scanner coverage; those integration gates
+remain incomplete. See the [operator workflow](stapled-factory/operator/README.md)
+for the local `build-candidate` and `build-status` commands.
 
 ## Configuration
 
