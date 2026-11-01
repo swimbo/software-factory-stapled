@@ -130,6 +130,36 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action == 'validation_status':
+        result = json.loads((approval / 'result.json').read_text())
+        if not result.get('binding_restored'):
+            raise ValueError('collected result binding unresolved')
+        state = post('WorkUnit/' + unit + '/getState', {})
+        selected = state.get('successor') or state.get('build') or {}
+        if (selected.get('status') != 'completed' or
+                selected.get('attempt_id') != result.get('attempt_id') or
+                selected.get('git_revision') != result.get('revision')):
+            raise ValueError('selected build differs from collected validation target')
+        if state.get('stage') == 'needs_validation' and not state.get('validation'):
+            return {'accepted': False, 'stage': 'needs_validation', 'attempt_id': result['attempt_id'],
+                    'revision': result['revision']}
+        proof = state.get('validation') or {}
+        receipt = proof.get('receipt')
+        if (state.get('stage') not in ('validated', 'gated', 'merged', 'deployed') or
+                proof.get('unit_id') != unit or proof.get('attempt_id') != result['attempt_id'] or
+                proof.get('git_revision') != result['revision'] or proof.get('passed') is not True or
+                proof.get('scope') != 'disposable-candidate' or
+                not isinstance(proof.get('artifact_digest'), str) or
+                not re.fullmatch(r'sha256:[a-f0-9]{64}', proof['artifact_digest']) or
+                not isinstance(proof.get('deployment_id'), str) or
+                not re.fullmatch(r'[a-f0-9]{64}', proof['deployment_id']) or
+                not isinstance(receipt, dict) or receipt.get('git_revision') != result['revision'] or
+                state.get('receipt') != receipt or
+                not all(isinstance(proof.get(k), str) and re.fullmatch(r'[a-f0-9]{64}', proof[k])
+                        for k in ('checks_digest', 'source_archive_digest', 'scenario_digest'))):
+            raise ValueError('accepted validation receipt unavailable or mismatched')
+        return {'accepted': True, 'stage': state['stage'], 'attempt_id': result['attempt_id'],
+                'revision': result['revision'], 'validation': proof}
     if action == 'mkdir':
         approval.mkdir(mode=0o700)
         return {'approval': str(approval)}

@@ -268,7 +268,7 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'publish', 'status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'publish', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     a = p.parse_args()
@@ -282,6 +282,9 @@ def main():
                  'next': 'Inspect preserved run and NUC binding; rerun run only to observe same intent'})
             raise
     elif a.action == 'publish':result = publish(a.path.resolve())
+    elif a.action == 'validation-status':
+        plan = json.loads((a.path.resolve() / 'operator.json').read_text())
+        result = remote('validation_status', {'unit': plan['unit']})
     elif a.action == 'abandon':
         if not a.reason or not a.reason.strip() or len(a.reason) > 500:p.error('abandon requires a nonblank --reason of at most 500 characters')
         result = abandon(a.path.resolve(), a.reason)

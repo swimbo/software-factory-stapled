@@ -69,6 +69,57 @@ def test_completed_run_is_observed_without_rebinding_or_dispatch(tmp_path, monke
     assert nuc.main('run', {'unit': 'unit-1'}) == result
 
 
+def test_validation_status_reads_original_without_dispatch(tmp_path, monkeypatch):
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    approval = tmp_path / 'approvals/unit-1';approval.mkdir(parents=True)
+    result = {'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'binding_restored': True}
+    (approval / 'result.json').write_text(json.dumps(result))
+    proof = {'unit_id': 'unit-1', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40,
+             'passed': True, 'receipt': {'git_revision': 'a'*40},
+             'checks_digest': 'b'*64, 'source_archive_digest': 'c'*64,
+             'scenario_digest': 'd'*64, 'artifact_digest': 'sha256:'+'e'*64,
+             'deployment_id': 'f'*64, 'scope': 'disposable-candidate'}
+    state = {'stage': 'validated', 'build': {'attempt_id': 'unit-1:0', 'status': 'completed',
+             'git_revision': 'a'*40}, 'validation': proof, 'receipt': proof['receipt']}
+    monkeypatch.setattr(nuc, 'post', lambda route, body: state)
+    monkeypatch.setattr(nuc, 'command', lambda *a: pytest.fail('observation must not mutate runtime'))
+    observed = nuc.main('validation_status', {'unit': 'unit-1'})
+    assert observed['accepted'] is True and observed['validation'] == proof
+    for mutation in ('revision', 'receipt', 'successor'):
+        changed = dict(state)
+        if mutation == 'revision':changed['validation'] = {**proof, 'git_revision': 'd'*40}
+        if mutation == 'receipt':changed['receipt'] = {'git_revision': 'd'*40}
+        if mutation == 'successor':changed['successor'] = {'attempt_id': 'unit-1:0:successor', 'status': 'completed', 'git_revision': 'a'*40}
+        monkeypatch.setattr(nuc, 'post', lambda route, body: changed)
+        with pytest.raises(ValueError, match='validation'):
+            nuc.main('validation_status', {'unit': 'unit-1'})
+
+
+def test_validation_status_requires_full_receipt_and_selected_attempt(tmp_path, monkeypatch):
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    approval = tmp_path / 'approvals/unit-1';approval.mkdir(parents=True)
+    (approval / 'result.json').write_text(json.dumps({'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'binding_restored': True}))
+    state = {'stage': 'needs_validation', 'build': {'attempt_id': 'unit-1:0', 'status': 'completed', 'git_revision': 'a'*40}}
+    monkeypatch.setattr(nuc, 'post', lambda route, body: state)
+    assert nuc.main('validation_status', {'unit': 'unit-1'})['accepted'] is False
+    state.update(stage='validated', validation={'unit_id': 'unit-1', 'attempt_id': 'unit-1:0',
+                 'git_revision': 'a'*40, 'passed': True})
+    with pytest.raises(ValueError, match='validation'):
+        nuc.main('validation_status', {'unit': 'unit-1'})
+
+
+def test_cli_validation_status_observes_configured_unit(tmp_path, monkeypatch, capsys):
+    (tmp_path / 'operator.json').write_text(json.dumps({'unit': 'unit-1'}))
+    monkeypatch.setattr(sys, 'argv', ['cli.py', 'validation-status', str(tmp_path)])
+    monkeypatch.setattr(cli, 'load_config', lambda path: {})
+    monkeypatch.setattr(cli, 'configure', lambda config: None)
+    calls = []
+    monkeypatch.setattr(cli, 'remote', lambda action, data: calls.append((action, data)) or {'accepted': False})
+    cli.main()
+    assert calls == [('validation_status', {'unit': 'unit-1'})]
+    assert json.loads(capsys.readouterr().out) == {'accepted': False}
+
+
 @pytest.mark.parametrize('successor_status', [None, 'completed', 'unknown'])
 def test_collection_exports_only_selected_completed_attempt(tmp_path, monkeypatch, successor_status):
     import sqlite3

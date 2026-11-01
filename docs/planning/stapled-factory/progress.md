@@ -611,3 +611,7 @@ A configured OSV scan previously treated scanner errors, empty or malformed outp
 ### Secret scanner failure handling
 
 A failed Gitleaks process could leave an empty report and be classified as a clean real-engine scan. A regression reproduced that false pass; the pipeline now rejects scanner errors and a findings exit without findings, and bounds scanner execution. The temporary report remains cleaned on failure. All 29 security tests and two subtests passed. Missing-engine fallback remains explicitly labelled and does not establish the required full security coverage.
+
+### Operator validation observation
+
+Added a read-only operator validation-status command. It compares the retained collected attempt and revision to the current selected WorkUnit, reports a pending result, and returns accepted validation only when the stored receipt and revision-bound artifact, target and digest fields match. Mismatched, legacy incomplete or unresolved evidence fails closed. Regression tests cover pending, accepted, substituted revision/receipt/successor and actual CLI routing; all 68 operator workflow tests pass. This is local observation wiring only: it does not run validation, prove a live deployment, or gate application publication; the operator delivery join remains incomplete.
