@@ -232,12 +232,25 @@ def _preflight_archive(repo, revision, env):
         process.stdout.close()
 
 
+def _reject_info_attributes(repo, env):
+    prefix = ['git', '--no-replace-objects', '--no-lazy-fetch', '--no-optional-locks',
+              '-c', 'core.attributesFile=' + os.devnull, '-C', str(repo)]
+    info_path = subprocess.check_output(prefix + ['rev-parse', '--git-path', 'info/attributes'],
+                                        env=env, text=True, stderr=subprocess.DEVNULL, timeout=15).rstrip('\n')
+    info = Path(info_path)
+    if not info.is_absolute():info = Path(repo) / info
+    try:info.lstat()
+    except FileNotFoundError:pass
+    else:raise ValueError('repository info attributes must be absent')
+
+
 def controlled_source_archive(repo, revision):
     """Bounded, noninteractive source archive for controlled preflight."""
     env = {key:value for key,value in os.environ.items() if not key.startswith('GIT_')}
     env.update(GIT_NO_REPLACE_OBJECTS='1',GIT_NO_LAZY_FETCH='1',GIT_OPTIONAL_LOCKS='0',
                GIT_TERMINAL_PROMPT='0',GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL=os.devnull,
                GIT_ATTR_NOSYSTEM='1')
+    _reject_info_attributes(repo, env)
     return _preflight_archive(repo,revision,env)
 
 
@@ -251,13 +264,7 @@ def source_preflight(repo, revision):
                GIT_ATTR_NOSYSTEM='1')
     prefix = ['git', '--no-replace-objects', '--no-lazy-fetch', '--no-optional-locks',
               '-c', 'core.attributesFile=' + os.devnull, '-C', str(repo)]
-    info_path = subprocess.check_output(prefix + ['rev-parse', '--git-path', 'info/attributes'],
-                                        env=env, text=True, stderr=subprocess.DEVNULL, timeout=15).rstrip('\n')
-    info = Path(info_path)
-    if not info.is_absolute():info = repo / info
-    try:info.lstat()
-    except FileNotFoundError:pass
-    else:raise ValueError('repository info attributes must be absent')
+    _reject_info_attributes(repo, env)
     args = prefix + ['rev-parse', '--verify', '--end-of-options', str(revision) + '^{commit}']
     selected = subprocess.check_output(args, env=env, text=True, stderr=subprocess.DEVNULL, timeout=15).strip()
     if not re.fullmatch(r'[a-f0-9]{40}', selected):

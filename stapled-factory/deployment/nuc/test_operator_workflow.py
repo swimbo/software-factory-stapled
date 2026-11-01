@@ -1273,6 +1273,8 @@ def test_source_preflight_ignores_external_attributes_and_rejects_info_attribute
     info = repo/'.git/info/attributes';info.write_text('package.json export-ignore\n')
     with pytest.raises(ValueError, match='info attributes'):
         cli.source_preflight(repo, 'HEAD')
+    with pytest.raises(ValueError, match='info attributes'):
+        cli.controlled_source_archive(repo, 'HEAD')
 
 
 def test_source_preflight_never_promotes_export_ignored_manifests(tmp_path):
