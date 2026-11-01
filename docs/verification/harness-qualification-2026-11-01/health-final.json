@@ -1,0 +1,16 @@
+{
+  "schema": "factory.qualification-final-health/v1",
+  "revision": "b5fe329f05547218b6362a89641cd39762fe438f",
+  "services": {
+    "factory-endpoint": "active",
+    "factory-ingress": "active",
+    "factory-restate": "active"
+  },
+  "admin_health": 200,
+  "unauthenticated_ingress": 401,
+  "unsigned_endpoint_discovery": 401,
+  "factory_listeners_loopback": true,
+  "retained_old_running_completed_namespaces_unchanged": 4,
+  "active_marker_absent": true,
+  "scope": "Reachability, authentication, process source and retained lifecycle only; no production acceptance or promotion."
+}
