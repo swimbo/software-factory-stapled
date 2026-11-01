@@ -2,8 +2,10 @@
 import base64
 import importlib.util
 import json
+import os
 from pathlib import Path
 import subprocess
+import select
 import sys
 
 import pytest
@@ -13,6 +15,29 @@ sys.path.insert(0, str(SPINE))
 spec = importlib.util.spec_from_file_location('production_exchange_test', SPINE / 'prebuilt_validation.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
+
+
+def test_close_reaps_already_exited_child_without_signalling_group(monkeypatch):
+    from validation_transport import Session
+    session = Session([sys.executable, '-u', '-c', 'pass'])
+    ready, _, _ = select.select([session.child.stdout], [], [], 5)
+    assert ready and os.read(session.child.stdout.fileno(), 1) == b''
+    assert session.child.returncode is None
+    monkeypatch.setattr(os, 'killpg', lambda *args: pytest.fail('exited child must not be signalled'))
+    session.close()
+    assert session.child.returncode == 0
+
+
+def test_close_does_not_hide_permission_error_for_running_child(monkeypatch):
+    from validation_transport import Session
+    session = Session([sys.executable, '-u', '-c', 'import time; time.sleep(30)'])
+    monkeypatch.setattr(os, 'killpg', lambda *args: (_ for _ in ()).throw(PermissionError('fixture')))
+    try:
+        with pytest.raises(PermissionError):
+            session.close()
+    finally:
+        session.child.kill(); session.child.wait(timeout=5)
+        for stream in (session.child.stdin, session.child.stdout, session.child.stderr):stream.close()
 
 
 def redirect_docker(monkeypatch, program):

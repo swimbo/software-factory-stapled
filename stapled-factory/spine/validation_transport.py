@@ -78,11 +78,16 @@ class Session:
             return
         self.closed = True
         # Reap only the owned host client; never claim this kills its container.
-        if self.child.returncode is None:
+        if self.child.poll() is None:
             try:
                 os.killpg(self.child.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
+            except PermissionError as error:
+                try:
+                    self.child.wait(timeout=.2)
+                except subprocess.TimeoutExpired:
+                    raise error
             self.child.wait(timeout=5)
         for stream in (self.child.stdin, self.child.stdout, self.child.stderr):
             stream.close()
