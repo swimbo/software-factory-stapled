@@ -1,0 +1,40 @@
+{
+  "schema": "factory.wip-reconciliation-observation/v1",
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:measure-wip-reconciled-and-operator-workflow-tests-green",
+  "source_revision": "b3c9348e5bfef6dd4532665ad8bc5f288a607482",
+  "observed_at": "2026-11-01T23:59:21Z",
+  "metric": "wip_reconciled_and_operator_workflow_tests_green",
+  "observed_value": true,
+  "observation_method": {
+    "wip_reconciliation": [
+      {
+        "command": "git merge-base --is-ancestor 858df4e586d588112c2c131410c28b6ccf67fa2a b3c9348e5bfef6dd4532665ad8bc5f288a607482",
+        "exit_code": 0,
+        "summary": "The preserved-WIP reconciliation commit is an ancestor of the measured fixed revision."
+      },
+      {
+        "command": "git diff --quiet 858df4e586d588112c2c131410c28b6ccf67fa2a b3c9348e5bfef6dd4532665ad8bc5f288a607482 -- stapled-factory/operator/nuc.py stapled-factory/deployment/nuc/test_operator_workflow.py",
+        "exit_code": 0,
+        "summary": "The reconciled operator source and workflow tests are unchanged from the preserved-WIP commit."
+      }
+    ],
+    "operator_workflow_tests": {
+      "command": "unshare --user --map-root-user --net sh -c 'ip link set lo up && exec /home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest -o testpaths=stapled-factory/deployment/nuc -q'",
+      "project_declared_command": "/home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest -o testpaths=stapled-factory/deployment/nuc -q",
+      "exit_code": 0,
+      "summary": "127 passed, 6 subtests passed in 2.11s",
+      "includes": "stapled-factory/deployment/nuc/test_operator_workflow.py",
+      "output": "nuc-test-output.txt",
+      "output_sha256": "e6c0e61ddf2ef01b92273c3e7e9ace5d649e1c36c79e97a9b7e10566f44ae687"
+    }
+  },
+  "execution_boundary": {
+    "host": "Envision",
+    "network": "fresh empty network namespace with loopback only",
+    "live_nuc_contact": false,
+    "docker_contact": false,
+    "github_contact": false,
+    "provider_or_model_contact": false,
+    "production_state_mutation": false
+  }
+}
