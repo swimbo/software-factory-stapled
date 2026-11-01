@@ -558,3 +558,9 @@ Read-only current NUC inspection confirmed /usr/bin/docker, busctl and systemd-r
 ### Wall bridge startup cleanup regression fixed
 
 A faithful extraction of the existing bridge startup/cleanup order reproduced the review finding with a real bound socket: after a simulated Thread.start failure the socket descriptor remained open. The fix wraps startup in cleanup, closes every constructed server, and invokes shutdown only after its serving thread starts. Both socket lifecycle cases now pass, along with the original lifecycle/transport cases (24 total). Existing proof tests were not rewritten or removed. No Docker or Restate claim is derived from this local socket evidence.
+
+### Confirmed receipt privacy fix
+
+Full source review completed at 11d7bdc with four confirmed defects; the receipt and validation gate remain preserved under /tmp/compound-engineering-501/ce-code-review/delivery-foundations-20261101. The external Claude transport failed before egress; seven local lenses including the exclusive adversarial fallback completed, and a separate validator confirmed all four findings. No external corroboration is claimed. The full delivery plan remains incomplete.
+
+The receipt_privacy_fix worker corrected passing aggregate receipts to emit no private failure text, while checks.json retains the full original. Its real gate() 9/10 regression was observed red (private marker leaked), then green; root verified eleven session cases pass. The regression preserves exact private-check hash, actual .9 rate, usage, HMAC/readback and one original evaluation/submission. No live or production claim follows from that local evidence.

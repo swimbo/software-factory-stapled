@@ -79,10 +79,11 @@ def evidence(result, binding):
                 cost is not None and (type(cost) not in (int, float) or not math.isfinite(cost) or cost < 0)):
             raise ValueError('invalid wall usage receipt')
         # Full per-scenario results remain in private checks.json. The signed
-        # aggregate receipt binds their digest without exporting holdout names.
+        # aggregate receipt binds their digest without exporting holdout names
+        # or feedback from scenarios below the aggregate passing threshold.
         proof['receipt'] = dict(git_revision=binding['git_revision'], usage=usage,
             verdict=dict(passed=True, aggregate_pass_rate=rate,
-                         failure_message=verdict['failure_message'], per_scenario={}))
+                         failure_message='', per_scenario={}))
     return proof
 
 

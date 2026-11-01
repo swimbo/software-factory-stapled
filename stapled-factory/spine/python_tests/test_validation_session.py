@@ -1,5 +1,6 @@
 """An accepted validation response can be lost without rerunning the candidate."""
 import hashlib
+from dataclasses import asdict
 import hmac
 import importlib.util
 import json
@@ -13,6 +14,8 @@ sys.path.insert(0, str(SPINE))
 spec = importlib.util.spec_from_file_location('validation_session_test', SPINE / 'validation_session.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
+sys.path.insert(0, str(SPINE.parent / 'wall/evaluator'))
+from gate import ScenarioResult, gate
 
 KEY = b'private-test-validation-key-only!' * 2
 
@@ -74,6 +77,41 @@ def test_accepted_response_loss_and_reobservation_never_revalidate(tmp_path):
     assert first['evidence']['checks_digest'] == hashlib.sha256(canonical).hexdigest()
     assert first['evidence']['receipt']['usage']['requests'] == 3
     assert first['evidence']['receipt']['verdict']['per_scenario'] == {}
+
+
+def test_passing_aggregate_keeps_failed_holdout_feedback_private(tmp_path):
+    scenarios = [ScenarioResult(f'private-pass-{i}', 1, 1) for i in range(9)]
+    markers = ('private-holdout-marker', '/private/holdout-path', 'expected-secret-value')
+    scenarios.append(ScenarioResult(markers[0], 0, 1,
+                                    f'GET {markers[1]} expected {markers[2]}'))
+    verdict = gate(scenarios)
+    assert verdict.passed is True
+    assert verdict.aggregate_pass_rate == .9
+    original = result()
+    original['wall']['verdict'] = asdict(verdict)
+    runtime = Runtime()
+    def evaluate():
+        runtime.evaluations += 1
+        return original
+    runtime.evaluate = evaluate
+    runtime.lose_response = True
+    folder = tmp_path / 'session'
+    accepted = runtime.run(folder)
+    assert runtime.run(folder, observe_only=True) == accepted
+    assert runtime.evaluations == runtime.submissions == 1
+    checks = json.loads((folder / 'checks.json').read_text())
+    assert checks == original
+    for marker in markers:
+        assert marker in m.canonical(checks)
+        for public in (accepted, runtime.state['validation'],
+                       json.loads((folder / 'envelope.json').read_text()),
+                       json.loads((folder / 'accepted.json').read_text())):
+            assert marker not in m.canonical(public)
+    proof = accepted['evidence']
+    assert proof['checks_digest'] == hashlib.sha256(m.canonical(original).encode()).hexdigest()
+    assert proof['receipt']['verdict'] == dict(passed=True, aggregate_pass_rate=.9,
+                                             failure_message='', per_scenario={})
+    assert proof['receipt']['usage'] == original['wall']['receipt']
 
 
 @pytest.mark.parametrize('changed', [
