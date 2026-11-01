@@ -1,0 +1,17 @@
+{
+  "candidate_profiles_promoted": false,
+  "default_task_binding_unchanged": true,
+  "guarded_store_and_anchor_unchanged": true,
+  "inference_started_by_activation": false,
+  "prior_workunit_states_unchanged": 117,
+  "retained_running_namespaces_unchanged": 4,
+  "revision": "b5fe329f05547218b6362a89641cd39762fe438f",
+  "schema": "factory.qualification-host-activation/v1",
+  "services_updated": [
+    "factory-endpoint",
+    "factory-ingress"
+  ],
+  "shared_services_restarted": false,
+  "verified_release_files": 1298,
+  "worker_image_unchanged": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c"
+}

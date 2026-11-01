@@ -1,0 +1,23 @@
+{
+  "schema": "factory.qualification-grader-preflight/v1",
+  "tasks": 6,
+  "repeats_per_task": 3,
+  "attempts": 72,
+  "active_oracle_sha256": "66fb20bc307758ada2460fd326455f31501a1a398344a9ea37c5d1eb912961eb",
+  "seed_revision": "8a37a2649db696624af486b8973aea956d692406",
+  "frozen_hashes_verified": 137,
+  "original_inputs_preserved": 94,
+  "linux_controls_passed": 45,
+  "linux_helper_image": "sha256:73570499e4f9272b8e96a1115a13f9c4d186a32cf3968621f5ae602e55083d19",
+  "linux_receipt_sha256": "cf6e349eea5ae386474f99ab18851653b11781ea02db6ce46aa8e9c6a5d6bf9e",
+  "grader_review_receipt_sha256": "672063e6182260828e73b5b13771120eb7b29d77f09a20654ea6baac6f4af379",
+  "pre_inference_findings_resolved": [
+    "Verify promised function signatures and keyword compatibility.",
+    "Remove unverified agent test-run promise; the checker still verifies behavior.",
+    "Use a dedicated child result channel so permitted logging cannot corrupt grading."
+  ],
+  "task_texts_and_expected_answers_published": false,
+  "new_inference_started": false,
+  "operator_promotion_authorized": false,
+  "truncation_coverage": "unknown; native execution retained by user instruction"
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "factory.unpaid-escalation-independent-observation/v1",
+  "method": "Read-only Docker inspect and SQLite mode=ro after the original probe completed",
+  "original_identities_match": true,
+  "roles": {
+    "worker": {
+      "image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+      "network_none": true,
+      "original_lifecycle_stopped": true
+    },
+    "proxy": {
+      "image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+      "network_none": true,
+      "original_lifecycle_stopped": true
+    }
+  },
+  "guarded_rows": {
+    "attempts": 1,
+    "allocations": 1,
+    "fence_intents": 1,
+    "fence_confirmations": 1
+  },
+  "reservation_status": "reserved",
+  "journal_sha256": "3e02f03f38f75be4ef9db6294b564246b7e907b69f043f8d86c36c6cea517c13",
+  "checkpoint_manifest_sha256": "fd30cd240088dda2b82122ffd86be1cb83eaa68d55e41dc00eb66079f5a78e91",
+  "paid_requests": 0,
+  "raw_messages_exported": false,
+  "observation_only": true
+}

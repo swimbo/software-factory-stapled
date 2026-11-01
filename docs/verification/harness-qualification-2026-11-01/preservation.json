@@ -1,0 +1,16 @@
+{
+  "actual_charges_usd": null,
+  "candidate_profiles_promoted": false,
+  "generation_not_rewound": true,
+  "no_active_marker": true,
+  "prior_guarded_rows_unchanged": true,
+  "prior_task_binding_restored": true,
+  "prior_volumes_unchanged": 444,
+  "prior_workunit_states_unchanged": 117,
+  "signed_inputs_match_by_group": [
+    243,
+    243,
+    243
+  ],
+  "store_identity_unchanged": true
+}

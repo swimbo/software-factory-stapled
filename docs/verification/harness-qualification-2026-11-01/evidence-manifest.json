@@ -1,0 +1,32 @@
+{
+  "files": {
+    "campaign-binding.json": "24ef56a3784fa1260294a7d3947fb099aef5956382988c576551d191a614f0eb",
+    "cohort-preparation-initial.json": "278261560e1ae674eb1461b0b19d5a6d59a0630793bc2f157babf47a52deea31",
+    "compare.py": "db5939c6db68b106514f9c72d74de8fe0c469e8884f8e3deee7b8924aad71779",
+    "comparison.json": "8ed5997c7fb10ab9e5ea62a20c3fc70cbd6f6d6d844a238c2a5c071d0ccd27e7",
+    "deployment.json": "1fdd68ab4fc46bdf037992d7d43881c35b1273924df348c609c9bb98aabc4627",
+    "escalation-observation.json": "fc9a21da053ba0a6172175a4f88b49fc7afa765941ded012b15e1ce5956501e4",
+    "grader-preflight.json": "fc868fabc54fe3237dfb173c352271696d807856ab577660bbd4b3cf75f7406d",
+    "health-final.json": "fd3e877eb2ef76c7680892d0093a43f1a5208135e9519e001eb5b9caa11d779f",
+    "local-ci-b5fe329.json": "3fe9bce5c08cf147b9848fbc4ad097e5a7c678f317e04eee082cf4bba75728fe",
+    "operator-activation-review.json": "a4ff58f3b4613b7609dd89f29eb48e72e54339356132efbc5e6adf094cbfac71",
+    "operator-helper-review-followup.json": "af729b63483eeca91e43c4ae46ccf22e34c94fe66c12bcafb1bbdfe1be7b2e16",
+    "operator-helper-review.json": "5fe34f505f998cfa3276837f5bbd4729f8d54177ecee53a1f416591d8051ac77",
+    "original-receipt-hashes.json": "1d8d8aebd015829142abf1293fe69263479fc5c0d4e6e69f9db180d44d6cdba0",
+    "preregistration.json": "4c68fbdb19689b2857219d803f04524a28e4025733d3b41b1154714194f147e2",
+    "preservation.json": "13ead087cd70b1b530dd3d2713f8ad9b635d08ed1d1298f043caf5db4bad18fa",
+    "report.md": "0590442b71f5abac076dbad8e49b684cc423453b05662482989d9cb2027dae8d",
+    "review-fix-followup.json": "a7d63a452de156cd8f06a54e05cf444791a0ea7669345f0104dd9ed439fb6521",
+    "review-original.json": "16305391d03da5c9701f44f4fb81930cbdb1d8c34c48454f40ac2a3c97d5bf38",
+    "sdk-truncation-audit.json": "01f15da73fa5f37c5b215ef2ab39fadb498c2043801e42635b7c8a6e2629e849",
+    "source-binding-v2.json": "83340e4f0f8215d06de475005cd1d2c0b8c671a2472a7b102f8bda6d9cfddd4a",
+    "source-binding.json": "a6669f72bf4ec8368d71492e0d7fcd72439845bcfdddb92730ece3e3750c5bbd",
+    "telemetry.json": "af8ef200c870b9b55131a4885b07a52b2fe38a88c82adca840af54a129042226",
+    "trials.json": "1b1c1d475e9be4d2443ff08e39def0ada94671a6eb23656a50ccbd32887de187",
+    "unpaid-escalation-v2.json": "d1b7c6847280f156e9ecf5d8d25d1eb42531cf498d016733e01d1528f7d73158",
+    "unpaid-escalation.json": "00fc4b404138febf41acffb79b31e4e62f1f20093b6573092ba582d4e21e7406"
+  },
+  "private_task_answers_exported": false,
+  "raw_thoughts_exported": false,
+  "schema": "factory.qualification-evidence-manifest/v1"
+}

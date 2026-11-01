@@ -1,0 +1,12 @@
+{
+  "schema": "factory.qualification-source-binding/v1",
+  "runtime_source": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "probe_source_sha256": "6b02be7e69c56ac541b939dd35b4ff67263a7951ab9d284f147f4672c3c6578f",
+  "remote_archive_sha256": "ed4797e9700cc0a7a44b458310acb47ea7b70f4e86f7f21a8c576f225b032f58",
+  "prior_pr": 15,
+  "prior_merge_commit": "e95273f7616468daa3c56904dce99cb09a6a04dc",
+  "deployed_profiles_changed": false,
+  "probe_source_commit": "5035fee",
+  "measurement_source_at_original_probe": "f7ba3d4"
+}

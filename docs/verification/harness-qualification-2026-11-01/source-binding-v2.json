@@ -1,0 +1,10 @@
+{
+  "schema": "factory.qualification-source-binding/v1",
+  "operator_source": "b5fe329",
+  "candidate_profiles_unchanged_from": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "probe_source_sha256": "0c1b1aaca96c3f18612de72a402ed06c55e227c464af7c8057ff107f073514ff",
+  "remote_archive_sha256": "39962141e0003cb33a501e63f3dc82f4a3b084f7b3f552d0183b4d8072c59257",
+  "previous_probe_preserved": true,
+  "paid_requests_all_probes": 0
+}

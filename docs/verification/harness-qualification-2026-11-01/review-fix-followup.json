@@ -1,0 +1,41 @@
+{
+  "schema": "factory.qualification-probe-finding-followup/v1",
+  "status": "complete",
+  "verdict": "Both confirmed findings resolved for the bounded unpaid helper scope",
+  "original_review": "/tmp/compound-engineering-501/ce-code-review/qualification-20261101/review.json",
+  "original_review_preserved": true,
+  "scope": "Working-tree delta of the unpaid stall probe and its seven narrow regression cases against bae6d19; no whole review rerun or live infrastructure verification",
+  "findings": [
+    {
+      "number": 1,
+      "status": "resolved",
+      "evidence": "docker create cannot launch a process. The returned full64hex ID, image, allocation and role labels are validated while stopped, then stored in roles before docker start. Accepted start timeout reaches the existing identity-checked finally stop using the retained full ID; an ambiguous create can leave a stopped unacknowledged container but never launches it."
+    },
+    {
+      "number": 2,
+      "status": "resolved",
+      "evidence": "CountingTransport now counts GET and POST effects. _verify_stopped_reopen snapshots the full dictionary, requires intervention_status=stopped and rejects any counter change after reopening. It rejects a returned result, fencing_uncertain, resend-then-stopped and GET-then-stopped."
+    }
+  ],
+  "validation": {
+    "scoped_pytest": "7 passed in0.04s, independently invoked",
+    "exact_old_source_negative_control": "Both launch cleanup cases fail against exact bae6d19 main with Docker API acceptance followed by timeout: running container remains outside recorded roles.",
+    "transport_guard_mutation": "Removing the post-reopen equality condition causes both GET and diagnostic mutation cases to fail with DID NOT RAISE.",
+    "stopped_status_mutation": "Removing the stopped-status condition causes the fencing_uncertain case to fail with DID NOT RAISE.",
+    "repo_source_modified_by_reviewer": false,
+    "git_index_modified": false,
+    "external_model_calls": 0,
+    "ssh_or_docker_commands": 0
+  },
+  "source_sha256": {
+    "stapled-factory/worker/probes/stall_escalation.py": "0c1b1aaca96c3f18612de72a402ed06c55e227c464af7c8057ff107f073514ff",
+    "stapled-factory/worker/tests/test_stall_escalation_probe.py": "0b8e504efa73bac977dd455b877ffc3b9ba837a94277d926e160ffb6ad5736f0"
+  },
+  "limits": [
+    "Fault tests model Docker API create/start acceptance and failure ordering; no live Docker timeout was injected.",
+    "Ambiguous docker create may retain an unidentified stopped container. No automatic adoption, restart or deletion is introduced.",
+    "Cleanup still relies on a responsive trusted Docker daemon; this helper is not production isolation or gateway proof.",
+    "Root owns the fresh fixed-source live unpaid probe and its final actual receipts. This review made no assertion that it already passed."
+  ],
+  "completed_at": "2026-11-01T12:42:54.559764+00:00"
+}

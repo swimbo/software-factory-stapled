@@ -1,0 +1,15 @@
+{
+  "schema": "factory.qualification-preparation-summary/v1",
+  "tasks": 6,
+  "repeats_per_task": 3,
+  "attempts": 72,
+  "oracle_controls_passed": 18,
+  "artifact_hashes_verified": 94,
+  "seed_revision": "8a37a2649db696624af486b8973aea956d692406",
+  "active_oracle_sha256": "bfe9a202ff596501831a16dfbee67c5f89f7dadf6cf4410fec3879baaa887951",
+  "task_texts_and_answers_published": false,
+  "paid_requests": 0,
+  "dispatch_authorized_by_this_receipt": false,
+  "prepared_runtime_source": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "measurement_source_pins_pending_review": true
+}

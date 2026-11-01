@@ -1,4 +1,4 @@
-"""Pure operator-side evaluation of a preregistered, one-repeat paired pilot.
+"""Pure operator-side evaluation of preregistered paired trials.
 
 Never executes candidate code, dispatches work or changes a live profile. Input
 counts include reported cached input; estimates are not actual provider charges.
@@ -23,15 +23,25 @@ def _identities(values):
         raise ValueError('duplicate identities')
 
 
+def _repeat(item, repeats):
+    repeat = item.get('repeat', 1 if repeats == 1 else None)
+    if type(repeat) is not int or not 1 <= repeat <= repeats:
+        raise ValueError('repeat does not match frozen schedule')
+    return repeat
+
+
 def _validate(prereg, results):
     if prereg.get('primary_metric') != 'input_tokens_per_accepted_task' or prereg.get('profiles') != PROFILES:
         raise ValueError('unsupported preregistered primary metric or profiles')
     tasks = prereg.get('tasks'); _identities(tasks)
+    repeats = prereg.get('repeats_per_task', 1)
+    if type(repeats) is not int or repeats < 1:
+        raise ValueError('positive integer repeat count required')
     if not isinstance(prereg.get('pins'), dict) or not prereg['pins']:
         raise ValueError('immutable pins required')
     schedule = prereg.get('schedule')
-    if not isinstance(schedule, list) or len(schedule) != len(tasks)*len(PROFILES):
-        raise ValueError('one complete profile block per held-out task required')
+    if not isinstance(schedule, list) or len(schedule) != len(tasks)*len(PROFILES)*repeats:
+        raise ValueError('one complete profile block per held-out task and repeat required')
     expected = {}
     pairs = set()
     for item in schedule:
@@ -39,15 +49,16 @@ def _validate(prereg, results):
         unit, task, profile = (item.get(k) for k in ('unit', 'task_id', 'profile'))
         if not isinstance(unit, str) or not unit or unit in expected or task not in tasks or profile not in PROFILES:
             raise ValueError('invalid schedule identity')
-        if (task, profile) in pairs: raise ValueError('duplicate task/profile pair')
-        expected[unit] = (task, profile); pairs.add((task, profile))
+        identity = (task, profile, _repeat(item, repeats))
+        if identity in pairs: raise ValueError('duplicate task/profile/repeat pair')
+        expected[unit] = identity; pairs.add(identity)
     if not isinstance(results, list) or len(results) != len(expected):
         raise ValueError('incomplete evaluation; retain originals')
     seen = set()
     for row in results:
         if not isinstance(row, dict): raise ValueError('invalid result row')
         unit = row.get('unit')
-        if not isinstance(unit, str) or unit in seen or unit not in expected or expected[unit] != (row.get('task_id'), row.get('profile')):
+        if not isinstance(unit, str) or unit in seen or unit not in expected or expected[unit] != (row.get('task_id'), row.get('profile'), _repeat(row, repeats)):
             raise ValueError('receipt does not match frozen schedule')
         seen.add(unit)
         for key in ('accepted', 'accounting_complete'):
@@ -82,15 +93,18 @@ def _summary(rows):
 
 
 def _compare(prereg, left, right, summaries):
-    by_task = {profile: {row['task_id']: row for row in rows} for profile, rows in (left, right)}
+    repeats = prereg.get('repeats_per_task', 1)
+    by_pair = {profile: {(row['task_id'], _repeat(row, repeats)): row for row in rows}
+               for profile, rows in (left, right)}
     baseline_name, baseline_rows = left; candidate_name, candidate_rows = right
     baseline, candidate = summaries[baseline_name], summaries[candidate_name]
     matched, mismatched = [], []
     outcomes = dict(improved=0, tied=0, worse=0, unknown=0)
     no_loss = True
-    for task in prereg['tasks']:
-        a, b = by_task[baseline_name][task], by_task[candidate_name][task]
-        (matched if set(a['gateway_models']) == set(b['gateway_models']) else mismatched).append(task)
+    pairs = [(task, repeat) for task in prereg['tasks'] for repeat in range(1, repeats+1)]
+    for pair in pairs:
+        a, b = by_pair[baseline_name][pair], by_pair[candidate_name][pair]
+        (matched if set(a['gateway_models']) == set(b['gateway_models']) else mismatched).append(pair)
         no_loss = no_loss and (not a['accepted'] or b['accepted'])
         if not a['accepted'] or not b['accepted'] or a['input_tokens'] is None or b['input_tokens'] is None:
             outcomes['unknown'] += 1
@@ -112,10 +126,10 @@ def _compare(prereg, left, right, summaries):
         'matched_routes': not mismatched,
         'regressions_passed': prereg['pins'].get('regression_gate_passed') is True,
     }
-    def stratum(tasks):
-        if not tasks: return None
-        return {'baseline': _summary([by_task[baseline_name][t] for t in tasks]),
-                'candidate': _summary([by_task[candidate_name][t] for t in tasks])}
+    def stratum(pairs):
+        if not pairs: return None
+        return {'baseline': _summary([by_pair[baseline_name][pair] for pair in pairs]),
+                'candidate': _summary([by_pair[candidate_name][pair] for pair in pairs])}
     return {'baseline': baseline_name, 'candidate': candidate_name, 'gates': gates,
             'primary_improvement_fraction': improvement, 'median_latency_change_fraction': latency_change,
             'paired_primary_outcomes': outcomes,
@@ -131,14 +145,16 @@ def evaluate(prereg, results):
     Caller must verify pin digests and signed provenance outside this pure function.
     """
     _validate(prereg, results)
+    repeats = prereg.get('repeats_per_task', 1)
     rows = {profile: [r for r in results if r['profile'] == profile] for profile in PROFILES}
     summaries = {profile: _summary(values) for profile, values in rows.items()}
     def comparison(a, b): return _compare(prereg, (a, rows[a]), (b, rows[b]), summaries)
     return {'schema': 'factory.held-out-evaluation/v1', 'primary_metric': prereg['primary_metric'],
             'profiles': summaries, 'adjacent': [comparison(a, b) for a, b in zip(PROFILES, PROFILES[1:])],
             'combined': comparison(PROFILES[0], PROFILES[-1]),
-            'uncertainty': {'independent_tasks': len(prereg['tasks']), 'repeats_per_task': 1,
+            'uncertainty': {'independent_tasks': len(prereg['tasks']), 'repeats_per_task': repeats,
                 'method': 'Exact descriptive paired sign counts; no significance or causal claim.',
-                'limitations': ['Small held-out task sample; no within-task replication.',
+                'limitations': [('Small held-out task sample; no within-task replication.' if repeats == 1 else
+                                 'Repeated attempts are not independent tasks; paired counts are descriptive.'),
                                'Route-set equality does not attest identical weights or inference settings.',
                                'Matched-route strata are descriptive; no mismatched pair is discarded.']}}

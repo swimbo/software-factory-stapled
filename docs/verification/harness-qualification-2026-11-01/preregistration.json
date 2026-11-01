@@ -1,0 +1,957 @@
+{
+  "created_at": "2026-11-01T12:20:00.160003+00:00",
+  "heldout_boundary": "Operator tasks/oracle created after frozen runtime; oracle and known-correct fixtures must remain outside all worker mounts and candidate optimization.",
+  "operational_limits": {
+    "actual_charge_cap": false,
+    "automatic_retries": false,
+    "estimated_reservation_target_usd_per_attempt": 2,
+    "external_bounded_deadline_seconds": 300,
+    "max_attempts": 72,
+    "max_output_tokens": 1024,
+    "max_requests_per_attempt": 12,
+    "observation_seconds": 240
+  },
+  "operator_promotion_authorized": false,
+  "pins": {
+    "evaluation_observation": "sdk-poll-v1",
+    "operator_source": null,
+    "operator_tools_revision": "b5fe329f05547218b6362a89641cd39762fe438f",
+    "oracle_sha256": "66fb20bc307758ada2460fd326455f31501a1a398344a9ea37c5d1eb912961eb",
+    "regression_gate_passed": true,
+    "runtime_source": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+    "seed_revision": "8a37a2649db696624af486b8973aea956d692406",
+    "signed_approval_sha256": null,
+    "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c"
+  },
+  "pre_inference_amendments": [
+    "Original oracle-v2 preparation retained unchanged; no model trial has run.",
+    "Promised signatures checked by names, kinds, defaults and keyword calls; annotations are not constrained.",
+    "Calibration prompt no longer requires unmeasured agent test execution; independent checker still verifies corrected behavior.",
+    "Dedicated bounded result channel separates candidate logging from checker evidence."
+  ],
+  "prepared_epoch": "pre-inference-contract-alignment-v3",
+  "primary_metric": "input_tokens_per_accepted_task",
+  "profiles": [
+    "baseline",
+    "context-v1",
+    "bounded-native-v1",
+    "stall-v1"
+  ],
+  "repeats_per_task": 3,
+  "schedule": [
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 1,
+      "runtime_sha256": "9a774791745f44e13946c4d9c5d743a6f044fe9c4f56c00820ee558a8668a001",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r1-p0"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 1,
+      "runtime_sha256": "66346857af0bebd797921dd65c5c1cd1d57731f49328499305ee341ef6d6fc97",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r1-p1"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 1,
+      "runtime_sha256": "18f938d9f0ee853b67944089ab861f92b2cb055da2f9e39c03e75eb6730cff7f",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r1-p2"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 1,
+      "runtime_sha256": "8bd88c28fe31fb29a9787e7f297e699dd6689a44dffd519d8330a8d6550c4fed",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r1-p3"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 1,
+      "runtime_sha256": "be7f0679b121ef3904dd20dcc1fdcbc280bd2080c6045fa0e3e1e2dc705fbbd6",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r1-p1"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 1,
+      "runtime_sha256": "3dbeb3895cb707b6a9e68d898c2cefca1bedb48517610be4022ded2192201677",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r1-p2"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 1,
+      "runtime_sha256": "563711e5b5a2db7f1330b28a223b6fd172ccff14b2aec68525165c2785be7508",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r1-p3"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 1,
+      "runtime_sha256": "863575012e818252ed87622bc001f6a4152f4767a181c194cd8c61030df75000",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r1-p0"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 1,
+      "runtime_sha256": "fb8471221801d7eff16f8417df457f21d64702a5ff81206cc88b3408ce1b88a7",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r1-p2"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 1,
+      "runtime_sha256": "f5807a642a1ab2d403d120168821ed1e56c0cd8ecf68a86a023d09fb98934180",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r1-p3"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 1,
+      "runtime_sha256": "413d89c28da9a879d256e3a6c36344a2701d19a6238a4f8efccb5ea4493409a8",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r1-p0"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 1,
+      "runtime_sha256": "b2e1ccf8e60d6665101c95e2989d487d4598d808709d719dc6f00c15ec4af166",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r1-p1"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 1,
+      "runtime_sha256": "501bfaa79fd045ac31ecf9f48e3bc15c1d5f0181efd8ba551243af338db450b4",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r1-p3"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 1,
+      "runtime_sha256": "ee2567af1f1742719381118b6f51c92229a17a092f5e7bcf520681c6dec12864",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r1-p0"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 1,
+      "runtime_sha256": "58fd6caae220c87aafdd0c6c2c94624e70eeeba16dc19f8719d0b61252df8c2a",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r1-p1"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 1,
+      "runtime_sha256": "bbf89250f30dda7b5e652bc6e8b0a91357310d57c134cab6caa4c8c295df0a03",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r1-p2"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 1,
+      "runtime_sha256": "af92607a81ce3090fb123fbc4ebe17b07084007d7e52f319c189351be5e485da",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r1-p0"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 1,
+      "runtime_sha256": "359c995df6aa1f7d824ba3e6a76df8806650d34b5b17d807d5f9930f9948ce2b",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r1-p1"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 1,
+      "runtime_sha256": "54d1299c83b31d33c76594947ea573a26c6a106207964d0494b13268652bb378",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r1-p2"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 1,
+      "runtime_sha256": "d2919e13828dff04c1a20ada70d3b72cd49b9eba74ca03198d07da0d8cb72ce7",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r1-p3"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "context-v1",
+      "repeat": 1,
+      "runtime_sha256": "95926ffc0a45af6b75f25309688ea9705cb2135326fd037f290ab3d285df45fc",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r1-p1"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "bounded-native-v1",
+      "repeat": 1,
+      "runtime_sha256": "712ec58a4ab6136a3c5e02696c647b294292859271bd0706b51f478dda27edee",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r1-p2"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "stall-v1",
+      "repeat": 1,
+      "runtime_sha256": "a3f85a93c60b11fe141e36410f0d9ce0c9f03b3f50df8ce39d192ea72579a82e",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r1-p3"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "baseline",
+      "repeat": 1,
+      "runtime_sha256": "2ac87ea9bfe95bbc5de5e1df2356c92da9ad4db82e746ea564172024b06e09d6",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r1-p0"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 2,
+      "runtime_sha256": "f47da6ed3b690fcf4035c5e87808f48ea9a69fdcb7a789b8c37ded73fff50bfb",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r2-p1"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 2,
+      "runtime_sha256": "4a8e08eafb82253cad920a9b01218e89cfdbc12342d4c5768d03136c961da3d8",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r2-p2"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 2,
+      "runtime_sha256": "737d893ec79273af58fc8e961a2f1c731f54f47f8fe857dfe243e273bc0f031e",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r2-p3"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 2,
+      "runtime_sha256": "62d6f9d1da00e710825d1bb5efba74a2d29356429a8d8042e7041aaac641ce72",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r2-p0"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 2,
+      "runtime_sha256": "8fe099b117698ec96ca272d3a5220ce17a6d37efcf2478614774fc3ef2eded84",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r2-p2"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 2,
+      "runtime_sha256": "55420eaa3046ebdf5ecad4a90b1b3b5c1856a1fc541b7f9d54d7c04b610cdfe5",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r2-p3"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 2,
+      "runtime_sha256": "65a3b7fca197153110f4fa82d5a1d11301171567c691f40f03ff91516f16042e",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r2-p0"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 2,
+      "runtime_sha256": "39a3441012a02c6af1d28bacea0b931d5f9ddb6a9f8a86b49cbab50792af186e",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r2-p1"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 2,
+      "runtime_sha256": "a256ee94f3aa9fdc3437b0841a69dac5babd75f55277be56fc4e58052e56e7b8",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r2-p3"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 2,
+      "runtime_sha256": "95ec2eb3c6f5be7160cda17c55043df31a192f444d0ac6e1494539849fec0ed1",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r2-p0"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 2,
+      "runtime_sha256": "693b3389dc8e44786537f38377efd5cec44ca42ebff783c3b423bd38f88185d7",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r2-p1"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 2,
+      "runtime_sha256": "6473bfd59ab9d2e3413cc1be66b8bc6eb5938258c48b3888e90a38fd9e99ed78",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r2-p2"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 2,
+      "runtime_sha256": "f7b7f1c2a5cc3c78d5515081d044d66a7c00345a47e175b518600a74e01d6c8d",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r2-p0"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 2,
+      "runtime_sha256": "e23b91396fbd37ddb03af6c011a3fb6d3c47e45645fb0bf18ccda41411d6b8f3",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r2-p1"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 2,
+      "runtime_sha256": "44a4d93d3e448d84c4580bc522ee30700812efdbf6b0444ec9d54416b39b06f8",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r2-p2"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 2,
+      "runtime_sha256": "fc255ba30544085b5e4e6725425d95ae7f13361001909eaae41aa85f6e162a65",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r2-p3"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 2,
+      "runtime_sha256": "ab1c65e94add689c28513717706249489a5a8618a9c060ef9b1efcd583a325fb",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r2-p1"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 2,
+      "runtime_sha256": "e75c29b30e97fbc38a671946f8b42a973847f7a23d9af2825852551d42da8cc9",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r2-p2"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 2,
+      "runtime_sha256": "ede6d4657c69288b979476348a90819a784006cd757b9f574972a50b9a35fc7b",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r2-p3"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 2,
+      "runtime_sha256": "88ebe23b2799f36ca927fa76f45a7af4c3ff5be93e5e246e0b6e8d086a6028cb",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r2-p0"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "bounded-native-v1",
+      "repeat": 2,
+      "runtime_sha256": "e19b7c3c365ce75925459bead768446f05f7e4c4629b534b9c229ea20414e570",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r2-p2"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "stall-v1",
+      "repeat": 2,
+      "runtime_sha256": "204b1153afee75bcdb1381a63296e0c485b384c7ac200b01c9cb1e95a6bc9016",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r2-p3"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "baseline",
+      "repeat": 2,
+      "runtime_sha256": "420878e0bebaeeecc8b69797fd3ab3300a1ee9f59dfc7bb7a3b849853327229e",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r2-p0"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "context-v1",
+      "repeat": 2,
+      "runtime_sha256": "f8602de8a5d0875fa489a23137b4497fe580c9cb89f1ddcdb07e7a85d5fc018f",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r2-p1"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 3,
+      "runtime_sha256": "a384a18424e9a59869906d4b9de3388e4d3dbd54fd8153d02c63bdc50b61d17e",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r3-p2"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 3,
+      "runtime_sha256": "922c168aa629bb6f84446b2a79d1d057ca9aee54c23638456a4207e7506894e7",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r3-p3"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 3,
+      "runtime_sha256": "15fb6bcf420d15381133543dcd05a8f66dc179a064ac008d750b91d98c8b545f",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r3-p0"
+    },
+    {
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 3,
+      "runtime_sha256": "ae0d4a7972fa23914e9e72aa02f43daca3a315ada6111b1deff94b9c4f788ce5",
+      "task_id": "control-discovery",
+      "task_sha256": "df4ea23cb65a55336f31a3fce8c7d558d9204b4f9a07b4671ab244f7666cb3f3",
+      "unit": "q9d-20261101-t01-r3-p1"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 3,
+      "runtime_sha256": "452ceed3ef4fdd4c443619fd0018e5ea9f240a9c0c9e877a3fa734ba3054fa30",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r3-p3"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 3,
+      "runtime_sha256": "1703fa59f77d1af4820343f3461325b93c13261fae8d9903b87880695e251046",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r3-p0"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 3,
+      "runtime_sha256": "e391c4a63dcd444a356b29f56d6015d667e3cd509fe0a8e6f4d44ad122ea2b3e",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r3-p1"
+    },
+    {
+      "allowed_paths": [
+        "watering.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 3,
+      "runtime_sha256": "a49245481bf97de6a331e4af7c3e8ff1556b19be68da42f88f80a9c522aa712d",
+      "task_id": "moisture-boundary",
+      "task_sha256": "d4dd60aaeb7cc9748bf2e830c99398b55dc7e966e5661649fe7c879e306da45d",
+      "unit": "q9d-20261101-t02-r3-p2"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 3,
+      "runtime_sha256": "744383f4e0e062fedad3200c8681e3fdc6b2fe2574057ce51d3971a5a5be65e7",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r3-p0"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 3,
+      "runtime_sha256": "844233dd5fbc58cc50f7e5fa1877a051b5f249f6ba0defb20c518aa30e785565",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r3-p1"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 3,
+      "runtime_sha256": "39160c42aecdd1f0f5c226117750b1193b2d7056166e9161edc5e98d091b0d2f",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r3-p2"
+    },
+    {
+      "allowed_paths": [
+        "greenhouse/policy.py",
+        "greenhouse/service.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 3,
+      "runtime_sha256": "a98688a825a88c573a79bfd1857bd01bf2017c605d0196d18e9c06aa5539bf4c",
+      "task_id": "bed-status",
+      "task_sha256": "93484f76821f571d09f808454464310be3aa2a21341c75ea522fc5ee75edfbdc",
+      "unit": "q9d-20261101-t03-r3-p3"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 3,
+      "runtime_sha256": "106ccf8d226fd7f27150ba8199a586930962fc908e173f7c0dd62ad2ef72b45f",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r3-p1"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 3,
+      "runtime_sha256": "c93fdf6883105ace88131ac6485011853f2ccf7aea3b8e879633b07dca0776a0",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r3-p2"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 3,
+      "runtime_sha256": "ce630dd061eb6c59edc966aabe6bf1a3b7f9c20903b09a8ad8d218787d8c28a0",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r3-p3"
+    },
+    {
+      "allowed_paths": [
+        "calibration.py"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 3,
+      "runtime_sha256": "8d808d6c56c9b7adc5cfc7821623ddcf5e7d3ba138d75220bf0632772e35d51a",
+      "task_id": "calibration-tests",
+      "task_sha256": "c23dd213b37f76a8635576c8abb5e6793cb9942fb6d468cb0f8235431093b8e1",
+      "unit": "q9d-20261101-t04-r3-p0"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "bounded-native-v1",
+      "repeat": 3,
+      "runtime_sha256": "ee4e773f448d66360fc1063d6f228c2b50b823a17d8a7ee15b18a18d7585ce63",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r3-p2"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "stall-v1",
+      "repeat": 3,
+      "runtime_sha256": "f6c5f077347773a782e9bdda8707caa44f035f0c171940e9fee70cfa4dacf58b",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r3-p3"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "baseline",
+      "repeat": 3,
+      "runtime_sha256": "f5c5b3940146af22200079456ad716243687141c6d86406e51a3d52c48ab9c15",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r3-p0"
+    },
+    {
+      "allowed_paths": [
+        "alarm-summary.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "profile": "context-v1",
+      "repeat": 3,
+      "runtime_sha256": "138009ca1660ccb219d3bff8b90efd67d36f4f3b2a90a58103c18cec90fc6933",
+      "task_id": "alarm-filter",
+      "task_sha256": "b6ddb08f97b989092ee2e16043c2db7f1a0df4a122767eb5a9f94d3fba62bf47",
+      "unit": "q9d-20261101-t05-r3-p1"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "stall-v1",
+      "repeat": 3,
+      "runtime_sha256": "e737ed1459a0e78c58e5e9f835d0a31a93b12a6df9db8ae0ed19b9e1c9f40e5f",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r3-p3"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "baseline",
+      "repeat": 3,
+      "runtime_sha256": "bbca6efaf13ebc381d5554d74a97915f5ce798fdd3e7de8bfc31255d7f93ed94",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r3-p0"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "context-v1",
+      "repeat": 3,
+      "runtime_sha256": "60ebfa9fdcf85232fa72e444070b46a76fccbdfe4536e4f3c77712010531ed04",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r3-p1"
+    },
+    {
+      "allowed_paths": [
+        "driver-status.json"
+      ],
+      "baseline": "8a37a2649db696624af486b8973aea956d692406",
+      "diagnostic_dependency": "greenhouse_driver_unavailable_20261101",
+      "profile": "bounded-native-v1",
+      "repeat": 3,
+      "runtime_sha256": "ca4d41e10e2844fd15853f5e5d9bff4183fad7f0f3af4a9ff46bf63022ec8aab",
+      "task_id": "driver-blocker",
+      "task_sha256": "7cdadf3020831c61d08fdf97e839e54afab39790c114a9700a28f24cb5c837c9",
+      "unit": "q9d-20261101-t06-r3-p2"
+    }
+  ],
+  "schema": "factory.held-out-preregistration/v1",
+  "status": "draft preparation only; final telemetry/cadence gates, operator source, exact CI, pins, expiry and signed release required before inference",
+  "tasks": [
+    "control-discovery",
+    "moisture-boundary",
+    "bed-status",
+    "calibration-tests",
+    "alarm-filter",
+    "driver-blocker"
+  ],
+  "thresholds": {
+    "acceptance_no_decline": true,
+    "full_accounting": true,
+    "known_truncations": true,
+    "matched_routes": true,
+    "median_latency_max_increase_fraction": 0.1,
+    "primary_improvement_fraction": 0.1,
+    "task_repeat_acceptance_no_loss": true,
+    "zero_stall_false_positives": true
+  },
+  "truncation_coverage": "unknown; native SDK retained",
+  "unknowns": [
+    "Authoritative tool-output truncation coverage remains unresolved.",
+    "Latency must use an equivalent boundary for all profiles before dispatch.",
+    "Actual auto-routed model/route identities are observed, not assumed equal."
+  ]
+}

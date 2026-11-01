@@ -93,3 +93,71 @@ def test_zero_call_admission_stays_in_consumption_and_route_evidence():
     assert result['profiles']['stall-v1']['trials'] == 2
     assert result['combined']['decision'] == 'retain_baseline'
     assert result['combined']['route_strata']['mismatched_pairs'] == 1
+
+
+def repeated_fixture():
+    prereg, original = fixture()
+    prereg['repeats_per_task'] = 3
+    rows = [{**row, 'unit': row['unit']+'-'+str(repeat), 'repeat': repeat}
+            for repeat in range(1, 4) for row in original]
+    prereg['schedule'] = [{k: row[k] for k in ('unit', 'task_id', 'profile', 'repeat')}
+                         for row in rows]
+    return prereg, rows
+
+
+def test_repeated_trials_keep_all_consumption_and_pair_each_repeat():
+    prereg, rows = repeated_fixture()
+    # The same task has a lost candidate acceptance and a lost baseline
+    # acceptance on different repeats; total accepted counts are still equal.
+    next(r for r in rows if r['task_id']=='a' and r['repeat']==1 and r['profile']=='stall-v1')['accepted'] = False
+    next(r for r in rows if r['task_id']=='a' and r['repeat']==2 and r['profile']=='baseline')['accepted'] = False
+    rows[-1]['gateway_models'] = ['other:model']
+    result = evaluate(prereg, list(reversed(rows)))
+    assert result['profiles']['baseline']['trials'] == 6
+    assert result['profiles']['baseline']['input_tokens_per_accepted_task'] == 120
+    assert result['profiles']['stall-v1']['input_tokens_per_accepted_task'] == 96
+    assert result['profiles']['stall-v1']['requests'] == 18
+    assert result['combined']['gates']['acceptance_no_decline']
+    assert not result['combined']['gates']['task_acceptance_no_loss']
+    assert result['combined']['decision'] == 'retain_baseline'
+    assert result['combined']['paired_primary_outcomes'] == {'improved': 4, 'tied': 0, 'worse': 0, 'unknown': 2}
+    strata = result['combined']['route_strata']
+    assert (strata['matched_pairs'], strata['mismatched_pairs']) == (5, 1)
+    assert strata['matched']['baseline']['trials'] == 5
+    assert strata['mismatched']['candidate']['input_tokens'] == 80
+    assert result['uncertainty']['independent_tasks'] == 2
+    assert result['uncertainty']['repeats_per_task'] == 3
+    assert 'not independent tasks' in result['uncertainty']['limitations'][0]
+
+
+@pytest.mark.parametrize('value', [True, 0, -1, 1.5, '3', None])
+def test_invalid_repeat_count_is_rejected(value):
+    prereg, rows = fixture(); prereg['repeats_per_task'] = value
+    with pytest.raises(ValueError): evaluate(prereg, rows)
+
+
+@pytest.mark.parametrize('alter', ['missing', 'duplicate', 'mismatch', 'absent', 'bool', 'out_of_range'])
+def test_repeated_schedule_and_receipts_are_immutable(alter):
+    prereg, rows = repeated_fixture()
+    if alter == 'missing':
+        rows.pop()
+    elif alter == 'duplicate':
+        # Keep row count and unique unit IDs, but duplicate a task/repeat pair.
+        prereg['schedule'][8]['repeat'] = 1
+    elif alter == 'mismatch':
+        rows[0]['repeat'] = 2
+    elif alter == 'absent':
+        del prereg['schedule'][0]['repeat']
+    elif alter == 'bool':
+        rows[0]['repeat'] = True
+    elif alter == 'out_of_range':
+        prereg['schedule'][0]['repeat'] = 4
+    with pytest.raises(ValueError): evaluate(prereg, rows)
+
+
+def test_explicit_one_repeat_keeps_legacy_result():
+    prereg, rows = fixture(); original = evaluate(prereg, rows)
+    prereg['repeats_per_task'] = 1
+    for entry in prereg['schedule'] + rows:
+        entry['repeat'] = 1
+    assert evaluate(prereg, rows) == original

@@ -149,3 +149,94 @@ def test_stall_capability_options_fail_before_credentials_or_dispatch(tmp_path,m
     monkeypatch.setattr(operator_cli,'_credential',lambda:pytest.fail('no credential before capability validation'))
     assert worker.run_task(args)['status']=='blocked'
     assert not Path(args.attempt_db).exists()
+
+
+def test_evaluation_observation_is_explicit_and_strict(tmp_path, monkeypatch):
+    args, config, path = configured(tmp_path, monkeypatch)
+    config['evaluation_observation'] = 'sdk-poll-v1'
+    path.write_text(json.dumps(config))
+    assert operator_cli.load_config(args)[0]['evaluation_observation'] == 'sdk-poll-v1'
+    for value in (None, '', 'sdk-poll-v2', True, {}):
+        config['evaluation_observation'] = value; path.write_text(json.dumps(config))
+        with pytest.raises(ValueError, match='evaluation observation'):
+            operator_cli.load_config(args)
+
+
+@pytest.mark.parametrize('change', ['none', 'runtime', 'binding'])
+def test_evaluation_entrypoint_revalidates_runtime_and_original_binding(tmp_path, monkeypatch, change):
+    import evaluation_observation
+    import provision_runtime
+    args, config, path = configured(tmp_path, monkeypatch)
+    config['evaluation_observation'] = 'sdk-poll-v1'
+    path.write_text(json.dumps(config))
+    monkeypatch.setattr(operator_cli, '_credential', lambda: b'private')
+    monkeypatch.setattr(operator_cli.subprocess, 'run', lambda *a, **kw: argparse.Namespace(returncode=0))
+    monkeypatch.setattr(evaluation_observation.time, 'sleep', lambda n: pytest.fail('finished observation must return immediately'))
+    cid = str(__import__('uuid').uuid5(__import__('uuid').NAMESPACE_URL, 'stapled-factory:' + args.attempt_id))
+    gets, bound = [], []
+    class Transport:
+        def request(self, method, route, payload=None):
+            assert method == 'GET'
+            gets.append(route)
+            return {'id': cid, 'execution_status': 'finished'}
+    monkeypatch.setattr(operator_cli, 'DockerTransport', lambda *a: Transport())
+    monkeypatch.setattr(operator_cli, 'verify_revision', lambda *a: 'b'*40)
+    def inspect(store, attempt, request_hash, conversation, **kwargs):
+        bound.append((attempt, request_hash, conversation, kwargs))
+        return {'worker_id': ('e' if change=='binding' else 'd')*64}
+    monkeypatch.setattr(provision_runtime, 'inspect_bound_allocation', inspect)
+    def execute(store, attempt, request, configuration, make_adapter, **kwargs):
+        adapter = make_adapter('d'*64)
+        assert isinstance(adapter, evaluation_observation.EvaluationObserver)
+        if change=='runtime': path.write_text(path.read_text()+' ')
+        return adapter.read(cid, None)
+    monkeypatch.setattr(worker, 'execute_bound_attempt', execute)
+    if change == 'none':
+        assert operator_cli.run(args) == {'status':'completed','git_revision':'b'*40}
+        assert gets == ['/api/conversations/'+cid]
+        assert bound[0][0] == args.attempt_id and bound[0][2] == cid
+        canonical = operator_cli.load_config(args)[1]
+        expected = __import__('hashlib').sha256(json.dumps(canonical, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        assert bound[0][1] == expected
+        assert bound[0][3]['workspace_baseline'] == config['baseline']
+    else:
+        with pytest.raises(ValueError, match='runtime changed|original worker changed'):
+            operator_cli.run(args)
+        assert not gets
+
+
+def test_default_entrypoint_does_not_add_observation_loop(tmp_path, monkeypatch):
+    args, config, path = configured(tmp_path, monkeypatch)
+    monkeypatch.setattr(operator_cli, '_credential', lambda: b'private')
+    monkeypatch.setattr(operator_cli.subprocess, 'run', lambda *a, **kw: argparse.Namespace(returncode=0))
+    def execute(store, attempt, request, configuration, make_adapter, **kwargs):
+        assert type(make_adapter('d'*64)) is operator_cli.OpenHandsAdapter
+        return {'status':'unknown'}
+    monkeypatch.setattr(worker, 'execute_bound_attempt', execute)
+    assert operator_cli.run(args) == {'status':'unknown'}
+
+
+def test_stall_observer_keeps_its_own_polling_when_evaluation_flag_is_present(tmp_path, monkeypatch):
+    import bounded_profile
+    import stall_runtime
+    from pricing_policy import policy_id
+    args, config, path = configured(tmp_path, monkeypatch)
+    config['evaluation_observation'] = 'sdk-poll-v1'
+    config['stall_profile'] = 'stall-v1'
+    config['provision']['execution_profile'] = 'bounded-native-v1'
+    config['payload']['agent_settings']['llm']['model'] = 'anthropic/auto'
+    command = config['provision']['proxy_command']
+    command[command.index('--model')+1] = 'auto'
+    command[command.index('--pricing-policy-id')+1] = policy_id('auto')
+    command[command.index('--worst-case-request-microdollars')+1] = str(reservation_microdollars('auto'))
+    path.write_text(json.dumps(config))
+    monkeypatch.setattr(bounded_profile, 'validate_workspace', lambda *a: None)
+    monkeypatch.setattr(operator_cli, '_credential', lambda: b'private')
+    monkeypatch.setattr(operator_cli.subprocess, 'run', lambda *a, **kw: argparse.Namespace(returncode=0))
+    sentinel = object()
+    monkeypatch.setattr(stall_runtime, 'StallAdapter', lambda *a: sentinel)
+    def execute(store, attempt, request, configuration, make_adapter, **kwargs):
+        assert make_adapter('d'*64) is sentinel
+        return {'status':'unknown'}
+    monkeypatch.setattr(worker, 'execute_bound_attempt', execute)
+    assert operator_cli.run(args) == {'status':'unknown'}

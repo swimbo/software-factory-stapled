@@ -1,0 +1,45 @@
+{
+  "schema": "factory.private-operator-activation-review/v1",
+  "status": "complete",
+  "approved": true,
+  "verdict": "Ready for scoped activation after final signature/input/preflight verification",
+  "scope": "activate_measurement.py only; previous seven-helper review and followup retained",
+  "source_sha256": {
+    "activate_measurement.py": "84cec89b85f7c981cf32d5b25be31e105656a1705dbcb1fa4aba0dcdbc047dab"
+  },
+  "previous_reviewed_helpers_unchanged": true,
+  "findings": [],
+  "checked": [
+    "Release manifest, exact source CI/review and cohort validation precede changes",
+    "Bootstrap signature and bound inputs verified before the operator lock or service changes",
+    "Active operator marker refuses activation",
+    "Every existing running factory worker/proxy must map to a completed attempt; each worker SDK conversation is read-only GET-verified finished",
+    "Before/after identities retain all existing running namespaces; no global-zero worker assumption or namespace stop/start/delete exists",
+    "Exclusive durable rollout backups precede replacing old source paths in endpoint and ingress service definitions",
+    "Only factory-endpoint and factory-ingress are restarted; Restate, Bifrost, volumes and workspaces are not mutated",
+    "Current unquoted FACTORY_RUNTIME_CONFIG environment lines must remain byte-identical",
+    "Retained WorkUnit states, full logical guarded-store/anchor snapshot and namespace identities must match before success",
+    "On caught failure, exact previous service files are restored and only endpoint/ingress restarted; no ledger rewind or paid dispatch occurs"
+  ],
+  "validation": {
+    "actual_main_mock_controls_passed": 5,
+    "cases": [
+      "successful source activation preserves four running completed namespaces and exact task binding",
+      "first systemd restart failure restores both exact previous service definitions",
+      "guarded-store snapshot change rejects success and restores prior service definitions",
+      "unfinished existing SDK rejects before any service restart",
+      "default runtime-binding change triggers rollback instead of success"
+    ],
+    "read_only_sqlite_fixture_used": true,
+    "all_mock_namespace_mutation_commands_refused": true,
+    "real_remote_or_daemon_actions": 0,
+    "syntax_compiled": true
+  },
+  "limits": [
+    "Mocks test the helper control flow and rollback, not actual systemd/Docker/process health or cryptographic verification.",
+    "Task-binding check covers the existing unquoted Environment=FACTORY_RUNTIME_CONFIG service format; the actual finalized service inputs remain a required preflight source.",
+    "Host/process liveness and trusted Docker/systemd remain operational boundaries; durable backups enable operator reconciliation after process or host loss.",
+    "Final activation must inspect real state, source PIDs, retained four completed namespaces and authentication/health receipts before any trial."
+  ],
+  "completed_at": "2026-11-01T13:27:19.402652+00:00"
+}

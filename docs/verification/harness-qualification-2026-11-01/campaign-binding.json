@@ -1,0 +1,33 @@
+{
+  "schema": "factory.qualification-campaign-binding/v1",
+  "operator_source": "b5fe329f05547218b6362a89641cd39762fe438f",
+  "release_manifest_sha256": "89360d21754a2f30ec94c9f016ae61a6d7c8b3d4e1527f5688fa33cd196c274b",
+  "release_file_count": 1298,
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "model_facing_profile_source": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "preregistration_sha256": "4c68fbdb19689b2857219d803f04524a28e4025733d3b41b1154714194f147e2",
+  "approval_groups": [
+    {
+      "repeat": 1,
+      "document_sha256": "bd82c93a1d9b0cfa7273888df9ec2d8fd3ae0f581d472b9b76d10e77c4120d72",
+      "signature_sha256": "c378345209513007d2c07577c8b5d1a925d701020888430ab23e3f26fbe38bd1",
+      "build_inputs": 243
+    },
+    {
+      "repeat": 2,
+      "document_sha256": "1eab053427e96333ec7260608edfeb2d5c22ff322670ea6345807ab2504538f4",
+      "signature_sha256": "0eec64d114db156de4e74f0490483fd532a479c463950922a834c63e5bc31513",
+      "build_inputs": 243
+    },
+    {
+      "repeat": 3,
+      "document_sha256": "9b96a4882c7c5497a2f5d9c724c58f54537a008a9d6a9cf9d9ab212f1ff84e1b",
+      "signature_sha256": "77edddea58103a370505eb4147aed0b2496df2b83371e1b37bd5d7abfa33a950",
+      "build_inputs": 243
+    }
+  ],
+  "frozen_cohort_inputs": 137,
+  "seed_index_reconciliation_sha256": "9d05fc33a781a7a9f36579ba28a57ad8d2e88d02cf6386a4e84183b07dfceae9",
+  "candidate_profiles_promoted": false,
+  "private_inputs_and_signing_key_exported": false
+}

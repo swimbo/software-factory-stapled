@@ -5,11 +5,13 @@ reservation is best effort; it does not cap provider charges. A compromised
 operator or Docker daemon is outside this boundary.
 """
 import copy
+import hashlib
 import json
 import os
 import stat
 import subprocess
 import time
+import uuid
 from pathlib import Path
 
 import bounded_profile as bounded
@@ -51,8 +53,12 @@ def _option(command, name):
 def load_config(args):
     path = os.environ.get('FACTORY_RUNTIME_CONFIG', '')
     data = json.loads(_private_file(path))
-    if not isinstance(data, dict) or set(data) - {'deployment_scope', 'image_approval', 'stall_profile'} != {'attempt_id', 'task_file', 'repo', 'baseline', 'successor_workspace', 'payload', 'provision'}:
+    if not isinstance(data, dict) or set(data) - {'deployment_scope', 'image_approval', 'stall_profile', 'evaluation_observation'} != {'attempt_id', 'task_file', 'repo', 'baseline', 'successor_workspace', 'payload', 'provision'}:
         raise ValueError('invalid operator configuration')
+    if 'evaluation_observation' in data:
+        from evaluation_observation import PROFILE
+        if data['evaluation_observation'] != PROFILE:
+            raise ValueError('unsupported evaluation observation profile')
     # Content IDs and container isolation do not establish publisher provenance
     # or mediate privileged tool effects. No production override exists here.
     if data.get('deployment_scope', 'sandbox') != 'sandbox':
@@ -116,7 +122,13 @@ def _credential():
 def run(args):
     from provision_runtime import _check_baseline
     from worker import execute_bound_attempt, execute_bound_successor
+    runtime_path = os.environ.get('FACTORY_RUNTIME_CONFIG', '')
+    runtime_hash = hashlib.sha256(_private_file(runtime_path)).hexdigest()
     config, request = load_config(args)
+    if hashlib.sha256(_private_file(runtime_path)).hexdigest() != runtime_hash:
+        raise ValueError('operator configuration changed during validation')
+    if config.get('evaluation_observation') and (args.successor_preflight_only or args.successor_only or args.successor_reconcile_only):
+        raise ValueError('evaluation observation requires the original allocation')
     provision = config['provision']
     baseline = config['baseline']
     if bounded.enabled(provision.get('execution_profile')) and (args.successor_preflight_only or args.successor_only or args.successor_reconcile_only):
@@ -146,6 +158,19 @@ def run(args):
         if config.get('stall_profile') is not None:
             from stall_runtime import StallAdapter
             return StallAdapter(base,store,args.attempt_id,os.environ['FACTORY_RUNTIME_CONFIG'],workspace)
+        if config.get('evaluation_observation'):
+            from evaluation_observation import EvaluationObserver
+            from provision_runtime import inspect_bound_allocation
+            conversation_id = str(uuid.uuid5(uuid.NAMESPACE_URL, 'stapled-factory:' + args.attempt_id))
+            request_hash = hashlib.sha256(json.dumps(request, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+            def validate(cid):
+                if hashlib.sha256(_private_file(runtime_path)).hexdigest() != runtime_hash:
+                    raise ValueError('evaluation runtime changed during observation')
+                binding = inspect_bound_allocation(store, args.attempt_id, request_hash, cid,
+                    workspace_baseline=baseline, **provision)
+                if binding['worker_id'] != container:
+                    raise ValueError('evaluation original worker changed')
+            return EvaluationObserver(base, conversation_id, validate=validate)
         return base
 
     if successor:

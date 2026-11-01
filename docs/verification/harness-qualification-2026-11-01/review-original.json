@@ -1,0 +1,235 @@
+{
+  "status": "complete",
+  "verdict": "Ready with fixes",
+  "verdict_reason": "Fix the probe launch-identity gap and stopped-journal false-pass guard before relying on this helper for further live qualification. No defect was retained in repeated evaluation or the opt-in observer itself; actual timing comparability remains unverified.",
+  "scope": {
+    "base": "16fdffe2fbd2dab01e40a9ce2caa58efff69b0e7",
+    "branch": "codex/phase9d-qualification",
+    "head_sha": "bae6d19890824d0834d69e65143ef2f200cef45d",
+    "pr_url": null,
+    "files_changed": 11
+  },
+  "intent": "Intent: Prepare fresh repeated paired qualification while preserving legacy pilot results and all unsuccessful consumption. Add opt-in read-only SDK polling for controls and prove continued-loop containment with the unchanged pinned SDK, guarded ledger and independent deadline. Default profiles remain unchanged; unknown truncation coverage never becomes zero or promotion.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "testing",
+    "maintainability",
+    "security",
+    "performance",
+    "reliability",
+    "adversarial"
+  ],
+  "findings": [
+    {
+      "#": 1,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/worker/probes/stall_escalation.py:116 --             roles[role] = command('docker','run','-d','--name','factory-unpaid-stall-'+allocation+'-'+role,",
+        "stapled-factory/worker/probes/stall_escalation.py:52-53 -- subprocess.run(..., timeout=timeout) raises before command returns when the client times out; the default timeout is 30 seconds.",
+        "stapled-factory/worker/probes/stall_escalation.py:125 --         armed = deadline.arm_deadline(store,attempt,request_hash,cid,specification,allocation,binding,",
+        "stapled-factory/worker/probes/stall_escalation.py:206 --             for role,container in roles.items():",
+        "Read-only reproduction executed the source launch-loop and prebinding-cleanup AST with a Docker stub that starts the worker and then raises TimeoutExpired: started=1, recorded_roles=0, killed=0, still_running=1, independent_deadline_armed=false."
+      ],
+      "file": "stapled-factory/worker/probes/stall_escalation.py",
+      "first_evidence": "stapled-factory/worker/probes/stall_escalation.py:116 --             roles[role] = command('docker','run','-d','--name','factory-unpaid-stall-'+allocation+'-'+role,",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 116,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Use docker create with the existing unique name and labels, inspect and record its validated full ID in roles, then docker start that ID. Keep the existing identity-checked stop and evidence-retention behavior, and cover a start timeout after daemon acceptance so cleanup still stops the recorded worker.",
+      "title": "Record container identity before starting the probe",
+      "why_it_matters": "A Docker launch whose client times out after the daemon starts the worker leaves an AgentServer running without containment. The role is recorded only after docker run returns successfully, so the prebinding cleanup sees no worker, and the independent deadline has not yet been armed. The output directory also refuses another invocation, so rerunning does not recover this live resource. Separating creation from start lets cleanup retain and validate the full identity before any process can run.",
+      "validation_status": "confirmed",
+      "validation_reason": "At reviewed bae6d19, an exact-source AST reproduction of daemon acceptance followed by docker-run client TimeoutExpired left one started container, zero registered roles and zero cleanup stops; lines116-117 record identity only after command returns and deadline arming follows at125, so the prebinding timeout ordering is reachable by subprocess semantics although live incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 2,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/worker/probes/stall_escalation.py:173 --         except StallIntervention: pass",
+        "stapled-factory/worker/probes/stall_escalation.py:168-170 checks calls=={create:1,diagnostic:1,run:0} before the journal reopen at172; no calls comparison occurs after173.",
+        "stapled-factory/worker/probes/stall_escalation.py:189-191 writes passed=True and same_journal_reopen_no_resend=True using the mutable calls dictionary after the unchecked reopen.",
+        "Read-only AST extraction executed the exact reopen try/except with a constructed StallAdapter.read that increments diagnostic from1to2 then raises StallIntervention: execution returned normally; AST check found no calls comparison after the reopen. Current published live result records diagnostic1, so this finding concerns future false-pass capability, not a claim that the recorded canary actually resent.",
+        "stapled-factory/worker/probes/stall_escalation.py:169 --                 and detector['stopped'] and after>=3 and calls=={'create':1,'diagnostic':1,'run':0}):",
+        "stapled-factory/worker/probes/stall_escalation.py:191 --                    'originals_stopped':True,'fence_confirmed':True,'same_journal_reopen_no_resend':True,",
+        "Read-only AST extraction of the exact reopen try block with an adapter that increments calls[diagnostic] and raises StallIntervention completed without error; calls became create=1, diagnostic=2, run=0. Later code does not reassert these counts before publishing passed=true.",
+        "stapled-factory/worker/probes/stall_escalation.py:172 --         try: StallAdapter(base,store,attempt,str(runtime),str(workspace)).read(cid,None)",
+        "stapled-factory/worker/tests/test_stall_runtime.py:28-39 tests run_session callbacks after reopening, while the new probe is the distinct real SDK/transport boundary."
+      ],
+      "file": "stapled-factory/worker/probes/stall_escalation.py",
+      "first_evidence": "stapled-factory/worker/probes/stall_escalation.py:173 --         except StallIntervention: pass",
+      "independent_reviewers": [
+        "adversarial",
+        "correctness",
+        "testing"
+      ],
+      "line": 173,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial",
+        "correctness",
+        "testing"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Snapshot all transport calls immediately before reopening, require intervention_status=stopped, and assert unchanged GET/POST call counts afterward before reporting no resend. Add a resend-then-StallIntervention negative control.",
+      "title": "Verify no transport effects after reopening the stopped journal",
+      "why_it_matters": "A regression that resends the diagnostic while reopening a stopped journal and then raises StallIntervention is accepted by the probe. The one-message equality gate runs before reopening, and the later receipt unconditionally declares same_journal_reopen_no_resend=true; it can therefore publish passed=true with diagnostic count 2. Rechecking the call boundary after recovery makes this live integration guard falsifiable for the at-most-once property it reports.",
+      "validation_status": "confirmed",
+      "validation_reason": "At reviewed bae6d19, the exact reopen try/except at172-174 accepted a stub that incremented diagnostic from1to2 then raised fencing-uncertain StallIntervention, and no calls comparison exists afterward before the unconditional no-resend receipt; this demonstrates a future at-most-once regression can false-pass, without claiming the supplied live run resent.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "actionable_findings": [
+    {
+      "#": 1,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/worker/probes/stall_escalation.py:116 --             roles[role] = command('docker','run','-d','--name','factory-unpaid-stall-'+allocation+'-'+role,",
+        "stapled-factory/worker/probes/stall_escalation.py:52-53 -- subprocess.run(..., timeout=timeout) raises before command returns when the client times out; the default timeout is 30 seconds.",
+        "stapled-factory/worker/probes/stall_escalation.py:125 --         armed = deadline.arm_deadline(store,attempt,request_hash,cid,specification,allocation,binding,",
+        "stapled-factory/worker/probes/stall_escalation.py:206 --             for role,container in roles.items():",
+        "Read-only reproduction executed the source launch-loop and prebinding-cleanup AST with a Docker stub that starts the worker and then raises TimeoutExpired: started=1, recorded_roles=0, killed=0, still_running=1, independent_deadline_armed=false."
+      ],
+      "file": "stapled-factory/worker/probes/stall_escalation.py",
+      "first_evidence": "stapled-factory/worker/probes/stall_escalation.py:116 --             roles[role] = command('docker','run','-d','--name','factory-unpaid-stall-'+allocation+'-'+role,",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 116,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Use docker create with the existing unique name and labels, inspect and record its validated full ID in roles, then docker start that ID. Keep the existing identity-checked stop and evidence-retention behavior, and cover a start timeout after daemon acceptance so cleanup still stops the recorded worker.",
+      "title": "Record container identity before starting the probe",
+      "why_it_matters": "A Docker launch whose client times out after the daemon starts the worker leaves an AgentServer running without containment. The role is recorded only after docker run returns successfully, so the prebinding cleanup sees no worker, and the independent deadline has not yet been armed. The output directory also refuses another invocation, so rerunning does not recover this live resource. Separating creation from start lets cleanup retain and validate the full identity before any process can run.",
+      "validation_status": "confirmed",
+      "validation_reason": "At reviewed bae6d19, an exact-source AST reproduction of daemon acceptance followed by docker-run client TimeoutExpired left one started container, zero registered roles and zero cleanup stops; lines116-117 record identity only after command returns and deadline arming follows at125, so the prebinding timeout ordering is reachable by subprocess semantics although live incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 2,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/worker/probes/stall_escalation.py:173 --         except StallIntervention: pass",
+        "stapled-factory/worker/probes/stall_escalation.py:168-170 checks calls=={create:1,diagnostic:1,run:0} before the journal reopen at172; no calls comparison occurs after173.",
+        "stapled-factory/worker/probes/stall_escalation.py:189-191 writes passed=True and same_journal_reopen_no_resend=True using the mutable calls dictionary after the unchecked reopen.",
+        "Read-only AST extraction executed the exact reopen try/except with a constructed StallAdapter.read that increments diagnostic from1to2 then raises StallIntervention: execution returned normally; AST check found no calls comparison after the reopen. Current published live result records diagnostic1, so this finding concerns future false-pass capability, not a claim that the recorded canary actually resent.",
+        "stapled-factory/worker/probes/stall_escalation.py:169 --                 and detector['stopped'] and after>=3 and calls=={'create':1,'diagnostic':1,'run':0}):",
+        "stapled-factory/worker/probes/stall_escalation.py:191 --                    'originals_stopped':True,'fence_confirmed':True,'same_journal_reopen_no_resend':True,",
+        "Read-only AST extraction of the exact reopen try block with an adapter that increments calls[diagnostic] and raises StallIntervention completed without error; calls became create=1, diagnostic=2, run=0. Later code does not reassert these counts before publishing passed=true.",
+        "stapled-factory/worker/probes/stall_escalation.py:172 --         try: StallAdapter(base,store,attempt,str(runtime),str(workspace)).read(cid,None)",
+        "stapled-factory/worker/tests/test_stall_runtime.py:28-39 tests run_session callbacks after reopening, while the new probe is the distinct real SDK/transport boundary."
+      ],
+      "file": "stapled-factory/worker/probes/stall_escalation.py",
+      "first_evidence": "stapled-factory/worker/probes/stall_escalation.py:173 --         except StallIntervention: pass",
+      "independent_reviewers": [
+        "adversarial",
+        "correctness",
+        "testing"
+      ],
+      "line": 173,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial",
+        "correctness",
+        "testing"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Snapshot all transport calls immediately before reopening, require intervention_status=stopped, and assert unchanged GET/POST call counts afterward before reporting no resend. Add a resend-then-StallIntervention negative control.",
+      "title": "Verify no transport effects after reopening the stopped journal",
+      "why_it_matters": "A regression that resends the diagnostic while reopening a stopped journal and then raises StallIntervention is accepted by the probe. The one-message equality gate runs before reopening, and the later receipt unconditionally declares same_journal_reopen_no_resend=true; it can therefore publish passed=true with diagnostic count 2. Rechecking the call boundary after recovery makes this live integration guard falsifiable for the at-most-once property it reports.",
+      "validation_status": "confirmed",
+      "validation_reason": "At reviewed bae6d19, the exact reopen try/except at172-174 accepted a stub that incremented diagnostic from1to2 then raised fencing-uncertain StallIntervention, and no calls comparison exists afterward before the unconditional no-resend receipt; this demonstrates a future at-most-once regression can false-pass, without claiming the supplied live run resent.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "requirements_completeness": null,
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "Live timing comparability remains unverified, as EVALUATION.md:21 explicitly acknowledges. Each control poll at operator_cli.py:169 invokes inspect_bound_allocation: provision_runtime.py:289-292 performs 6 resource inspections, or 7 with telemetry; configured firewall validation adds 3 inspections and one ephemeral docker run --rm helper through netns_firewall.py:39-73. Thus a full 120-observation control call launches 120 firewall helpers (plus the initial create validation), whereas the stall observer uses deadline validation and event reads. The two-second sleep is not the elapsed observation interval. No live execution or timing measurement was authorized for this review; source establishes the process topology, not its measured latency or interference."
+  ],
+  "testing_gaps": [
+    "Before fresh latency-qualified trials, measure actual observation timestamps and validation/helper duration for each profile using the production-shaped sandbox topology. test_operator_cli.py:179-224 replaces inspect_bound_allocation with a stub, and test_evaluation_observation.py substitutes sleep, so those tests establish bounded observation counts and identity checks but cannot establish the end-to-end timing comparison required by report.md:17."
+  ],
+  "coverage": {
+    "depth": "full",
+    "notes": [
+      "Full review floor:331 executable non-test changed lines,649 changed lines,11files; no removed files or uncounted files.",
+      "Seven selected personas independently completed in bounded batches constrained by available host slots.",
+      "No standards/review policy or declared packs; no plan found by the skill discovery contract. The in-conversation bounded scope was explicit.",
+      "Parent reports exact bae6d19 CI passed; source unchanged during review. The review itself made no SSH, provider, or model calls beyond local reviewer agents.",
+      "Untracked SDK audit/cohort observation artifacts excluded from review scope.",
+      "No paid fresh trials, conditional deployment, broader promotion or complete truncation telemetry claimed by the implemented scope.",
+      "Public unpaid probe result is supplied evidence; review did not independently run Docker or access live NUC state.",
+      "Cross-model pass not run: caller prohibited external model calls; independent local adversarial reviewer covered the lens, with no cross-model agreement promotion.",
+      "Semantic reconciliation merged three differently worded stopped-journal false-pass findings into one without confidence promotion; two independent defects remain.",
+      "No confidence suppression, quote demotions, malformed findings or returns. Initial first_evidence backfilled count3 retained across mechanics rerun.",
+      "No discovered plan; settlement suppression was not evaluated.",
+      "No cross-model corroboration: both actionable P2 findings require one independent validator batch; shortcut-skipped0.",
+      "Both protected concurrency findings were independently confirmed by exact-source AST reproductions at bae6d19. Live incidence of the Docker timeout ordering was not measured; the stopped-journal finding describes a future false-pass capability, not a claim that the supplied canary resent.",
+      "The validator returned both verdicts within the bounded collection. Stage 5c skipped: agent report-only; no code, index or runtime mutations.",
+      "No candidate was suppressed, regraded or left unresolved. No protected-subject reclassification was needed.",
+      "Agent-native, institutional-learnings, API-contract, data-migration and deployment-verification personas were not selected because their specific surfaces were absent."
+    ],
+    "validator": {
+      "outcome": "verdicts",
+      "confirmed": 2,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0,
+      "protected_subject_reclassifications": 0
+    },
+    "suppressed_by_confidence": {},
+    "mode_aware_demotions": 0,
+    "first_evidence_backfilled": 3,
+    "quote_gate_demotions": 0,
+    "malformed_findings": 0,
+    "malformed_returns": 0,
+    "failed_reviewers": [],
+    "timed_out_reviewers": [],
+    "review_policy": {
+      "sources": [],
+      "removed": 0,
+      "regraded": 0,
+      "not_applied": []
+    },
+    "compound_packs": {
+      "roots": [],
+      "errors": [],
+      "warnings": []
+    }
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "Cross-model pass not run: caller prohibited external model calls; independent local adversarial reviewer covered the lens, with no cross-model agreement promotion."
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/qualification-20261101",
+  "run_id": "qualification-20261101"
+}

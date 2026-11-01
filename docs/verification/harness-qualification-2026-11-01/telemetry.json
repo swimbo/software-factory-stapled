@@ -1,0 +1,2832 @@
+[
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 26,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r1-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 27,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 1,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "finish": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r1-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 27,
+      "event_files_bytes": 59750,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 6
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r1-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 1,
+      "event_count": 20,
+      "event_files_bytes": 41145,
+      "event_kinds": {
+        "ActionEvent": 4,
+        "MessageEvent": 2,
+        "ObservationEvent": 4,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 3,
+      "terminal_exit_codes": {
+        "0": 3
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 3
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t01-r1-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 27,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r1-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 28,
+      "event_files_bytes": 45988,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 5,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r1-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 24,
+      "event_files_bytes": 42434,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 1,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 4
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t02-r1-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r1-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 30,
+      "event_files_bytes": 52530,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 6
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r1-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 1,
+      "event_count": 30,
+      "event_files_bytes": 55069,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 4,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 3,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t03-r1-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r1-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 29,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 4,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r1-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 23,
+      "event_files_bytes": 41776,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 4
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t04-r1-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 27,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 3,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r1-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 32,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 9,
+        "MessageEvent": 1,
+        "ObservationEvent": 9,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 7
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r1-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 29,
+      "event_files_bytes": 47316,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 1,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 5,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r1-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r1-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 20,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 4,
+        "MessageEvent": 2,
+        "ObservationEvent": 4,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r1-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 20,
+      "event_files_bytes": 40116,
+      "event_kinds": {
+        "ActionEvent": 4,
+        "MessageEvent": 2,
+        "ObservationEvent": 4,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 4
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r1-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 22,
+      "event_files_bytes": 45989,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 5
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t05-r1-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 26,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r1-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 26,
+      "event_files_bytes": 45010,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 4,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r1-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 23,
+      "event_files_bytes": 43169,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 2,
+        "1": 1,
+        "2": 1
+      },
+      "terminal_failed": 2,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t06-r1-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 29,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r1-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 27,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 1,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r2-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 23,
+      "event_files_bytes": 47176,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 1,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 5
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "finish": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r2-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 1,
+      "event_count": 28,
+      "event_files_bytes": 49670,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 1,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 6
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t01-r2-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r2-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 20,
+      "event_files_bytes": 38353,
+      "event_kinds": {
+        "ActionEvent": 4,
+        "MessageEvent": 2,
+        "ObservationEvent": 4,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 3,
+      "terminal_exit_codes": {
+        "0": 3
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 3
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r2-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 23,
+      "event_files_bytes": 42684,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 4
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t02-r2-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r2-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 26,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r2-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 38,
+      "event_files_bytes": 57417,
+      "event_kinds": {
+        "ActionEvent": 11,
+        "MessageEvent": 1,
+        "ObservationEvent": 11,
+        "SystemPromptEvent": 1,
+        "other": 14
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 7,
+      "terminal_exit_codes": {
+        "0": 7
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 3,
+        "finish": 1,
+        "terminal": 7
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t03-r2-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 20,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 4,
+        "MessageEvent": 2,
+        "ObservationEvent": 4,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r2-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 32,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 9,
+        "MessageEvent": 1,
+        "ObservationEvent": 9,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "finish": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r2-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 31,
+      "event_files_bytes": 50572,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 6
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r2-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r2-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 29,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 1,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r2-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 28,
+      "event_files_bytes": 46263,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 6
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r2-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 32,
+      "event_files_bytes": 52505,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 13
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 7,
+      "terminal_exit_codes": {
+        "0": 7
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 7
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t04-r2-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 31,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 3,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r2-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 27,
+      "event_files_bytes": 51177,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 1,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 6
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "finish": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r2-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 18,
+      "event_files_bytes": 39352,
+      "event_kinds": {
+        "ActionEvent": 4,
+        "MessageEvent": 1,
+        "ObservationEvent": 4,
+        "SystemPromptEvent": 1,
+        "other": 8
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 3,
+      "terminal_exit_codes": {
+        "0": 3
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "finish": 1,
+        "terminal": 3
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t05-r2-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r2-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": 1,
+      "event_count": 26,
+      "event_files_bytes": 45380,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 4,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r2-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 2,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 34,
+      "event_files_bytes": 52926,
+      "event_kinds": {
+        "ActionEvent": 9,
+        "MessageEvent": 2,
+        "ObservationEvent": 9,
+        "SystemPromptEvent": 1,
+        "other": 13
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 7,
+      "terminal_exit_codes": {
+        "0": 5,
+        "1": 1,
+        "2": 1
+      },
+      "terminal_failed": 2,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 7
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t06-r2-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 29,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r2-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 26,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r2-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 1,
+      "event_count": 26,
+      "event_files_bytes": 48530,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 4
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r3-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 1,
+      "event_count": 27,
+      "event_files_bytes": 47644,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 1,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 5
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t01-r3-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 32,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 9,
+        "MessageEvent": 1,
+        "ObservationEvent": 9,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "finish": 1,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r3-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 29,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 2,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t01-r3-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 27,
+      "event_files_bytes": 46823,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 1,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 4,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t02-r3-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 32,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 13
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 3,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r3-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r3-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 25,
+      "event_files_bytes": 42585,
+      "event_kinds": {
+        "ActionEvent": 7,
+        "MessageEvent": 1,
+        "ObservationEvent": 7,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 4
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 2,
+        "finish": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t02-r3-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 30,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 3,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r3-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 24,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r3-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 35,
+      "event_files_bytes": 54389,
+      "event_kinds": {
+        "ActionEvent": 10,
+        "MessageEvent": 2,
+        "ObservationEvent": 10,
+        "SystemPromptEvent": 1,
+        "other": 12
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 6,
+      "terminal_exit_codes": {
+        "0": 5,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 4,
+        "terminal": 6
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t03-r3-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 25,
+      "event_files_bytes": 46881,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 3,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t03-r3-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r3-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 23,
+      "event_files_bytes": 41586,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 3,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r3-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 24,
+      "event_files_bytes": 42835,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 1,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 4,
+      "terminal_exit_codes": {
+        "0": 4
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t04-r3-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 32,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 8,
+        "MessageEvent": 2,
+        "ObservationEvent": 8,
+        "SystemPromptEvent": 1,
+        "other": 13
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 7
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t04-r3-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 23,
+      "event_files_bytes": 43501,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 1,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 5
+      },
+      "terminal_failed": 0,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "finish": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r3-p2"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": null,
+      "dependency_error_observations": 0,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 22,
+      "event_files_bytes": 41770,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 9
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 4,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t05-r3-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r3-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 0,
+      "dependency_error_observations": null,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 23,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t05-r3-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 23,
+      "event_files_bytes": 42341,
+      "event_kinds": {
+        "ActionEvent": 5,
+        "MessageEvent": 2,
+        "ObservationEvent": 5,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 4,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": "observing",
+      "intervention_seq": null,
+      "stopped": false
+    },
+    "unit": "q9d-20261101-t06-r3-p3"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 26,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 2,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 11
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 2,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r3-p0"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": null,
+      "event_count": 24,
+      "event_files_bytes": null,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 1,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": null,
+      "terminal_exit_codes": null,
+      "terminal_failed": null,
+      "terminal_incomplete": null,
+      "terminal_unpaired": null,
+      "tool_actions": {
+        "file_editor": 1,
+        "finish": 1,
+        "terminal": 4
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r3-p1"
+  },
+  {
+    "events": {
+      "dependency_diagnostic_commands": 1,
+      "dependency_error_observations": 1,
+      "diagnostic_messages": 0,
+      "error_observations": 0,
+      "event_count": 24,
+      "event_files_bytes": 44633,
+      "event_kinds": {
+        "ActionEvent": 6,
+        "MessageEvent": 1,
+        "ObservationEvent": 6,
+        "SystemPromptEvent": 1,
+        "other": 10
+      },
+      "full_completed": true,
+      "install_commands": 0,
+      "raw_thoughts_exported": false,
+      "terminal_completed": 5,
+      "terminal_exit_codes": {
+        "0": 4,
+        "1": 1
+      },
+      "terminal_failed": 1,
+      "terminal_incomplete": 0,
+      "terminal_unpaired": 0,
+      "tool_actions": {
+        "finish": 1,
+        "terminal": 5
+      },
+      "truncation_coverage": "not available from pinned SDK event contract",
+      "truncations": null
+    },
+    "stall": {
+      "delivery_status": null,
+      "effect": null,
+      "intervention_seq": null,
+      "stopped": null
+    },
+    "unit": "q9d-20261101-t06-r3-p2"
+  }
+]
