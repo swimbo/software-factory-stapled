@@ -1,0 +1,29 @@
+{
+  "schema": "factory.stapled-recovery-evidence-boundary/v1",
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:assemble-stapled-recovery-evidence-bundle",
+  "source_revision": "24b4ca4ffd9173d3c9916f611c5043fd8ad16795",
+  "branch": "dev-projects/envision-dev-projects-implementing-9acdc4b32aca",
+  "host": "Envision",
+  "worktree": "/workspace",
+  "recorded_at": "2026-11-01T23:01:50Z",
+  "verification": {
+    "command": "/home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest -o testpaths=stapled-factory/deployment/nuc -q",
+    "exit_code": 0,
+    "summary": "127 passed, 6 subtests passed in 2.03s",
+    "output": "nuc-test-output.txt",
+    "output_sha256": "cdae0054ca7e22adc9f3515865743bdfad6d5a8df22b7ce684db37ef3f744e3a"
+  },
+  "execution_boundary": {
+    "launcher": "unshare --user --map-root-user --net",
+    "network": "fresh empty network namespace with only loopback brought up",
+    "live_nuc_contact": false,
+    "docker_contact": false,
+    "github_contact": false,
+    "provider_or_model_contact": false,
+    "production_state_mutation": false
+  },
+  "repository_observation": {
+    "tracked_diff_exit_code": 0,
+    "git_status_after_command": ""
+  }
+}
