@@ -26,10 +26,12 @@
     "osv_retained_fixture_image_findings": 208,
     "osv_retained_fixture_image_unique_packages": 108,
     "osv_retained_fixture_image_inventory_sha256": "5d610c864eb43dd4f359ddc0e872fbdc0e21af166ed1c5048a49cad90d51f603",
-    "cosign_version_only": true
+    "cosign_offline_fixture_signature_verified": true,
+    "cosign_offline_fixture_tampering_rejected": true
   },
   "limitations": [
     "Scanner probes used synthetic files; they do not prove complete dependency coverage or validation of a factory build.",
+    "Cosign used an ephemeral test key and explicitly disabled transparency-log checks; this does not prove publisher provenance.",
     "The scanner bundle is not yet part of a deployed runtime release."
   ]
 }

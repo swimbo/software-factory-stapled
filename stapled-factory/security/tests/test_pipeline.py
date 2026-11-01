@@ -189,5 +189,6 @@ def test_dependency_inventory_reconciliation_reports_unmatched_components():
     ]
     result = pipeline.reconcile_inventories(inventories)
     assert result['coverage'] == 'incomplete'
+    assert 'origins are not compared' in result['comparison_scope']
     assert result['lock_only'] == [['npm', 'not-installed', '2']]
     assert result['image_only'] == [['npm', 'image-only', '3']]

@@ -6,8 +6,8 @@ Updated: November 1, 2026. **Resumed at the user's request.** The full delivery 
 
 - Checkout: `/Users/bo/code/software-factory-stapled`.
 - Branch: `codex/phase9d-qualification`.
-- Latest implementation revision at this checkpoint: `a6205e53a4214714e58ab480f0d690cc9874ddc7`, which matched the remote branch before this status update. Confirm the current branch and remote before resuming.
-- Exact-revision local CI passed: 751 Python tests, 18 subtests, 35 Node tests, secrets scan, locked npm dependency installation/audit and spine build. Receipt: `.local-ci/8d7012f52b9e0b9d1ed7b8cbb8a81cfd37a74939/receipt.json`.
+- Confirm the current branch and remote with Git; subsequent checkpoints may advance beyond this document.
+- Exact-revision local CI passed for `ccde75654c21ee57563780644b5159212c7ea360`: 817 Python tests, 18 subtests, 36 Node tests, secrets scan, locked npm dependency installation/audit and spine build. Receipt: `.local-ci/ccde75654c21ee57563780644b5159212c7ea360/receipt.json`.
 - Baseline harness remains default; optimization profile promotion remains held. Native terminal truncation telemetry remains unknown.
 
 ## Work completed locally
@@ -35,7 +35,7 @@ No new model calls, live runtime activation or profile promotion occurred during
 
 An isolated actual Restate probe using those passing checks and a fresh fixture key also passed: stale/tampered acceptance denied, client crash after committed acceptance, owned endpoint crash/restart, repeated original observation without reevaluation/resubmission, exact stored receipt and duplicate rejection. Recorded owned PIDs and listeners were confirmed terminal/closed. This uses a fixture-seeded WorkUnit and unsigned loopback test endpoint; it does not establish production identity/authorization or real model output. [Receipt boundary](../verification/delivery-lifecycle-2026-11-01/restate-receipt-boundary.json).
 
-An owner-controlled NUC scanner bundle now contains Semgrep, Gitleaks, OSV-Scanner and Cosign. Synthetic Semgrep, Gitleaks and OSV probes passed, and OSV scanned a retained fixture image; Cosign has only a version check. Scanner selection and file-manifest verification are implemented locally but are not yet deployed in a runtime release. Full dependency coverage, provenance verification, live runtime integration and application publication gates remain open. [Scanner provisioning evidence](../verification/delivery-lifecycle-2026-11-01/scanner-provisioning.json).
+An owner-controlled NUC scanner bundle now contains Semgrep, Gitleaks, OSV-Scanner and Cosign. Synthetic Semgrep, Gitleaks and OSV probes passed, OSV scanned a retained fixture image, and Cosign verified a test signature and rejected tampering using an ephemeral key and no transparency log. Scanner selection and file-manifest verification are implemented locally but are not yet deployed in a runtime release. Full dependency coverage, publisher provenance verification, live runtime integration and application publication gates remain open. [Scanner provisioning evidence](../verification/delivery-lifecycle-2026-11-01/scanner-provisioning.json).
 
 A private probe of the fullstack template resolved a frontend lockfile and scanned it and the existing backend lock: OSV reported one frontend finding and 34 backend findings. The agents manifest did not resolve: its unpinned latest agent SDK requires Zod 4 while the manifest requires Zod 3. No override or template edit was made. These are fixture findings, not a release assessment. [Dependency probe](../verification/delivery-lifecycle-2026-11-01/fullstack-dependency-probe.json).
 

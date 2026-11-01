@@ -223,6 +223,7 @@ def reconcile_inventories(inventories):
     ecosystems = {item[0] for item in locked}
     comparable = {item for item in image if item[0] in ecosystems}
     return {'coverage': 'incomplete',
+            'comparison_scope': 'ecosystem, name and version only; package origins are not compared',
             'image_scanned': any(item['kind'] == 'image' for item in inventories),
             'lockfiles_scanned': sum(item['kind'] == 'lockfile' for item in inventories),
             'lock_only': [list(item) for item in sorted(locked - comparable)],
