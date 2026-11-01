@@ -10,15 +10,16 @@ if git('rev-parse',a.revision+'^{commit}').decode().strip()!=a.revision:
 subprocess.run(['git','-C',a.repo,'merge-base','--is-ancestor',a.baseline,a.revision],check=True)
 archive=git('archive',a.revision);diff=git('diff',a.baseline,a.revision);dockerfile=Path(a.dockerfile).read_bytes()
 with tempfile.TemporaryDirectory(prefix='attested-build-') as temp:
- context=Path(temp)
+ context=Path(temp)/'context';context.mkdir()
  with tarfile.open(fileobj=io.BytesIO(archive)) as tar:tar.extractall(context,filter='data')
- (context/'Dockerfile').write_bytes(dockerfile)
+ # Never write through a candidate-controlled path in the signed source tree.
+ trusted_dockerfile=Path(temp)/'operator.Dockerfile';trusted_dockerfile.write_bytes(dockerfile)
  # The signing key stays outside this directory, outside Docker's build context.
  if Path(a.signing_key).resolve().is_relative_to(context):raise ValueError('key in build context')
- subprocess.run(['docker','build','--platform','linux/amd64','--quiet',
+ subprocess.run(['docker','build','--platform','linux/amd64','--quiet','--file',str(trusted_dockerfile),
                  '--label','factory.git-revision='+a.revision,
                  '--label','factory.source-archive-sha256='+hashlib.sha256(archive).hexdigest(),
-                 '-t',a.tag,temp],check=True)
+                 '-t',a.tag,str(context)],check=True)
  subprocess.run(['docker','save','-o',str(out/'image.tar'),a.tag],check=True)
  with tarfile.open(out/'image.tar') as tar:
   record=json.load(tar.extractfile('manifest.json'))
