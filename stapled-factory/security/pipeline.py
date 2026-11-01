@@ -16,6 +16,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -148,7 +149,7 @@ def run_gitleaks(target: str) -> list[Finding] | None:
 
 def run_osv_scanner(lockfile: str) -> list[Finding] | None:
     """Run OSV-Scanner (dependency vulnerabilities). Returns None if absent."""
-    return _run_osv(['scan', '-L', lockfile])
+    return _run_osv(['scan', '-L', lockfile], lockfile=lockfile)
 
 
 def run_osv_image(archive: str) -> list[Finding] | None:
@@ -156,14 +157,46 @@ def run_osv_image(archive: str) -> list[Finding] | None:
     return _run_osv(['scan', 'image', '--archive', archive])
 
 
-def _run_osv(target_args: list[str]) -> list[Finding] | None:
+def _verify_locked_inventory(lockfile: str, data: dict) -> None:
+    """Reject missing scanner entries for comparable npm and Cargo lockfiles."""
+    path = Path(lockfile); expected = set()
+    if path.name == 'package-lock.json':
+        lock = json.loads(path.read_text())
+        packages = lock.get('packages') if isinstance(lock, dict) else None
+        if not isinstance(packages, dict):return  # Older formats remain incomplete.
+        for location, package in packages.items():
+            if not isinstance(location, str) or 'node_modules/' not in location:continue
+            if not isinstance(package, dict) or package.get('link'):continue
+            name = package.get('name') or location.rsplit('node_modules/', 1)[-1]
+            version = package.get('version')
+            if not isinstance(name, str) or not name or not isinstance(version, str) or not version:
+                raise ValueError('unresolved locked package')
+            expected.add((name, version))
+    elif path.name == 'Cargo.lock':
+        lock = tomllib.loads(path.read_text())
+        for package in lock.get('package', []):
+            if str(package.get('source', '')).startswith('registry+'):
+                expected.add((package['name'], package['version']))
+    else:
+        return  # The scanner runs, but coverage of other formats remains incomplete.
+    actual = set()
+    for result in data['results']:
+        for entry in result.get('packages', []):
+            package = entry.get('package', {})
+            if isinstance(package.get('name'), str) and isinstance(package.get('version'), str):
+                actual.add((package['name'], package['version']))
+    if not expected.issubset(actual):
+        raise ValueError('OSV scanner omitted locked packages')
+
+
+def _run_osv(target_args: list[str], *, lockfile: str | None = None) -> list[Finding] | None:
     if not _which("osv-scanner"):
         return None
     # A candidate-controlled osv-scanner.toml must not suppress findings.
     with NamedTemporaryFile(suffix='.toml') as config:
         config.write(b'# operator-controlled empty configuration\n');config.flush()
         r = subprocess.run(
-            ["osv-scanner", *target_args, "--format", "json", "--config", config.name],
+            ["osv-scanner", *target_args, "--format", "json", "--config", config.name, "--all-packages"],
             capture_output=True, text=True, timeout=180,
         )
     if r.returncode not in (0, 1):
@@ -174,6 +207,8 @@ def _run_osv(target_args: list[str]) -> list[Finding] | None:
         raise ValueError('OSV scan returned invalid JSON') from error
     if not isinstance(data, dict) or not isinstance(data.get('results'), list):
         raise ValueError('OSV scan returned invalid results')
+    if lockfile:
+        _verify_locked_inventory(lockfile, data)
     out = []
     for res in data.get("results", []):
         for pkg in res.get("packages", []):

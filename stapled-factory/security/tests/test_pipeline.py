@@ -96,20 +96,49 @@ def test_osv_failure_or_invalid_output_cannot_pass(monkeypatch):
             pipeline.scan('safe change', lockfile='package-lock.json')
 
 
-def test_osv_findings_and_clean_report_remain_distinct(monkeypatch):
+def test_osv_findings_and_clean_report_remain_distinct(monkeypatch, tmp_path):
     import pipeline
     import subprocess
     monkeypatch.setattr(pipeline, '_which', lambda tool: '/fixture/osv-scanner' if tool == 'osv-scanner' else None)
+    lock = tmp_path/'package-lock.json';lock.write_text('{"lockfileVersion":3,"packages":{"":{}}}')
     reports = [(0, '{"results": []}'), (1, '{"results":[{"packages":[{"package":{"name":"p"},"vulnerabilities":[{"id":"TEST-1"}]}]}]}')]
     for code, output in reports:
         def run(args, **kwargs):
-            assert args[:6] == ['osv-scanner', 'scan', '-L', 'package-lock.json', '--format', 'json']
+            assert args[:6] == ['osv-scanner', 'scan', '-L', str(lock), '--format', 'json']
             assert args[6] == '--config' and Path(args[7]).read_text() == '# operator-controlled empty configuration\n'
+            assert '--all-packages' in args
             return subprocess.CompletedProcess(args, code, output, '')
         monkeypatch.setattr(pipeline.subprocess, 'run', run)
-        report = pipeline.scan('safe change', lockfile='package-lock.json')
+        report = pipeline.scan('safe change', lockfile=str(lock))
         assert report.verdict == ('pass' if code == 0 else 'needs_review')
         assert report.engines['dependency'] == 'osv-scanner-incomplete'
+
+
+def test_osv_cannot_silently_omit_a_locked_package(monkeypatch, tmp_path):
+    import json
+    import pipeline
+    import subprocess
+    lock = tmp_path/'package-lock.json'
+    lock.write_text(json.dumps({'lockfileVersion': 3, 'packages': {
+        '': {}, 'node_modules/example': {'version': '1.2.3', 'resolved': 'https://registry.example/example.tgz'}}}))
+    monkeypatch.setattr(pipeline, '_which', lambda tool: '/fixture/osv-scanner')
+    monkeypatch.setattr(pipeline.subprocess, 'run', lambda args, **kw: subprocess.CompletedProcess(args, 0, '{"results":[]}', ''))
+    with pytest.raises(ValueError, match='omitted locked packages'):
+        pipeline.run_osv_scanner(str(lock))
+    report = json.dumps({'results': [{'packages': [{'package': {'name': 'example', 'version': '1.2.3'}}]}]})
+    monkeypatch.setattr(pipeline.subprocess, 'run', lambda args, **kw: subprocess.CompletedProcess(args, 0, report, ''))
+    assert pipeline.run_osv_scanner(str(lock)) == []
+
+
+def test_osv_cannot_silently_omit_registry_crates(monkeypatch, tmp_path):
+    import pipeline
+    import subprocess
+    lock = tmp_path/'Cargo.lock'
+    lock.write_text('[[package]]\nname="fixture"\nversion="1.2.3"\nsource="registry+https://example.invalid/index"\n')
+    monkeypatch.setattr(pipeline, '_which', lambda tool: '/fixture/osv-scanner')
+    monkeypatch.setattr(pipeline.subprocess, 'run', lambda args, **kw: subprocess.CompletedProcess(args, 0, '{"results":[]}', ''))
+    with pytest.raises(ValueError, match='omitted locked packages'):
+        pipeline.run_osv_scanner(str(lock))
 
 
 def test_osv_disappearing_after_discovery_cannot_pass(monkeypatch):
