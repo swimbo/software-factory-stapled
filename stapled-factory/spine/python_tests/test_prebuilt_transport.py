@@ -17,6 +17,25 @@ m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 
 
+def test_archive_lockfiles_are_discovered_and_symlink_lockfiles_rejected(tmp_path):
+    import io
+    import tarfile
+    def archive(link=False):
+        data = io.BytesIO()
+        with tarfile.open(fileobj=data, mode='w') as tar:
+            for name in ('web/package-lock.json', 'backend/Cargo.lock', 'README.md'):
+                entry = tarfile.TarInfo(name)
+                if link and name.endswith('Cargo.lock'):
+                    entry.type = tarfile.SYMTYPE;entry.linkname = '../README.md';tar.addfile(entry)
+                else:
+                    entry.size = 2;tar.addfile(entry, io.BytesIO(b'{}'))
+        return data.getvalue()
+    assert m.archive_lockfiles(archive(), tmp_path) == [str(tmp_path / 'backend/Cargo.lock'),
+                                                         str(tmp_path / 'web/package-lock.json')]
+    with pytest.raises(ValueError, match='lockfile'):
+        m.archive_lockfiles(archive(True), tmp_path)
+
+
 @pytest.fixture(params=['stream', 'production'])
 def bridge(request, monkeypatch):
     calls = []

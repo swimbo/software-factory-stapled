@@ -18,11 +18,11 @@ def main() -> None:
     ap.add_argument("--diff-file", default=None, help="path to a diff file (default: read stdin)")
     ap.add_argument("--paths", nargs="*", default=[], help="changed file paths (for relevance classification)")
     ap.add_argument("--target", default=None, help="explicit target dir for Semgrep/Gitleaks")
-    ap.add_argument("--lockfile", default=None, help="lockfile for OSV-Scanner (e.g. package-lock.json)")
+    ap.add_argument("--lockfile", action="append", default=[], help="lockfile for OSV-Scanner; repeat for multiple files")
     args = ap.parse_args()
 
     diff_text = Path(args.diff_file).read_text() if args.diff_file else sys.stdin.read()
-    report = scan(diff_text, args.paths, target=args.target, lockfile=args.lockfile)
+    report = scan(diff_text, args.paths, target=args.target, lockfiles=args.lockfile)
     print(json.dumps(report.to_dict()))
 
 

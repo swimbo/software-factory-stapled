@@ -142,10 +142,13 @@ def run_osv_scanner(lockfile: str) -> list[Finding] | None:
     """Run OSV-Scanner (dependency vulnerabilities). Returns None if absent."""
     if not _which("osv-scanner"):
         return None
-    r = subprocess.run(
-        ["osv-scanner", "scan", "-L", lockfile, "--format", "json"],
-        capture_output=True, text=True, timeout=180,
-    )
+    # A candidate-controlled osv-scanner.toml must not suppress findings.
+    with NamedTemporaryFile(suffix='.toml') as config:
+        config.write(b'# operator-controlled empty configuration\n');config.flush()
+        r = subprocess.run(
+            ["osv-scanner", "scan", "-L", lockfile, "--format", "json", "--config", config.name],
+            capture_output=True, text=True, timeout=180,
+        )
     if r.returncode not in (0, 1):
         raise ValueError('OSV scan failed or found no packages')
     try:
@@ -263,7 +266,7 @@ def _verdict(findings: list[Finding], security_relevant: bool) -> str:
     return "pass"
 
 
-def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None = None, lockfile: str | None = None) -> ScanReport:
+def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None = None, lockfile: str | None = None, lockfiles: list[str] | None = None) -> ScanReport:
     """Run the pipeline. Uses real engines when installed, regex fallback otherwise."""
     paths = paths or []
     findings: list[Finding] = []
@@ -288,15 +291,20 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
         engines["secret"] = "regex-fallback"
 
     # Dependencies
-    if lockfile and _which("osv-scanner"):
-        dependency_findings = run_osv_scanner(lockfile)
-        if dependency_findings is None:
-            raise ValueError('OSV scanner became unavailable')
-        findings += dependency_findings
-        engines["dependency"] = "osv-scanner"
+    if lockfile and lockfiles is not None:
+        raise ValueError('choose one lockfile input form')
+    selected_lockfiles = [lockfile] if lockfile else (lockfiles or [])
+    if selected_lockfiles and _which("osv-scanner"):
+        for selected in selected_lockfiles:
+            dependency_findings = run_osv_scanner(selected)
+            if dependency_findings is None:
+                raise ValueError('OSV scanner became unavailable')
+            findings += dependency_findings
+        # Discovery alone cannot prove every dependency is represented.
+        engines["dependency"] = "osv-scanner" if lockfile else "osv-scanner-incomplete"
     else:
         findings += _regex_dependencies(diff_text)
-        engines["dependency"] = "regex-fallback" if lockfile else "manifest-flag"
+        engines["dependency"] = "regex-fallback" if selected_lockfiles else "manifest-flag"
 
     security_relevant = classify_security_relevance(paths, diff_text)
     return ScanReport(

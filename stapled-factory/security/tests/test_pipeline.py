@@ -78,7 +78,8 @@ def test_osv_findings_and_clean_report_remain_distinct(monkeypatch):
     reports = [(0, '{"results": []}'), (1, '{"results":[{"packages":[{"package":{"name":"p"},"vulnerabilities":[{"id":"TEST-1"}]}]}]}')]
     for code, output in reports:
         def run(args, **kwargs):
-            assert args == ['osv-scanner', 'scan', '-L', 'package-lock.json', '--format', 'json']
+            assert args[:6] == ['osv-scanner', 'scan', '-L', 'package-lock.json', '--format', 'json']
+            assert args[6] == '--config' and Path(args[7]).read_text() == '# operator-controlled empty configuration\n'
             return subprocess.CompletedProcess(args, code, output, '')
         monkeypatch.setattr(pipeline.subprocess, 'run', run)
         report = pipeline.scan('safe change', lockfile='package-lock.json')
@@ -93,3 +94,13 @@ def test_osv_disappearing_after_discovery_cannot_pass(monkeypatch):
     monkeypatch.setattr(pipeline, 'run_osv_scanner', lambda path: None)
     with pytest.raises(ValueError, match='OSV'):
         pipeline.scan('safe change', lockfile='package-lock.json')
+
+
+def test_multiple_lockfiles_are_all_scanned_and_partial_coverage_is_labelled(monkeypatch):
+    import pipeline
+    seen = []
+    monkeypatch.setattr(pipeline, '_which', lambda tool: 'fixture' if tool == 'osv-scanner' else None)
+    monkeypatch.setattr(pipeline, 'run_osv_scanner', lambda path: seen.append(path) or [])
+    report = pipeline.scan('safe', lockfiles=['a/Cargo.lock', 'b/package-lock.json'])
+    assert seen == ['a/Cargo.lock', 'b/package-lock.json']
+    assert report.engines['dependency'] == 'osv-scanner-incomplete'

@@ -79,6 +79,25 @@ def command(*args, timeout=30):
     return subprocess.check_output(args,text=True,timeout=timeout).strip()
 
 
+def archive_lockfiles(raw, source):
+    # Only tracked regular files in the exact archive become scanner inputs.
+    names = {'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock',
+             'Cargo.lock', 'poetry.lock', 'Pipfile.lock', 'pdm.lock', 'uv.lock',
+             'composer.lock', 'Gemfile.lock', 'gems.locked', 'mix.lock',
+             'pubspec.lock', 'conan.lock', 'packages.lock.json', 'renv.lock',
+             'gradle.lockfile', 'buildscript-gradle.lockfile', 'cabal.project.freeze',
+             'stack.yaml.lock'}
+    found = []
+    with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
+        for member in tar.getmembers():
+            path = Path(member.name)
+            if path.name in names:
+                if path.is_absolute() or '..' in path.parts or not member.isfile():
+                    raise ValueError('unsafe candidate lockfile')
+                found.append(str(source / path))
+    return sorted(found)
+
+
 def record(path, value):
     """Append an immutable, fsynced private recovery record before effects."""
     data = (json.dumps(value, sort_keys=True) + '\n').encode()
@@ -386,7 +405,11 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
         source=Path(temp)/'source';source.mkdir()
         with tarfile.open(fileobj=io.BytesIO(raw)) as tar:tar.extractall(source,filter='data')
         trusted_diff=Path(temp)/'trusted.diff';trusted_diff.write_bytes(diff)
-        security=json.loads(command('python3',str(ROOT/'security/pipeline_cli.py'),'--diff-file',str(trusted_diff),'--target',str(source),timeout=180))
+        lockfiles = archive_lockfiles(raw, source)
+        security_args = ['python3', str(ROOT/'security/pipeline_cli.py'), '--diff-file', str(trusted_diff), '--target', str(source)]
+        for lockfile in lockfiles:
+            security_args.extend(['--lockfile', lockfile])
+        security=json.loads(command(*security_args,timeout=180))
         with candidate_lifecycle(evidence_dir, image) as container:
             def identity():
                 state=json.loads(command('docker','inspect',container))[0]
