@@ -14,6 +14,7 @@ import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import time
 
 HOST = CONTROL = SIGNER = RUNS = None
@@ -43,6 +44,77 @@ def load_config(path):
         if type(config[field]) is not int or not 1 <= config[field] <= 65535:
             raise ValueError(field + ' must be a port between 1 and 65535')
     return config
+
+
+def load_controlled_config(path):
+    """Read an owner-only, fully specified controlled-build configuration."""
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        st = os.fstat(stream.fileno())
+        if (not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or
+                st.st_mode & 0o077 or st.st_size > 65536):
+            raise ValueError('controlled config must be an owner-only regular file')
+        raw = stream.read(65537)
+    if len(raw) > 65536:raise ValueError('controlled config too large')
+    def unique(pairs):
+        result = {}
+        for key, value in pairs:
+            if key in result:raise ValueError('duplicate controlled config key')
+            result[key] = value
+        return result
+    try:config = json.loads(raw, object_pairs_hook=unique)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:raise ValueError('invalid controlled config') from exc
+    required = {'profile', 'materials_archive', 'materials_sha256', 'base_layout', 'base_manifest',
+                'builder_name', 'builder_container_id', 'builder_image_id', 'docker_host', 'docker_config'}
+    if not isinstance(config, dict) or set(config) not in (required, required | {'docker_bin'}):
+        raise ValueError('controlled config has missing or unexpected fields')
+    if config['profile'] not in ('npm', 'cargo'):
+        raise ValueError('unsupported controlled profile')
+    for name in ('materials_archive','base_layout','docker_config','docker_bin'):
+        value = config.get(name, '/usr/local/bin/docker' if name == 'docker_bin' else None)
+        if (not isinstance(value,str) or not Path(value).is_absolute() or '..' in Path(value).parts or
+                any(c in value for c in ('\n','\r',','))):
+            raise ValueError('controlled config requires safe absolute paths')
+        config[name] = value
+    for name, pattern in [('materials_sha256',r'[a-f0-9]{64}'),('base_manifest',r'sha256:[a-f0-9]{64}'),
+                          ('builder_container_id',r'[a-f0-9]{64}'),('builder_image_id',r'sha256:[a-f0-9]{64}'),
+                          ('builder_name',r'[a-z0-9][a-z0-9_-]{0,50}'),('docker_host',r'unix:///[^\s,]+')]:
+        if not isinstance(config[name],str) or not re.fullmatch(pattern,config[name]):
+            raise ValueError('invalid controlled config '+name)
+    return config, hashlib.sha256(raw).hexdigest()
+
+
+def controlled_preflight(config, repo, revision, archive, archive_sha256):
+    """Inspect frozen inputs and the selected builder before a one-shot intent."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'security'))
+    from controlled_preflight import preflight_controlled
+    with tempfile.TemporaryDirectory(prefix='factory-control-preflight-') as temp:
+        source = Path(temp) / 'source.tar'
+        source.write_bytes(archive)
+        return preflight_controlled(profile=config['profile'], repo=repo, revision=revision,
+            source_tar=source, source_sha256=archive_sha256, materials_archive=config['materials_archive'],
+            materials_sha256=config['materials_sha256'], base_layout=config['base_layout'],
+            base_manifest=config['base_manifest'], docker_bin=config['docker_bin'], docker_config=config['docker_config'],
+            docker_host=config['docker_host'], builder_name=config['builder_name'],
+            builder_container_id=config['builder_container_id'], builder_image_id=config['builder_image_id'])
+
+
+def validate_controlled_preflight(config, report, source_sha256):
+    common = {'profile','coverage','source_sha256','materials_sha256','lock_sha256','base_manifest','base_config',
+              'builder_container_id','builder_image_id','builder_config_sha256','recipe_sha256'}
+    fields = common | ({'materials_manifest_sha256','cache_recipe_sha256'} if config['profile'] == 'npm' else set())
+    if not isinstance(report,dict) or set(report) != fields:
+        raise ValueError('controlled preflight report incomplete')
+    for name, value in [('profile',config['profile']),('coverage','incomplete'),('source_sha256',source_sha256),
+                        ('materials_sha256',config['materials_sha256']),('base_manifest',config['base_manifest']),
+                        ('builder_container_id',config['builder_container_id']),('builder_image_id',config['builder_image_id'])]:
+        if report.get(name) != value:raise ValueError('controlled preflight identity differs')
+    digests = ['source_sha256','materials_sha256','lock_sha256','builder_container_id','builder_config_sha256','recipe_sha256']
+    if config['profile'] == 'npm':digests += ['materials_manifest_sha256','cache_recipe_sha256']
+    if (any(not isinstance(report.get(name),str) or not re.fullmatch(r'[a-f0-9]{64}',report[name]) for name in digests) or
+            not isinstance(report.get('base_config'),str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',report['base_config'])):
+        raise ValueError('controlled preflight digest invalid')
+    return report
 
 
 def configure(config):
@@ -143,6 +215,15 @@ def _preflight_archive(repo, revision, env):
         process.stdout.close()
 
 
+def controlled_source_archive(repo, revision):
+    """Bounded, noninteractive source archive for controlled preflight."""
+    env = {key:value for key,value in os.environ.items() if not key.startswith('GIT_')}
+    env.update(GIT_NO_REPLACE_OBJECTS='1',GIT_NO_LAZY_FETCH='1',GIT_OPTIONAL_LOCKS='0',
+               GIT_TERMINAL_PROMPT='0',GIT_CONFIG_NOSYSTEM='1',GIT_CONFIG_GLOBAL=os.devnull,
+               GIT_ATTR_NOSYSTEM='1')
+    return _preflight_archive(repo,revision,env)
+
+
 def source_preflight(repo, revision):
     """Inspect one committed source archive without remote calls or side effects."""
     import importlib.util
@@ -179,7 +260,7 @@ def source_preflight(repo, revision):
             'reason': 'Source inspection alone cannot establish complete dependency provenance.'}
 
 
-def prepare(spec_file):
+def prepare(spec_file, *, controlled_config=None):
     spec = validate_spec(json.loads(Path(spec_file).read_text()))
     repo = Path(spec['repo']).resolve()
     baseline = command('git', '-C', repo, 'rev-parse', spec['baseline'] + '^{commit}')
@@ -191,6 +272,18 @@ def prepare(spec_file):
         raise ValueError('baseline must be the current GitHub main commit; feature-branch baselines are not publishable')
     match = re.fullmatch(r'(?:https://github\.com/|git@github\.com:)([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+?)(?:\.git)?', origin)
     if not match:raise ValueError('GitHub origin required')
+    baseline_control = None
+    if controlled_config is not None:
+        config_path = Path(controlled_config)
+        if config_path.resolve().is_relative_to(repo):raise ValueError('controlled config must stay outside source repository')
+        config, config_sha = load_controlled_config(config_path)
+        source = controlled_source_archive(repo,baseline)
+        source_sha = hashlib.sha256(source).hexdigest()
+        report = controlled_preflight(config,repo,baseline,source,source_sha)
+        validate_controlled_preflight(config,report,source_sha)
+        if load_controlled_config(config_path) != (config,config_sha):
+            raise ValueError('controlled config changed during baseline preflight')
+        baseline_control = {'config':config,'config_sha256':config_sha,'report':report}
     run = RUNS / spec['unit'];run.mkdir(mode=0o700, parents=True, exist_ok=False)
     check = Path(spec['check_script']).absolute()
     if check.is_symlink() or not check.is_file():raise ValueError('regular check script required')
@@ -208,6 +301,7 @@ def prepare(spec_file):
     plan = dict(spec, baseline=baseline, bundle_ref=refs[0], release=describe['release'],
                 service_sha256=describe['service_sha256'], github=match[1], origin=origin,
                 check_sha256=hashlib.sha256((run / 'check.py').read_bytes()).hexdigest())
+    if baseline_control is not None:plan['controlled_baseline'] = baseline_control
     save(run / 'operator.json', plan)
     save(run / 'images.json', describe['images'])
     task = spec['task'] + '\n\nAcceptance criteria:\n' + '\n'.join('- ' + x for x in spec['acceptance'])
@@ -254,7 +348,37 @@ def run_task(run):
         if status.get('status') in ('PR_OPEN', 'ABANDONED'):
             return status  # Re-observation must not erase the publication result.
     plan = json.loads((run / 'operator.json').read_text())
-    result = remote('run', {'unit': plan['unit']})
+    request = {'unit': plan['unit']}
+    if 'controlled_baseline' in plan:
+        original = plan['controlled_baseline'];marker = run/'controlled-dispatch-intent.json'
+        if not isinstance(original,dict) or set(original) != {'config','config_sha256','report'}:
+            raise ValueError('invalid controlled baseline preflight')
+        expected = {'unit':plan['unit'],'baseline':plan['baseline'],
+                    'config_sha256':original['config_sha256'],'report':original['report']}
+        if marker.exists():
+            st = marker.lstat()
+            if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077:
+                raise ValueError('unsafe controlled dispatch intent')
+            if json.loads(marker.read_text()) != expected:
+                raise ValueError('controlled original dispatch intent differs')
+            request['observe_only'] = True
+        else:
+            source = controlled_source_archive(plan['repo'],plan['baseline'])
+            source_sha = hashlib.sha256(source).hexdigest()
+            report = controlled_preflight(original['config'],plan['repo'],plan['baseline'],source,source_sha)
+            validate_controlled_preflight(original['config'],report,source_sha)
+            if report != original['report']:
+                raise ValueError('controlled baseline preflight changed')
+            fd = os.open(marker,os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,0o600)
+            with os.fdopen(fd,'w') as stream:
+                json.dump(expected,stream,sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+            fd = os.open(run,os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+            request['observe_only'] = False
+    result = remote('run', request)
+    if request.get('observe_only') is True and result.get('status') == 'unresolved':
+        return result
     if result.get('abandoned'):
         prior = json.loads(status_path.read_text()) if status_path.exists() else {}
         save(status_path, {**prior, 'status': 'ABANDONED', 'completed': False, 'state': result['state']})
@@ -282,7 +406,7 @@ def run_task(run):
             'next': 'Review source and tests before publish executes candidate CI'}
 
 
-def build_candidate(run, dockerfile, signing_key):
+def build_candidate(run, dockerfile, signing_key, *, controlled_config=None):
     """Build and attest the collected original once; never redispatch a worker."""
     plan = json.loads((run / 'operator.json').read_text())
     result = json.loads((run / 'result.json').read_text())
@@ -306,28 +430,84 @@ def build_candidate(run, dockerfile, signing_key):
     if (selected.get('accepted') is not False or selected.get('stage') != 'needs_validation' or
             selected.get('attempt_id') != attempt or selected.get('revision') != revision):
         raise ValueError('selected build differs or is no longer awaiting validation')
-    dockerfile, signing_key = Path(dockerfile), Path(signing_key)
-    for path in (dockerfile, signing_key):
+    if (dockerfile is None) == (controlled_config is None):
+        raise ValueError('choose exactly one legacy recipe or controlled config')
+    if ('controlled_baseline' in plan) != (controlled_config is not None):
+        raise ValueError('controlled build requires its original pre-dispatch baseline preflight')
+    if controlled_config is not None:
+        original = plan['controlled_baseline'];marker = run/'controlled-dispatch-intent.json'
+        if not isinstance(original,dict) or set(original) != {'config','config_sha256','report'}:
+            raise ValueError('invalid controlled baseline preflight')
+        try:st = marker.lstat()
+        except FileNotFoundError as exc:raise ValueError('original controlled dispatch intent unavailable') from exc
+        if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077:
+            raise ValueError('unsafe controlled dispatch intent')
+        expected = {'unit':unit,'baseline':plan['baseline'],
+                    'config_sha256':original['config_sha256'],'report':original['report']}
+        if json.loads(marker.read_text()) != expected:
+            raise ValueError('controlled original dispatch intent differs')
+        if not isinstance(original['config_sha256'],str) or not re.fullmatch(r'[a-f0-9]{64}',original['config_sha256']):
+            raise ValueError('invalid original controlled config digest')
+        source_sha = original['report'].get('source_sha256') if isinstance(original['report'],dict) else None
+        validate_controlled_preflight(original['config'],original['report'],source_sha)
+    signing_key = Path(signing_key)
+    inputs = [signing_key] + ([Path(dockerfile)] if dockerfile is not None else [Path(controlled_config)])
+    for path in inputs:
         st = path.lstat()
         if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or path.resolve().is_relative_to(repo.resolve()):
             raise ValueError('operator-owned inputs outside candidate required')
     if signing_key.stat().st_mode & 0o077:
         raise ValueError('owner-only signing key required')
-    archive = subprocess.check_output(['git', '-C', str(repo), 'archive', revision])
+    archive = (controlled_source_archive(repo,revision) if controlled_config is not None else
+               subprocess.check_output(['git', '-C', str(repo), 'archive', revision]))
+    archive_sha256 = hashlib.sha256(archive).hexdigest()
     record = {'unit': unit, 'attempt_id': attempt, 'revision': revision, 'baseline': plan['baseline'],
-              'bundle_sha256': result['bundle_sha256'], 'archive_sha256': hashlib.sha256(archive).hexdigest(),
-              'dockerfile_sha256': hashlib.sha256(dockerfile.read_bytes()).hexdigest()}
+              'bundle_sha256': result['bundle_sha256'], 'archive_sha256': archive_sha256}
+    if controlled_config is None:
+        record['dockerfile_sha256'] = hashlib.sha256(Path(dockerfile).read_bytes()).hexdigest()
+    else:
+        config, config_sha256 = load_controlled_config(controlled_config)
+        baseline_control = plan['controlled_baseline']
+        baseline_config = baseline_control.get('config') if isinstance(baseline_control,dict) else None
+        stable = set(config) - {'materials_archive','materials_sha256'}
+        if not isinstance(baseline_config,dict) or any(baseline_config.get(name) != config[name] for name in stable):
+            raise ValueError('controlled builder differs from pre-dispatch baseline')
+        key = signing_key.resolve()
+        forbidden = [output.resolve(), Path(config['base_layout']).resolve(), Path(config['docker_config']).resolve()]
+        if any(key.is_relative_to(path) for path in forbidden) or key == Path(config['materials_archive']).resolve():
+            raise ValueError('signing key must remain outside controlled inputs and contexts')
+        report = controlled_preflight(config, repo, revision, archive, archive_sha256)
+        validate_controlled_preflight(config, report, archive_sha256)
+        report = {**report,'unit':unit,'tag':'factory-candidate-'+unit.lower()+':'+revision}
+        record.update(dockerfile_sha256=report['recipe_sha256'], controlled=report,
+                      controlled_config=config, controlled_config_sha256=config_sha256)
+        if load_controlled_config(controlled_config) != (config, config_sha256):
+            raise ValueError('controlled config changed during preflight')
+        selected = remote('validation_status', {'unit':unit})
+        if (selected.get('accepted') is not False or selected.get('stage') != 'needs_validation' or
+                selected.get('attempt_id') != attempt or selected.get('revision') != revision):
+            raise ValueError('selected build changed during controlled preflight')
     fd = os.open(intent, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, 'w') as stream:
         json.dump(record, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
     fd = os.open(run, os.O_RDONLY)
     try:os.fsync(fd)
     finally:os.close(fd)
-    script = Path(__file__).resolve().parents[1] / 'deployment/nuc/build_candidate.py'
-    subprocess.run([sys.executable, str(script), '--repo', str(repo), '--revision', revision,
-                    '--baseline', plan['baseline'], '--dockerfile', str(dockerfile),
-                    '--tag', 'factory-candidate-' + unit.lower() + ':' + revision,
-                    '--output', str(output), '--signing-key', str(signing_key)], check=True, timeout=900)
+    if controlled_config is None:
+        script = Path(__file__).resolve().parents[1] / 'deployment/nuc/build_candidate.py'
+        subprocess.run([sys.executable, str(script), '--repo', str(repo), '--revision', revision,
+                        '--baseline', plan['baseline'], '--dockerfile', str(dockerfile),
+                        '--tag', 'factory-candidate-' + unit.lower() + ':' + revision,
+                        '--output', str(output), '--signing-key', str(signing_key)], check=True, timeout=900)
+    else:
+        script = Path(__file__).resolve().parents[1] / 'deployment/nuc/build_controlled.py'
+        args = [sys.executable, str(script), '--repo', str(repo), '--revision', revision,
+                '--baseline', plan['baseline'], '--unit', unit, '--output-dir', str(output),
+                '--signing-key', str(signing_key)]
+        for name in ('profile','materials_archive','materials_sha256','base_layout','base_manifest',
+                     'builder_name','builder_container_id','builder_image_id','docker_host','docker_config','docker_bin'):
+            args.extend(['--'+name.replace('_','-'), config[name]])
+        subprocess.run(args, check=True, timeout=2100)
     return observe_candidate_build(run)
 
 
@@ -347,6 +527,11 @@ def observe_candidate_build(run):
             hashlib.sha256((output / 'source.tar').read_bytes()).hexdigest() != record['archive_sha256'] or
             hashlib.sha256((output / 'Dockerfile').read_bytes()).hexdigest() != record['dockerfile_sha256']):
         raise ValueError('attested build differs from original intent')
+    if 'controlled' in record:
+        if manifest.get('schema') != 'factory.build.v2' or manifest.get('controlled') != record['controlled']:
+            raise ValueError('controlled build differs from original preflight intent')
+    elif 'controlled' in manifest:
+        raise ValueError('controlled manifest lacks matching original intent')
     if manifest.get('schema') == 'factory.build.v2':
         with (output / 'image.tar').open('rb') as stream:
             image_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
@@ -375,6 +560,15 @@ def transfer_validation_inputs(run):
         raise ValueError('selected build differs or is no longer awaiting validation')
     names = ('image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle')
     paths = {name: (run / 'result.bundle' if name == 'result.bundle' else run / 'attested-build' / name) for name in names}
+    build_intent = {}
+    if 'controlled' in build.get('manifest',{}):
+        build_intent = json.loads((run / 'build-intent.json').read_text())
+        if build_intent.get('controlled') != build['manifest']['controlled']:
+            raise ValueError('original controlled build binding differs')
+        config = build_intent.get('controlled_config')
+        if not isinstance(config,dict) or not isinstance(config.get('materials_archive'),str):
+            raise ValueError('original controlled material path unavailable')
+        paths['materials.tar'] = Path(config['materials_archive'])
     hashes = {}
     for name, path in paths.items():
         if path.is_symlink() or not path.is_file():
@@ -382,6 +576,8 @@ def transfer_validation_inputs(run):
         with path.open('rb') as stream:hashes[name] = hashlib.file_digest(stream, 'sha256').hexdigest()
     if hashes['result.bundle'] != result['bundle_sha256']:
         raise ValueError('collected bundle differs')
+    if 'controlled' in build_intent and hashes['materials.tar'] != build_intent['controlled'].get('materials_sha256'):
+        raise ValueError('controlled materials differ from original build intent')
     data = {'unit': plan['unit'], 'attempt_id': result['attempt_id'], 'revision': result['revision'],
             'baseline': plan['baseline'], 'files': hashes}
     fd = os.open(intent, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
@@ -634,17 +830,21 @@ def main():
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--revision', help='committed revision for preflight-source')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
-    p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
+    recipes = p.add_mutually_exclusive_group()
+    recipes.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
+    recipes.add_argument('--controlled-config', type=Path, help='owner-only controlled build settings')
     p.add_argument('--build-signing-key', type=Path, help='owner-only build attestation key')
     p.add_argument('--holdout', type=Path, help='owner-only scenarios outside the candidate repository')
     a = p.parse_args()
+    if a.controlled_config and a.action not in ('prepare','build-candidate'):
+        p.error('--controlled-config applies only to prepare or build-candidate')
     if a.action == 'preflight-source':
         if not a.revision:p.error('preflight-source requires --revision')
         print(json.dumps(source_preflight(a.path, a.revision), indent=2))
         return
     try:configure(load_config(a.config))
     except (OSError, ValueError) as exc:p.error('Cannot load operator config: ' + str(exc))
-    if a.action == 'prepare':result = prepare(a.path)
+    if a.action == 'prepare':result = prepare(a.path, controlled_config=a.controlled_config)
     elif a.action == 'run':
         try:result = run_task(a.path.resolve())
         except Exception:
@@ -653,8 +853,9 @@ def main():
             raise
     elif a.action == 'publish':result = publish(a.path.resolve())
     elif a.action == 'build-candidate':
-        if not a.dockerfile or not a.build_signing_key:p.error('build-candidate requires --dockerfile and --build-signing-key')
-        result = build_candidate(a.path.resolve(), a.dockerfile, a.build_signing_key)
+        if (not a.dockerfile and not a.controlled_config) or not a.build_signing_key:
+            p.error('build-candidate requires one recipe or controlled config and --build-signing-key')
+        result = build_candidate(a.path.resolve(), a.dockerfile, a.build_signing_key, controlled_config=a.controlled_config)
     elif a.action == 'build-status':result = observe_candidate_build(a.path.resolve())
     elif a.action == 'transfer-validation':result = transfer_validation_inputs(a.path.resolve())
     elif a.action == 'transfer-status':result = observe_validation_transfer(a.path.resolve())

@@ -1298,3 +1298,184 @@ def test_v2_validation_evidence_must_match_original_manifest(tmp_path):
     manifest.write_text(json.dumps({'schema': 'factory.build.v2', 'changed': True}))
     with pytest.raises(ValueError, match='manifest differs'):
         cli.check_validation_manifest(tmp_path, {'build_manifest_digest': digest})
+
+
+def controlled_build_inputs(tmp_path, monkeypatch):
+    import hashlib
+    bundle, archive = b'original bundle', b'frozen source archive'
+    plan={'unit':'unit-1','baseline':'a'*40};result={'revision':'b'*40,'attempt_id':'unit-1:0',
+        'bundle_sha256':hashlib.sha256(bundle).hexdigest()}
+    (tmp_path/'operator.json').write_text(json.dumps(plan));(tmp_path/'result.json').write_text(json.dumps(result))
+    (tmp_path/'result.bundle').write_bytes(bundle);(tmp_path/'candidate').mkdir()
+    key=tmp_path/'fixture-key';key.write_bytes(b'fixture');key.chmod(0o600)
+    config={'profile':'npm','materials_archive':str(tmp_path/'materials.tar'),'materials_sha256':'c'*64,
+        'base_layout':str(tmp_path/'base'),'base_manifest':'sha256:'+'d'*64,'builder_name':'factory-builder',
+        'builder_container_id':'e'*64,'builder_image_id':'sha256:'+'f'*64,
+        'docker_host':'unix:///tmp/fixture.sock','docker_config':str(tmp_path/'docker')}
+    path=tmp_path/'controlled.json';path.write_text(json.dumps(config));path.chmod(0o600)
+    normalized=dict(config,docker_bin='/usr/local/bin/docker')
+    plan['controlled_baseline']={'config':normalized,'config_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'report':{}}
+    (tmp_path/'operator.json').write_text(json.dumps(plan))
+    recipe=b'FROM base\n';report={'profile':'npm','coverage':'incomplete',
+        'source_sha256':hashlib.sha256(archive).hexdigest(),'materials_sha256':config['materials_sha256'],
+        'lock_sha256':'1'*64,'base_manifest':config['base_manifest'],'base_config':'sha256:'+'2'*64,
+        'builder_container_id':config['builder_container_id'],'builder_image_id':config['builder_image_id'],
+        'builder_config_sha256':'3'*64,'recipe_sha256':hashlib.sha256(recipe).hexdigest(),
+        'materials_manifest_sha256':'4'*64,'cache_recipe_sha256':'5'*64}
+    plan['controlled_baseline']['report']=report
+    (tmp_path/'operator.json').write_text(json.dumps(plan))
+    marker=tmp_path/'controlled-dispatch-intent.json'
+    marker.write_text(json.dumps({'unit':plan['unit'],'baseline':plan['baseline'],
+        'config_sha256':plan['controlled_baseline']['config_sha256'],'report':report}));marker.chmod(0o600)
+    monkeypatch.setattr(cli,'command',lambda *a,**k:result['revision'] if 'rev-parse' in a else '')
+    monkeypatch.setattr(cli,'remote',lambda action,data:{'accepted':False,'stage':'needs_validation',
+        'attempt_id':result['attempt_id'],'revision':result['revision']})
+    monkeypatch.setattr(cli.subprocess,'check_output',lambda args:archive)
+    monkeypatch.setattr(cli,'controlled_source_archive',lambda repo,revision:archive)
+    return plan,result,key,path,archive,recipe,report
+
+
+def test_controlled_build_freezes_preflight_and_reconciles_original(tmp_path,monkeypatch):
+    import hashlib
+    plan,result,key,path,archive,recipe,report=controlled_build_inputs(tmp_path,monkeypatch)
+    preflights=[];builds=[]
+    def preflight(config,repo,revision,source,source_sha):
+        assert not (tmp_path/'build-intent.json').exists()
+        assert source == archive and source_sha == report['source_sha256']
+        preflights.append(config);return report
+    monkeypatch.setattr(cli,'controlled_preflight',preflight)
+    def build(args,**kwargs):
+        builds.append(args);intent=json.loads((tmp_path/'build-intent.json').read_text())
+        assert args[1].endswith('build_controlled.py') and '--dockerfile' not in args
+        out=Path(args[args.index('--output-dir')+1]);out.mkdir()
+        (out/'source.tar').write_bytes(archive);(out/'Dockerfile').write_bytes(recipe)
+        (out/'diff').write_bytes(b'diff');(out/'image.tar').write_bytes(b'image');(out/'build.sig').write_bytes(b'signature')
+        (out/'build.json').write_text(json.dumps({'schema':'factory.build.v2','revision':result['revision'],
+            'baseline':plan['baseline'],'archive_sha256':hashlib.sha256(archive).hexdigest(),
+            'dockerfile_sha256':hashlib.sha256(recipe).hexdigest(),'diff_sha256':hashlib.sha256(b'diff').hexdigest(),
+            'image_tar_sha256':hashlib.sha256(b'image').hexdigest(),'controlled':intent['controlled']}))
+    monkeypatch.setattr(cli.subprocess,'run',build)
+    observed=cli.build_candidate(tmp_path,None,key,controlled_config=path)
+    assert observed['status']=='BUILD_OUTPUT_PRESENT' and len(preflights)==len(builds)==1
+    intent=json.loads((tmp_path/'build-intent.json').read_text())
+    assert intent['controlled_config_sha256']==hashlib.sha256(path.read_bytes()).hexdigest()
+    assert intent['controlled']['coverage']=='incomplete'
+    assert cli.observe_candidate_build(tmp_path)==observed
+    manifest_path=tmp_path/'attested-build/build.json';manifest=json.loads(manifest_path.read_text())
+    manifest['controlled']['lock_sha256']='0'*64;manifest_path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError,match='preflight intent'):cli.observe_candidate_build(tmp_path)
+    with pytest.raises(ValueError,match='never repeat'):cli.build_candidate(tmp_path,None,key,controlled_config=path)
+    assert len(preflights)==len(builds)==1
+
+
+def test_controlled_preflight_failure_never_creates_intent(tmp_path,monkeypatch):
+    _,_,key,path,_,_,_=controlled_build_inputs(tmp_path,monkeypatch)
+    def preflight(*args):raise ValueError('frozen material mismatch')
+    monkeypatch.setattr(cli,'controlled_preflight',preflight)
+    monkeypatch.setattr(cli.subprocess,'run',lambda *a,**k:pytest.fail('preflight must stop build'))
+    with pytest.raises(ValueError,match='frozen material mismatch'):
+        cli.build_candidate(tmp_path,None,key,controlled_config=path)
+    assert not (tmp_path/'build-intent.json').exists()
+
+
+def test_controlled_config_must_be_private_and_have_no_duplicate_keys(tmp_path):
+    path=tmp_path/'controlled.json';path.write_text('{"profile":"npm","profile":"cargo"}');path.chmod(0o600)
+    with pytest.raises(ValueError,match='duplicate'):cli.load_controlled_config(path)
+    path.chmod(0o644)
+    with pytest.raises(ValueError,match='owner-only'):cli.load_controlled_config(path)
+
+
+def test_controlled_dispatch_recovery_never_repeats_original_start(tmp_path,monkeypatch):
+    plan,_,_,_,archive,_,report=controlled_build_inputs(tmp_path,monkeypatch)
+    plan['repo']=str(tmp_path/'candidate');plan['controlled_baseline']['report']=report
+    (tmp_path/'operator.json').write_text(json.dumps(plan))
+    (tmp_path/'controlled-dispatch-intent.json').unlink()
+    preflights=[];requests=[];original_result=(tmp_path/'result.json').read_bytes()
+    monkeypatch.setattr(cli,'controlled_preflight',lambda *args:preflights.append(args) or report)
+    def remote(action,data):
+        assert action=='run';requests.append(data)
+        if len(requests)==1:raise TimeoutError('unknown original start')
+        if len(requests)==2:return {'status':'unresolved','reason':'original dispatch intent not established'}
+        return {'abandoned':True,'state':{'stage':'abandoned'}}
+    monkeypatch.setattr(cli,'remote',remote)
+    with pytest.raises(TimeoutError):cli.run_task(tmp_path)
+    assert (tmp_path/'controlled-dispatch-intent.json').exists()
+    assert cli.run_task(tmp_path)['status']=='unresolved'
+    assert (tmp_path/'result.json').read_bytes()==original_result
+    assert cli.run_task(tmp_path)['abandoned'] is True
+    assert [r['observe_only'] for r in requests]==[False,True,True] and len(preflights)==1
+
+
+def test_controlled_transfer_binds_original_material_and_never_resends(tmp_path,monkeypatch):
+    import hashlib
+    material=tmp_path/'materials';material.write_bytes(b'fixed material')
+    controlled={'materials_sha256':hashlib.sha256(material.read_bytes()).hexdigest()}
+    build={'unit':'unit-1','attempt_id':'unit-1:0','revision':'b'*40,'manifest':{'controlled':controlled}}
+    (tmp_path/'operator.json').write_text(json.dumps({'unit':'unit-1','baseline':'a'*40}))
+    (tmp_path/'result.json').write_text(json.dumps({'revision':'b'*40,'attempt_id':'unit-1:0',
+        'bundle_sha256':hashlib.sha256(b'bundle').hexdigest()}))
+    (tmp_path/'result.bundle').write_bytes(b'bundle')
+    (tmp_path/'build-intent.json').write_text(json.dumps({'controlled':controlled,
+        'controlled_config':{'materials_archive':str(material)}}))
+    out=tmp_path/'attested-build';out.mkdir()
+    for name in ('image.tar','source.tar','diff','Dockerfile','build.json','build.sig'):(out/name).write_bytes(name.encode())
+    monkeypatch.setattr(cli,'observe_candidate_build',lambda run:build)
+    monkeypatch.setattr(cli,'remote',lambda action,data:({'accepted':False,'stage':'needs_validation',
+        'attempt_id':'unit-1:0','revision':'b'*40} if action=='validation_status' else {}))
+    copies=[];monkeypatch.setattr(cli,'copy',lambda source,unit,name=None,receive=False:copies.append((source,name)))
+    monkeypatch.setattr(cli,'observe_validation_transfer',lambda run:{'complete':True})
+    assert cli.transfer_validation_inputs(tmp_path)=={'complete':True}
+    intent=json.loads((tmp_path/'transfer-intent.json').read_text())
+    assert intent['files']['materials.tar']==controlled['materials_sha256']
+    assert (material,'validation-inputs/materials.tar') in copies
+    with pytest.raises(ValueError,match='original transfer'):cli.transfer_validation_inputs(tmp_path)
+
+
+def test_controlled_material_substitution_blocks_transfer_before_intent(tmp_path,monkeypatch):
+    import hashlib
+    material=tmp_path/'materials';material.write_bytes(b'changed')
+    controlled={'materials_sha256':hashlib.sha256(b'original').hexdigest()}
+    build={'unit':'unit-1','attempt_id':'unit-1:0','revision':'b'*40,'manifest':{'controlled':controlled}}
+    (tmp_path/'operator.json').write_text(json.dumps({'unit':'unit-1','baseline':'a'*40}))
+    (tmp_path/'result.json').write_text(json.dumps({'revision':'b'*40,'attempt_id':'unit-1:0',
+        'bundle_sha256':hashlib.sha256(b'bundle').hexdigest()}))
+    (tmp_path/'result.bundle').write_bytes(b'bundle')
+    (tmp_path/'build-intent.json').write_text(json.dumps({'controlled':controlled,
+        'controlled_config':{'materials_archive':str(material)}}))
+    out=tmp_path/'attested-build';out.mkdir()
+    for name in ('image.tar','source.tar','diff','Dockerfile','build.json','build.sig'):(out/name).write_bytes(name.encode())
+    monkeypatch.setattr(cli,'observe_candidate_build',lambda run:build)
+    monkeypatch.setattr(cli,'remote',lambda action,data:{'accepted':False,'stage':'needs_validation',
+        'attempt_id':'unit-1:0','revision':'b'*40})
+    with pytest.raises(ValueError,match='materials differ'):cli.transfer_validation_inputs(tmp_path)
+    assert not (tmp_path/'transfer-intent.json').exists()
+
+
+def test_controlled_baseline_preflight_precedes_run_creation_and_remote_calls(tmp_path,monkeypatch):
+    _,_,_,config,_,_,_=controlled_build_inputs(tmp_path,monkeypatch)
+    task={'unit':'new-unit','repo':str(tmp_path/'candidate'),'baseline':'main','task':'fix',
+          'acceptance':['checked'],'allowed_paths':['file'],'check_script':str(tmp_path/'check.py')}
+    spec=tmp_path/'task.json';spec.write_text(json.dumps(task))
+    monkeypatch.setattr(cli,'RUNS',tmp_path/'runs')
+    def command(*args,**kwargs):
+        if 'rev-parse' in args:return 'a'*40
+        if 'status' in args:return ''
+        if 'get-url' in args:return 'https://github.com/example/repo'
+        if 'ls-remote' in args:return 'a'*40+' refs/heads/main'
+        pytest.fail('unexpected command before preflight')
+    monkeypatch.setattr(cli,'command',command)
+    monkeypatch.setattr(cli,'remote',lambda *args:pytest.fail('preflight failure must precede remote'))
+    def preflight(*args):raise ValueError('baseline lock mismatch')
+    monkeypatch.setattr(cli,'controlled_preflight',preflight)
+    with pytest.raises(ValueError,match='baseline lock mismatch'):
+        cli.prepare(spec,controlled_config=config)
+    assert not (tmp_path/'runs').exists()
+
+
+def test_controlled_build_requires_original_dispatch_intent(tmp_path,monkeypatch):
+    _,_,key,path,_,_,_=controlled_build_inputs(tmp_path,monkeypatch)
+    (tmp_path/'controlled-dispatch-intent.json').unlink()
+    monkeypatch.setattr(cli,'controlled_preflight',lambda *args:pytest.fail('missing original must not build'))
+    with pytest.raises(ValueError,match='original controlled dispatch intent unavailable'):
+        cli.build_candidate(tmp_path,None,key,controlled_config=path)
+    assert not (tmp_path/'build-intent.json').exists()

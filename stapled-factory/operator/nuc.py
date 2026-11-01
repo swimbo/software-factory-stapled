@@ -121,6 +121,109 @@ def release():
     return verify_release(Path('/proc', pid, 'cwd').resolve().parents[1])
 
 
+MATERIAL_MODULES = (
+    'stapled-factory/security/material_store.py',
+    'stapled-factory/security/npm_materials.py',
+    'stapled-factory/security/controlled_npm.py',
+    'stapled-factory/security/cargo_materials.py',
+    'stapled-factory/security/cargo_vendor.py',
+    'stapled-factory/security/controlled_cargo.py',
+)
+
+
+def material_verifier_release(path, manifest_sha256=None):
+    """Validate every verifier module against one original frozen release."""
+    path = verify_release(Path(path))
+    for directory in (path, path/'stapled-factory', path/'stapled-factory/security'):
+        st = directory.lstat()
+        if directory.is_symlink() or not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+            raise ValueError('unsafe material verifier release directory')
+    manifest_path = path/'release-manifest.json'
+    st = manifest_path.lstat()
+    if manifest_path.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+        raise ValueError('unsafe material verifier release manifest')
+    raw = manifest_path.read_bytes(); digest = hashlib.sha256(raw).hexdigest()
+    if manifest_sha256 is not None and digest != manifest_sha256:
+        raise ValueError('original material verifier release changed')
+    manifest = json.loads(raw); files = manifest.get('files')
+    if not isinstance(files, dict) or not set(MATERIAL_MODULES).issubset(files):
+        raise ValueError('frozen release lacks material verifier modules')
+    for name in MATERIAL_MODULES:
+        module = path/name; st = module.lstat()
+        if (module.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or
+                st.st_mode & 0o022 or not isinstance(files[name], str) or
+                not re.fullmatch(r'[a-f0-9]{64}', files[name])):
+            raise ValueError('unsafe material verifier module')
+        with module.open('rb') as stream:
+            if hashlib.file_digest(stream, 'sha256').hexdigest() != files[name]:
+                raise ValueError('material verifier module changed')
+    return {'release': str(path), 'manifest_sha256': digest}
+
+
+def verify_controlled_materials(target, intent, binding, unit):
+    """Check signed material, source lock and pinned release without executing a build."""
+    controlled = binding.get('controlled')
+    names = {'profile', 'coverage', 'source_sha256', 'materials_sha256', 'lock_sha256',
+             'base_manifest', 'base_config', 'builder_container_id', 'builder_image_id',
+             'builder_config_sha256', 'recipe_sha256', 'unit', 'tag'}
+    if not isinstance(controlled, dict) or controlled.get('profile') not in ('npm', 'cargo'):
+        raise ValueError('unsupported controlled material profile')
+    if controlled['profile'] == 'npm':names |= {'materials_manifest_sha256', 'cache_recipe_sha256'}
+    sha_fields = {'source_sha256', 'materials_sha256', 'lock_sha256', 'builder_container_id',
+                  'builder_config_sha256', 'recipe_sha256'}
+    if controlled['profile'] == 'npm':sha_fields |= {'materials_manifest_sha256', 'cache_recipe_sha256'}
+    digest_fields = {'base_manifest', 'base_config', 'builder_image_id'}
+    if (set(controlled) != names or controlled.get('coverage') != 'incomplete' or
+            any(not isinstance(controlled.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', controlled[k]) for k in sha_fields) or
+            any(not isinstance(controlled.get(k), str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', controlled[k]) for k in digest_fields) or
+            binding.get('schema') != 'factory.build.v2' or controlled['unit'] != unit or
+            controlled['tag'] != 'factory-candidate-' + unit.lower() + ':' + intent['revision'] or
+            controlled['source_sha256'] != binding['archive_sha256'] or
+            controlled['recipe_sha256'] != binding['dockerfile_sha256'] or
+            controlled['materials_sha256'] != intent['files'].get('materials.tar')):
+        raise ValueError('controlled build binding differs from signed manifest')
+    pin = intent.get('material_verifier')
+    if (not isinstance(pin, dict) or set(pin) != {'release', 'manifest_sha256'} or
+            not isinstance(pin['release'], str) or not isinstance(pin['manifest_sha256'], str) or
+            not re.fullmatch(r'[a-f0-9]{64}', pin['manifest_sha256'])):
+        raise ValueError('original material verifier release unavailable')
+    material_verifier_release(pin['release'], pin['manifest_sha256'])
+    # -I ignores current working directory and PYTHONPATH. Disable bytecode to
+    # avoid writes to the frozen release, then import only from that release.
+    program = r'''import hashlib, importlib, json, sys, tarfile
+sys.dont_write_bytecode = True
+sys.path.insert(0, sys.argv[1])
+profile, archive, expected, source = sys.argv[2:]
+module = importlib.import_module('controlled_npm' if profile == 'npm' else 'controlled_cargo')
+verify = module.verify_frozen_npm if profile == 'npm' else module.verify_frozen_cargo
+report = verify(archive, expected)
+name = 'package-lock.json' if profile == 'npm' else 'Cargo.lock'
+lock = None
+with open(source, 'rb') as stream, tarfile.open(fileobj=module._BoundedTarInput(stream), mode='r:') as tar:
+    for count, item in enumerate(tar, 1):
+        if count > 100000: raise ValueError('too many source entries')
+        if item.name == name:
+            if lock is not None or not item.isfile() or item.size > 16 * 1024 * 1024:
+                raise ValueError('unsafe source lock')
+            lock = hashlib.file_digest(tar.extractfile(item), 'sha256').hexdigest()
+if lock is None: raise ValueError('source lock missing')
+print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True))
+'''
+    security = Path(pin['release'])/'stapled-factory/security'
+    result = subprocess.run([sys.executable, '-I', '-c', program, str(security), controlled['profile'],
+                             str(target/'materials.tar'), controlled['materials_sha256'], str(target/'source.tar')],
+                            capture_output=True, text=True, check=True, timeout=600)
+    verified = json.loads(result.stdout); report = verified.get('report') or {}
+    if (report.get('coverage') != 'incomplete' or report.get('archive_sha256') != controlled['materials_sha256'] or
+            report.get('lock_sha256') != controlled['lock_sha256'] or
+            verified.get('source_lock_sha256') != controlled['lock_sha256'] or
+            controlled['profile'] == 'npm' and report.get('manifest_sha256') != controlled['materials_manifest_sha256']):
+        raise ValueError('verified controlled materials differ from signed inputs')
+    material_verifier_release(pin['release'], pin['manifest_sha256'])
+    return {'controlled_profile': controlled['profile'], 'controlled_materials_sha256': controlled['materials_sha256'],
+            'controlled_lock_sha256': controlled['lock_sha256'], 'material_verifier': pin}
+
+
 
 
 def assert_idle(service):
@@ -163,6 +266,28 @@ def restore_binding(service, previous, desired):
     command('systemctl', '--user', 'daemon-reload')
     command('systemctl', '--user', 'restart', 'factory-endpoint')
 
+
+def observation_lock():
+    """Open the existing operator lock without creating a marker."""
+    try:
+        fd = os.open(ROOT/'operator.lock', os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError as exc:
+        raise ValueError('operator lock unavailable for read-only observation') from exc
+    st = os.fstat(fd)
+    if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid():
+        os.close(fd)
+        raise ValueError('unsafe operator lock')
+    return os.fdopen(fd, 'r')
+
+
+def original_file_exists(path):
+    try:st = path.lstat()
+    except FileNotFoundError:return False
+    if not stat.S_ISREG(st.st_mode):
+        raise ValueError('unsafe original dispatch evidence')
+    return True
+
+
 def main(action, data):
     if action == 'describe':
         rel = release()
@@ -184,6 +309,11 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action == 'dispatch_status':
+        with observation_lock() as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return {'intent_exists': original_file_exists(approval/'dispatch-intent.json'),
+                    'result_exists': original_file_exists(approval/'result.json')}
     if action in ('validation_holdout_begin', 'validation_holdout_status'):
         folder = approval/'holdouts'
         if action == 'validation_holdout_begin':
@@ -444,6 +574,14 @@ def main(action, data):
                 raise ValueError('signed image archive differs from original transfer')
         elif binding.get('schema') is not None:
             raise ValueError('unsupported build manifest schema')
+        if 'controlled' in binding:
+            if 'materials.tar' not in intent['files']:
+                raise ValueError('signed controlled materials missing from original transfer')
+            controlled_verified = verify_controlled_materials(target, intent, binding, unit)
+        elif 'materials.tar' in intent['files']:
+            raise ValueError('legacy build cannot include controlled materials')
+        else:
+            controlled_verified = {}
         with tarfile.open(target/'image.tar') as tar:
             def member(name, limit):
                 matches = [entry for entry in tar.getmembers() if entry.name == name]
@@ -465,17 +603,19 @@ def main(action, data):
             raise ValueError('signed image labels or platform differ')
         return {'verified': True, 'attempt_id': intent['attempt_id'], 'revision': intent['revision'],
                 'config_digest': binding['config_digest'], 'image_tar_sha256': intent['files']['image.tar'],
-                'manifest_sha256': intent['files']['build.json'], 'tag': tag, 'loaded': False}
+                'manifest_sha256': intent['files']['build.json'], 'tag': tag, 'loaded': False,
+                **controlled_verified}
     if action in ('validation_transfer_begin', 'validation_transfer_status'):
         target = approval / 'validation-inputs'
         names = {'image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle'}
+        controlled_names = names | {'materials.tar'}
         if action == 'validation_transfer_begin':
             files = data.get('files')
             result = json.loads((approval / 'result.json').read_text())
             plan = json.loads((approval / 'operator.json').read_text())
             state = post('WorkUnit/' + unit + '/getState', {})
             selected = state.get('successor') or state.get('build') or {}
-            if (not isinstance(files, dict) or set(files) != names or
+            if (not isinstance(files, dict) or set(files) not in (names, controlled_names) or
                     any(not isinstance(v, str) or not re.fullmatch(r'[a-f0-9]{64}', v) for v in files.values()) or
                     not result.get('binding_restored') or state.get('stage') != 'needs_validation' or
                     selected.get('status') != 'completed' or
@@ -484,11 +624,19 @@ def main(action, data):
                     data.get('attempt_id') != result.get('attempt_id') or
                     data.get('revision') != result.get('revision') or data.get('baseline') != plan.get('baseline')):
                 raise ValueError('validation transfer binding differs')
+            if set(files) == controlled_names:
+                # Bind this attempt to the release active at original transfer;
+                # later observation must never silently switch verifier versions.
+                data = dict(data)
+                data['material_verifier'] = material_verifier_release(release())
             target.mkdir(mode=0o700)
             private(target / 'transfer-intent.json', data)
             return {'created': True}
         intent = json.loads((target / 'transfer-intent.json').read_text())
-        if intent.get('unit') != unit or set(intent.get('files', {})) != names:
+        if (intent.get('unit') != unit or not isinstance(intent.get('files'), dict) or
+                set(intent['files']) not in (names, controlled_names) or
+                set(intent['files']) == controlled_names and 'material_verifier' not in intent or
+                set(intent['files']) == names and 'material_verifier' in intent):
             raise ValueError('original transfer intent differs')
         matches = {}
         for name, expected in intent['files'].items():
@@ -537,6 +685,11 @@ def main(action, data):
         rel = release()
         if str(rel) != data['release']:
             raise ValueError('deployed release changed since preparation')
+        # Preparation establishes the shared lock so future status requests can
+        # remain read-only even before the first dispatch.
+        try:fd = os.open(ROOT/'operator.lock', os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+        except FileExistsError:pass
+        else:os.close(fd)
         for p in approval.iterdir():
             p.chmod(0o600)
         sys.path.insert(0, str(rel / 'stapled-factory/deployment/nuc'))
@@ -589,17 +742,29 @@ def main(action, data):
             return {'status': 'ABANDONED', 'state': result, 'completed': False, 'artifacts_retained': True}
     if action != 'run':
         raise ValueError('unsupported operation')
-    with (ROOT / 'operator.lock').open('a') as lock:
+    observe_only = data.get('observe_only', False)
+    if type(observe_only) is not bool:
+        raise ValueError('observe_only must be a boolean')
+    if observe_only and not (ROOT/'operator.lock').exists():
+        return {'status': 'unresolved', 'reason': 'operator lock unavailable for read-only observation'}
+    with (observation_lock() if observe_only else (ROOT / 'operator.lock').open('a')) as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         active = ROOT / 'operator-active.json'
         cached = approval / 'result.json'
+        intent = approval / 'dispatch-intent.json'
+        if observe_only and not original_file_exists(intent):
+            return {'status': 'unresolved', 'reason': 'original dispatch intent not established'}
         if cached.exists() and json.loads(cached.read_text()).get('binding_restored'):
             if active.exists():
+                if observe_only:
+                    return {'status': 'unresolved', 'reason': 'restored result has an active marker requiring reconciliation'}
                 service = Path.home() / '.config/systemd/user/factory-endpoint.service'
                 if json.loads(active.read_text())['unit'] != unit or service.read_text() != (approval / 'previous.service').read_text():
                     raise ValueError('stale active marker requires reconciliation')
                 active.unlink()
             return json.loads(cached.read_text())
+        if observe_only and not original_file_exists(active):
+            return {'status': 'unresolved', 'reason': 'original active binding unavailable for read-only observation'}
         if active.exists() and json.loads(active.read_text())['unit'] != unit:
             raise ValueError('another task needs observation; do not rebind')
         plan = json.loads((approval / 'operator.json').read_text())
@@ -622,7 +787,6 @@ def main(action, data):
         desired = '\n'.join('Environment=FACTORY_RUNTIME_CONFIG=' + str(run / 'runtime.json')
                             if x.startswith('Environment=FACTORY_RUNTIME_CONFIG=') else x
                             for x in previous.splitlines()) + '\n'
-        intent = approval / 'dispatch-intent.json'
         # A recorded result survives stopped containers and needs only cleanup.
         completed = json.loads(cached.read_text()) if cached.exists() else None
         if completed is None:
@@ -636,6 +800,8 @@ def main(action, data):
             else:
                 raise ValueError('endpoint unavailable; binding retained for observation')
             if not intent.exists():
+                if observe_only:
+                    raise ValueError('original dispatch intent disappeared during observation')
                 if state.get('stage') != 'unclaimed':
                     raise ValueError('unit already used')
                 private(intent, {'unit': unit, 'baseline': plan['baseline']})
