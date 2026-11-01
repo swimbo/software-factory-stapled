@@ -55,8 +55,9 @@ def fixture(tmp_path, monkeypatch, profile):
     (stage/'result.bundle').write_bytes(b'fixture bundle');shutil.copyfile(material, stage/'materials.tar')
     source_sha = hashlib.sha256((stage/'source.tar').read_bytes()).hexdigest()
     recipe_sha = hashlib.sha256((stage/'Dockerfile').read_bytes()).hexdigest()
+    cmd = ['node', '/workspace/server.js'] if profile == 'npm' else ['/factory/source/target/release/app']
     config = json.dumps({'os':'linux','architecture':'amd64','config':{'Labels':{
-        'factory.git-revision':revision,'factory.source-archive-sha256':source_sha}}}).encode()
+        'factory.git-revision':revision,'factory.source-archive-sha256':source_sha},'Cmd':cmd}}).encode()
     tag = 'factory-candidate-unit-1:'+revision
     image_manifest = json.dumps([{'Config':'config.json','RepoTags':[tag],'Layers':[]}]).encode()
     with tarfile.open(stage/'image.tar', 'w') as tar:
@@ -66,8 +67,10 @@ def fixture(tmp_path, monkeypatch, profile):
         'materials_sha256':report['archive_sha256'], 'lock_sha256':report['lock_sha256'],
         'base_manifest':'sha256:'+'c'*64, 'base_config':'sha256:'+'d'*64,
         'builder_container_id':'e'*64, 'builder_image_id':'sha256:'+'f'*64,
-        'builder_config_sha256':'1'*64, 'recipe_sha256':recipe_sha, 'unit':unit, 'tag':tag}
-    if profile == 'npm':controlled.update(materials_manifest_sha256=report['manifest_sha256'], cache_recipe_sha256='2'*64)
+        'builder_config_sha256':'1'*64, 'recipe_sha256':recipe_sha, 'docker_bin_sha256':'3'*64,
+        'buildx_bin_sha256':'4'*64, 'unit':unit, 'tag':tag}
+    if profile == 'npm':controlled.update(materials_manifest_sha256=report['manifest_sha256'], cache_recipe_sha256='2'*64, npm_entrypoint='server.js')
+    else:controlled['cargo_binary']='app'
     binding = {'schema':'factory.build.v2','revision':revision,'baseline':baseline,'archive_sha256':source_sha,
         'diff_sha256':hashlib.sha256((stage/'diff').read_bytes()).hexdigest(),'dockerfile_sha256':recipe_sha,
         'config_digest':'sha256:'+hashlib.sha256(config).hexdigest(),
@@ -83,6 +86,9 @@ def fixture(tmp_path, monkeypatch, profile):
     names = ('image.tar','source.tar','diff','Dockerfile','build.json','build.sig','result.bundle','materials.tar')
     intent = {'unit':unit,'revision':revision,'baseline':baseline,'attempt_id':unit+':0',
               'files':{name:hashlib.sha256((stage/name).read_bytes()).hexdigest() for name in names}}
+    preflight = nuc.main('validation_transfer_preflight', {'unit':unit})
+    assert (preflight['unit'], preflight['revision'], preflight['baseline'], preflight['attempt_id']) == (unit, revision, baseline, unit+':0')
+    intent['material_verifier'] = preflight['material_verifier']
     nuc.main('validation_transfer_begin',intent)
     target = approval/'validation-inputs'
     for name in names:shutil.copyfile(stage/name,target/name)
@@ -101,6 +107,7 @@ def test_controlled_transfer_verifies_signed_material_and_original_release(tmp_p
     data=fixture(tmp_path,monkeypatch,profile)
     status=nuc.main('validation_transfer_status',{'unit':data['unit']})
     assert status['complete'] is True and status['files']['materials.tar'] is True
+    assert status['material_verifier']['release'] == str(data['release'])
     result=nuc.main('validation_verify_transfer',{'unit':data['unit']})
     assert result['verified'] is True and result['loaded'] is False
     assert result['controlled_profile'] == profile
@@ -111,7 +118,7 @@ def test_controlled_transfer_verifies_signed_material_and_original_release(tmp_p
         nuc.main('validation_transfer_begin',json.loads((data['target']/'transfer-intent.json').read_text()))
 
 
-@pytest.mark.parametrize('kind', ['missing','changed','profile','signature','legacy-extra','lock','release'])
+@pytest.mark.parametrize('kind', ['missing','changed','profile','signature','legacy-extra','lock','release','command','entrypoint'])
 def test_controlled_transfer_fails_closed_without_loading(tmp_path, monkeypatch, kind):
     data=fixture(tmp_path,monkeypatch,'npm');target=data['target'];binding=data['binding'];unit=data['unit']
     if kind == 'missing':(target/'materials.tar').unlink()
@@ -122,6 +129,18 @@ def test_controlled_transfer_fails_closed_without_loading(tmp_path, monkeypatch,
         (target/'build.sig').write_bytes(b'forged');refresh_intent(target,'build.sig')
     elif kind == 'release':
         with (data['release']/'stapled-factory/security/controlled_npm.py').open('a') as stream:stream.write('\n# changed')
+    elif kind in ('command', 'entrypoint'):
+        with tarfile.open(target/'image.tar', 'r:') as tar:
+            manifest=tar.extractfile('manifest.json').read(); config=json.load(tar.extractfile('config.json'))
+        if kind == 'command':config['config']['Cmd']=['node','/workspace/wrong.js']
+        else:config['config']['Entrypoint']=['/bin/sh','-c']
+        raw=json.dumps(config).encode()
+        with tarfile.open(target/'image.tar', 'w') as tar:
+            for name, content in [('manifest.json',manifest),('config.json',raw)]:
+                item=tarfile.TarInfo(name);item.size=len(content);tar.addfile(item,io.BytesIO(content))
+        binding['config_digest']='sha256:'+hashlib.sha256(raw).hexdigest()
+        binding['image_tar_sha256']=hashlib.sha256((target/'image.tar').read_bytes()).hexdigest()
+        data['sign'](target,binding);refresh_intent(target,'image.tar','build.json','build.sig')
     else:
         if kind == 'profile':binding['controlled']['profile']='unsupported'
         elif kind == 'legacy-extra':binding.pop('controlled')
@@ -139,6 +158,33 @@ def test_signed_controlled_build_without_original_material_intent_is_rejected(tm
     with pytest.raises(ValueError, match='materials missing'):
         nuc.main('validation_verify_transfer',{'unit':data['unit']})
     assert not (target/'load-intent.json').exists()
+
+
+def test_controlled_begin_retains_preflight_release_after_active_release_changes(tmp_path, monkeypatch):
+    data=fixture(tmp_path,monkeypatch,'npm');target=data['target'];release=data['release']
+    intent=json.loads((target/'transfer-intent.json').read_text())
+    shutil.rmtree(target)
+    other=data['root']/'releases/new-active';shutil.copytree(release,other)
+    manifest=other/'release-manifest.json';record=json.loads(manifest.read_text())
+    record['other-release'] = True;manifest.write_text(json.dumps(record))
+    monkeypatch.setattr(nuc,'release',lambda: nuc.verify_release(other))
+    assert nuc.main('validation_transfer_begin',intent) == {'created':True}
+    assert json.loads((target/'transfer-intent.json').read_text())['material_verifier'] == intent['material_verifier']
+
+
+def test_controlled_begin_rejects_mutated_pinned_release_and_preflight_requires_modules(tmp_path, monkeypatch):
+    data=fixture(tmp_path,monkeypatch,'npm');target=data['target'];release=data['release']
+    intent=json.loads((target/'transfer-intent.json').read_text())
+    shutil.rmtree(target)
+    manifest=release/'release-manifest.json';record=json.loads(manifest.read_text())
+    record['changed'] = True;manifest.write_text(json.dumps(record))
+    with pytest.raises(ValueError, match='original material verifier release changed'):
+        nuc.main('validation_transfer_begin',intent)
+    assert not target.exists()
+    record['files'].pop(nuc.MATERIAL_MODULES[0]);manifest.write_text(json.dumps(record))
+    with pytest.raises(ValueError, match='lacks material verifier modules'):
+        nuc.main('validation_transfer_preflight',{'unit':data['unit']})
+    assert not target.exists()
 
 
 def test_dispatch_status_and_missing_observation_are_read_only(tmp_path, monkeypatch):

@@ -65,8 +65,12 @@ def load_controlled_config(path):
     try:config = json.loads(raw, object_pairs_hook=unique)
     except (UnicodeDecodeError, json.JSONDecodeError) as exc:raise ValueError('invalid controlled config') from exc
     required = {'profile', 'materials_archive', 'materials_sha256', 'base_layout', 'base_manifest',
-                'builder_name', 'builder_container_id', 'builder_image_id', 'docker_host', 'docker_config'}
-    if not isinstance(config, dict) or set(config) not in (required, required | {'docker_bin'}):
+                'builder_name', 'builder_container_id', 'builder_image_id', 'docker_host', 'docker_config',
+                'docker_bin_sha256', 'buildx_bin_sha256'}
+    if not isinstance(config, dict):raise ValueError('controlled config has missing or unexpected fields')
+    runtime = {'npm_entrypoint'} if config.get('profile') == 'npm' else {'cargo_binary'}
+    required |= runtime
+    if set(config) not in (required, required | {'docker_bin'}):
         raise ValueError('controlled config has missing or unexpected fields')
     if config['profile'] not in ('npm', 'cargo'):
         raise ValueError('unsupported controlled profile')
@@ -78,9 +82,17 @@ def load_controlled_config(path):
         config[name] = value
     for name, pattern in [('materials_sha256',r'[a-f0-9]{64}'),('base_manifest',r'sha256:[a-f0-9]{64}'),
                           ('builder_container_id',r'[a-f0-9]{64}'),('builder_image_id',r'sha256:[a-f0-9]{64}'),
-                          ('builder_name',r'[a-z0-9][a-z0-9_-]{0,50}'),('docker_host',r'unix:///[^\s,]+')]:
+                          ('builder_name',r'[a-z0-9][a-z0-9_-]{0,50}'),('docker_host',r'unix:///[^\s,]+'),
+                          ('docker_bin_sha256',r'[a-f0-9]{64}'),('buildx_bin_sha256',r'[a-f0-9]{64}')]:
         if not isinstance(config[name],str) or not re.fullmatch(pattern,config[name]):
             raise ValueError('invalid controlled config '+name)
+    if config['profile'] == 'npm':
+        entry=config['npm_entrypoint']
+        if (not isinstance(entry,str) or not re.fullmatch(r'[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\.(?:js|cjs|mjs)',entry) or
+                any(part in ('.','..','.git','node_modules') for part in entry.split('/'))):
+            raise ValueError('invalid npm entrypoint')
+    elif not isinstance(config['cargo_binary'],str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',config['cargo_binary']):
+        raise ValueError('invalid Cargo binary')
     return config, hashlib.sha256(raw).hexdigest()
 
 
@@ -94,22 +106,27 @@ def controlled_preflight(config, repo, revision, archive, archive_sha256):
         return preflight_controlled(profile=config['profile'], repo=repo, revision=revision,
             source_tar=source, source_sha256=archive_sha256, materials_archive=config['materials_archive'],
             materials_sha256=config['materials_sha256'], base_layout=config['base_layout'],
-            base_manifest=config['base_manifest'], docker_bin=config['docker_bin'], docker_config=config['docker_config'],
+            base_manifest=config['base_manifest'], docker_bin=config['docker_bin'], docker_bin_sha256=config['docker_bin_sha256'],
+            buildx_bin_sha256=config['buildx_bin_sha256'], docker_config=config['docker_config'],
             docker_host=config['docker_host'], builder_name=config['builder_name'],
-            builder_container_id=config['builder_container_id'], builder_image_id=config['builder_image_id'])
+            builder_container_id=config['builder_container_id'], builder_image_id=config['builder_image_id'],
+            npm_entrypoint=config.get('npm_entrypoint'), cargo_binary=config.get('cargo_binary'))
 
 
 def validate_controlled_preflight(config, report, source_sha256):
     common = {'profile','coverage','source_sha256','materials_sha256','lock_sha256','base_manifest','base_config',
-              'builder_container_id','builder_image_id','builder_config_sha256','recipe_sha256'}
-    fields = common | ({'materials_manifest_sha256','cache_recipe_sha256'} if config['profile'] == 'npm' else set())
+              'builder_container_id','builder_image_id','builder_config_sha256','recipe_sha256','docker_bin_sha256','buildx_bin_sha256'}
+    fields = common | ({'materials_manifest_sha256','cache_recipe_sha256','npm_entrypoint'} if config['profile'] == 'npm' else {'cargo_binary'})
     if not isinstance(report,dict) or set(report) != fields:
         raise ValueError('controlled preflight report incomplete')
     for name, value in [('profile',config['profile']),('coverage','incomplete'),('source_sha256',source_sha256),
                         ('materials_sha256',config['materials_sha256']),('base_manifest',config['base_manifest']),
-                        ('builder_container_id',config['builder_container_id']),('builder_image_id',config['builder_image_id'])]:
+                        ('builder_container_id',config['builder_container_id']),('builder_image_id',config['builder_image_id']),
+                        ('docker_bin_sha256',config['docker_bin_sha256']),('buildx_bin_sha256',config['buildx_bin_sha256']),
+                        ('npm_entrypoint' if config['profile']=='npm' else 'cargo_binary',
+                         config['npm_entrypoint' if config['profile']=='npm' else 'cargo_binary'])]:
         if report.get(name) != value:raise ValueError('controlled preflight identity differs')
-    digests = ['source_sha256','materials_sha256','lock_sha256','builder_container_id','builder_config_sha256','recipe_sha256']
+    digests = ['source_sha256','materials_sha256','lock_sha256','builder_container_id','builder_config_sha256','recipe_sha256','docker_bin_sha256','buildx_bin_sha256']
     if config['profile'] == 'npm':digests += ['materials_manifest_sha256','cache_recipe_sha256']
     if (any(not isinstance(report.get(name),str) or not re.fullmatch(r'[a-f0-9]{64}',report[name]) for name in digests) or
             not isinstance(report.get('base_config'),str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',report['base_config'])):
@@ -505,7 +522,9 @@ def build_candidate(run, dockerfile, signing_key, *, controlled_config=None):
                 '--baseline', plan['baseline'], '--unit', unit, '--output-dir', str(output),
                 '--signing-key', str(signing_key)]
         for name in ('profile','materials_archive','materials_sha256','base_layout','base_manifest',
-                     'builder_name','builder_container_id','builder_image_id','docker_host','docker_config','docker_bin'):
+                     'builder_name','builder_container_id','builder_image_id','docker_host','docker_config','docker_bin',
+                     'docker_bin_sha256','buildx_bin_sha256',
+                     'npm_entrypoint' if config['profile']=='npm' else 'cargo_binary'):
             args.extend(['--'+name.replace('_','-'), config[name]])
         subprocess.run(args, check=True, timeout=2100)
     return observe_candidate_build(run)
@@ -580,6 +599,15 @@ def transfer_validation_inputs(run):
         raise ValueError('controlled materials differ from original build intent')
     data = {'unit': plan['unit'], 'attempt_id': result['attempt_id'], 'revision': result['revision'],
             'baseline': plan['baseline'], 'files': hashes}
+    if 'controlled' in build_intent:
+        preflight = remote('validation_transfer_preflight', {'unit':plan['unit']})
+        verifier = preflight.get('material_verifier') if isinstance(preflight,dict) else None
+        if (not isinstance(preflight,dict) or any(preflight.get(k) != data[k] for k in ('unit','attempt_id','revision','baseline')) or
+                not isinstance(verifier,dict) or set(verifier) != {'release','manifest_sha256'} or
+                not isinstance(verifier['release'],str) or not Path(verifier['release']).is_absolute() or
+                not isinstance(verifier['manifest_sha256'],str) or not re.fullmatch(r'[a-f0-9]{64}',verifier['manifest_sha256'])):
+            raise ValueError('controlled transfer verifier preflight differs')
+        data['material_verifier'] = verifier
     fd = os.open(intent, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, 'w') as stream:
         json.dump(data, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
@@ -599,7 +627,8 @@ def observe_validation_transfer(run):
             not isinstance(status.get('files'), dict) or set(status['files']) != set(intent['files']) or
             type(status.get('complete')) is not bool or
             any(type(value) is not bool for value in status['files'].values()) or
-            status['complete'] != all(status['files'].values())):
+            status['complete'] != all(status['files'].values()) or
+            ('material_verifier' in intent and status.get('material_verifier') != intent['material_verifier'])):
         raise ValueError('original transfer observation differs')
     return status
 

@@ -6,6 +6,7 @@ insecure entitlement and the fixed recipe uses network=none. The privileged
 BuildKit daemon's resistance to sandbox escape is not established here.
 """
 import hashlib
+import grp
 import json
 import os
 from pathlib import Path
@@ -40,6 +41,48 @@ RUN --network=none --mount=type=bind,source=source.tar,target=/factory-input/sou
     rm -rf /factory-work
 WORKDIR /workspace
 '''
+
+def npm_recipe(entrypoint):
+    if (not isinstance(entrypoint,str) or not re.fullmatch(r'[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\.(?:js|cjs|mjs)',entrypoint) or
+            any(part in ('.','..','.git','node_modules') for part in entrypoint.split('/'))):
+        raise ValueError('safe relative npm JavaScript entrypoint required')
+    return RECIPE + ('ENTRYPOINT []\nCMD ' + json.dumps(['node','/workspace/'+entrypoint],separators=(',',':')) + '\n').encode()
+
+
+def _trusted_executable(path, expected, forbidden):
+    if not isinstance(expected,str) or not re.fullmatch(r'[a-f0-9]{64}',expected):
+        raise ValueError('pinned executable digest required')
+    original = Path(path)
+    if not original.is_absolute():raise ValueError('absolute executable required')
+    target = original.resolve(strict=True)
+    roots = [Path(value).resolve() for value in forbidden]
+    if any(original.is_relative_to(root) or target.is_relative_to(root) for root in roots):
+        raise ValueError('executable inside source or workspace')
+    privileged_groups = {0}
+    try:privileged_groups.add(grp.getgrnam('admin').gr_gid)
+    except KeyError:pass
+    for chain in ((original, *original.parents),(target, *target.parents)):
+        for item in chain:
+            info = item.lstat()
+            if info.st_uid not in (0,os.getuid()):raise ValueError('untrusted executable path owner')
+            if stat.S_ISLNK(info.st_mode):continue
+            if info.st_mode & 0o002 or (info.st_mode & 0o020 and not (info.st_uid == 0 and info.st_gid in privileged_groups)):
+                raise ValueError('unsafe writable executable path')
+    fd = os.open(target,os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd,'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_size > 1024**3 or not info.st_mode & 0o111:
+            raise ValueError('unsafe Docker executable')
+        if hashlib.file_digest(stream,'sha256').hexdigest() != expected:
+            raise ValueError('Docker executable digest differs')
+    return str(target)
+
+
+def verify_docker_tools(docker, docker_config, docker_bin_sha256, buildx_bin_sha256, forbidden):
+    cli = _trusted_executable(docker,docker_bin_sha256,forbidden)
+    plugin = _trusted_executable(Path(docker_config)/'cli-plugins/docker-buildx',buildx_bin_sha256,forbidden)
+    return cli,plugin
+
 
 # npm's own cacache implementation writes the expected offline registry entries.
 # No lifecycle script or application code is invoked by cache construction.
@@ -84,7 +127,8 @@ def _copy_checked(path, dest, expected, limit):
             raise ValueError('input digest differs')
 
 
-def _source_lock(source, revision):
+def _source_lock(source, revision, entrypoint):
+    npm_recipe(entrypoint)
     with open(source, 'rb') as stream, tarfile.open(fileobj=_BoundedTarInput(stream), mode='r:') as tar:
         members = {};total = 0
         for member in tar:
@@ -101,7 +145,7 @@ def _source_lock(source, revision):
             total += member.size
             if total > MAX_SOURCE:raise ValueError('source archive too large')
             members[name] = member
-        for name in ('package.json', 'package-lock.json'):
+        for name in ('package.json', 'package-lock.json', entrypoint):
             member = members.get(name)
             if member is None or not member.isfile() or member.size > MAX_META:
                 raise ValueError('root npm package files required')
@@ -110,6 +154,9 @@ def _source_lock(source, revision):
         except (ValueError, UnicodeDecodeError) as exc:
             raise ValueError('invalid package manifest') from exc
         if not isinstance(package, dict):raise ValueError('invalid package manifest')
+        scripts = package.get('scripts', {})
+        if not isinstance(scripts,dict) or any(name in scripts for name in ('build','prepare','prestart','prepublish','prepublishOnly')):
+            raise ValueError('projects requiring build or prepare scripts are unsupported')
         return tar.extractfile(members['package-lock.json']).read()
 
 
@@ -275,8 +322,8 @@ def _verify_source_revision(repo, revision, expected):
 
 
 def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_tar, materials_sha256,
-                       base_layout, base_manifest, docker, docker_config, docker_host,
-                       builder, builder_container_id, builder_image_id, tag, output_tar):
+                       base_layout, base_manifest, docker, docker_bin_sha256, buildx_bin_sha256, docker_config, docker_host,
+                       builder, builder_container_id, builder_image_id, npm_entrypoint, tag, output_tar):
     """Produce an npm-ci image; the caller signs the returned binding separately."""
     for digest in (source_sha256, materials_sha256):
         if not isinstance(digest, str) or not re.fullmatch(r'[a-f0-9]{64}', digest):raise ValueError('pinned input digest required')
@@ -284,7 +331,7 @@ def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_t
             not re.fullmatch(r'sha256:[a-f0-9]{64}', builder_image_id) or
             not re.fullmatch(r'factory-candidate-[a-z0-9_-]+:[a-f0-9]{40}', tag) or not tag.endswith(':'+revision)):
         raise ValueError('invalid build identity')
-    if not Path(docker).is_absolute():raise ValueError('absolute Docker executable required')
+    recipe = npm_recipe(npm_entrypoint)
     output = Path(output_tar)
     if any(c in str(output.absolute()) for c in (',', '\n', '\r')):
         raise ValueError('unsafe Docker output path')
@@ -292,6 +339,8 @@ def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_t
     if not stat.S_ISDIR(parent.st_mode) or parent.st_uid != os.getuid() or parent.st_mode & 0o077:
         raise ValueError('private output directory required')
     env = {'PATH':'/usr/bin:/bin:/usr/sbin:/sbin', 'DOCKER_CONFIG':str(Path(docker_config).absolute()), 'DOCKER_HOST':docker_host}
+    forbidden = [repo,output.parent,Path(__file__).resolve().parents[2]]
+    docker_target,plugin = verify_docker_tools(docker,docker_config,docker_bin_sha256,buildx_bin_sha256,forbidden)
     _verify_source_revision(repo, revision, source_sha256)
     before, flags = _builder_config(docker_config, builder, docker_host)
     _inspect_builder(docker, builder, builder_container_id, builder_image_id, flags, env)
@@ -302,11 +351,11 @@ def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_t
         frozen = verify_frozen_npm(context/'materials.tar', materials_sha256)
         with tarfile.open(context/'materials.tar', mode='r:') as tar:
             lock = tar.extractfile('package-lock.json').read()
-        if _source_lock(context/'source.tar', revision) != lock:
+        if _source_lock(context/'source.tar', revision, npm_entrypoint) != lock:
             raise ValueError('source and frozen npm lock differ')
         base = root/'base';base.mkdir()
         base_config = _freeze_base(base_layout, base_manifest, base)
-        (context/'Dockerfile').write_bytes(RECIPE);(context/'populate.cjs').write_bytes(POPULATE)
+        (context/'Dockerfile').write_bytes(recipe);(context/'populate.cjs').write_bytes(POPULATE)
         # The output is reserved once; a failed or uncertain build remains evidence.
         fd = os.open(output, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600);os.close(fd)
         args = [docker,'buildx','build','--builder',builder,'--platform','linux/amd64','--network','none','--no-cache',
@@ -315,18 +364,21 @@ def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_t
                 '--label','factory.source-archive-sha256='+source_sha256,'--tag',tag,
                 '--provenance=false','--output','type=docker,dest='+str(output),str(context)]
         _run(args, env, timeout=1800)
+        if verify_docker_tools(docker,docker_config,docker_bin_sha256,buildx_bin_sha256,forbidden) != (docker_target,plugin):
+            raise ValueError('Docker tool identity changed')
         after, next_flags = _builder_config(docker_config, builder, docker_host)
         if after != before or next_flags != flags:raise ValueError('builder configuration changed')
         _inspect_builder(docker, builder, builder_container_id, builder_image_id, flags, env)
         # The shared verifier checks archive/config labels and streams every
         # raw or gzip layer against the uncompressed rootfs diff IDs.
         from isolated_cargo_build import verify_docker_image_archive
-        image = verify_docker_image_archive(output, tag, revision, source_sha256)
+        image = verify_docker_image_archive(output, tag, revision, source_sha256, expected_cmd=['node','/workspace/'+npm_entrypoint])
         return {'status':'isolated-npm-ci-image', 'coverage':'incomplete', 'revision':revision,
                 'source_archive_sha256':source_sha256, 'materials_archive_sha256':materials_sha256,
                 'lock_sha256':frozen['lock_sha256'], 'materials_manifest_sha256':frozen['manifest_sha256'],
                 'base_manifest':base_manifest, 'base_config':base_config,
                 'builder_container_id':builder_container_id, 'builder_image_id':builder_image_id,
-                'builder_config_sha256':before, 'recipe_sha256':hashlib.sha256(RECIPE).hexdigest(),
+                'builder_config_sha256':before, 'recipe_sha256':hashlib.sha256(recipe).hexdigest(),
+                'npm_entrypoint':npm_entrypoint,'docker_bin_sha256':docker_bin_sha256,'buildx_bin_sha256':buildx_bin_sha256,
                 'cache_recipe_sha256':hashlib.sha256(POPULATE).hexdigest(), 'image_tar_sha256':image['archive_sha256'],
                 'config_digest':image['config_digest']}

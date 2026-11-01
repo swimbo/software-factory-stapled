@@ -16,6 +16,7 @@ import stat
 import subprocess
 import tarfile
 import time
+import tomllib
 
 from controlled_cargo import _BoundedTarInput, verify_frozen_cargo
 
@@ -52,10 +53,10 @@ def _pinned_copy(source, dest, digest):
     dest.chmod(0o600)
 
 
-def _source_lock_digest(source):
+def _source_lock_digest(source, binary_name=None):
     if source.stat().st_size > MAX_SOURCE_BYTES:
         raise ValueError('source archive too large')
-    names = set(); lock = None; has_manifest = False; total = 0
+    names = set(); regular = set(); lock = None; manifest = None; total = 0
     try:
         stream = source.open('rb')
         with stream, tarfile.open(fileobj=_BoundedTarInput(stream), mode='r:') as tar:
@@ -71,18 +72,54 @@ def _source_lock_digest(source):
                 if any(re.fullmatch(r'(?:\.env(?:\..*)?|\.npmrc|id_rsa|id_ed25519|[^/]+\.(?:key|pem|p12|pfx))', part, re.I) for part in parts):
                     raise ValueError('source contains a restricted credential path')
                 names.add(canonical); total += member.size
+                if member.isfile():regular.add(canonical)
                 if total > MAX_SOURCE_BYTES:
                     raise ValueError('source archive too large')
-                if name == 'Cargo.toml' and member.isfile():has_manifest = True
+                if name == 'Cargo.toml' and member.isfile():
+                    if member.size > 1024 * 1024:raise ValueError('Cargo manifest too large')
+                    manifest = tar.extractfile(member).read()
                 if name == 'Cargo.lock':
                     if not member.isfile() or member.size > MAX_LOCK_BYTES:
                         raise ValueError('invalid source Cargo.lock')
                     lock = hashlib.file_digest(tar.extractfile(member), 'sha256').hexdigest()
     except tarfile.TarError as exc:
         raise ValueError('invalid source archive') from exc
-    if lock is None or not has_manifest:
+    if lock is None or manifest is None:
         raise ValueError('root Cargo.toml and Cargo.lock required')
+    if binary_name is not None:
+        if not isinstance(binary_name, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}', binary_name):
+            raise ValueError('invalid Cargo binary name')
+        try:document = tomllib.loads(manifest.decode('utf-8'))
+        except (UnicodeDecodeError, tomllib.TOMLDecodeError) as exc:
+            raise ValueError('invalid Cargo manifest') from exc
+        package = document.get('package')
+        if not isinstance(package, dict) or 'workspace' in document:
+            raise ValueError('only a single root Cargo package is supported')
+        binaries = document.get('bin', [])
+        if not isinstance(binaries, list) or any(not isinstance(item, dict) for item in binaries):
+            raise ValueError('invalid Cargo binary declarations')
+        matches = [item for item in binaries if item.get('name') == binary_name]
+        if len(matches) > 1:
+            raise ValueError('ambiguous Cargo binary')
+        paths = []
+        if matches and 'path' in matches[0]:
+            path = matches[0]['path']
+            if (not isinstance(path, str) or not re.fullmatch(r'[A-Za-z0-9._/-]+', path) or
+                    path.startswith('/') or any(p in ('', '.', '..') for p in path.split('/'))):
+                raise ValueError('unsafe Cargo binary path')
+            paths.append(path)
+        elif matches or package.get('autobins', True) is True:
+            if package.get('name') == binary_name:paths.append('src/main.rs')
+            paths.extend(['src/bin/' + binary_name + '.rs', 'src/bin/' + binary_name + '/main.rs'])
+        if not any(path in regular for path in paths):
+            raise ValueError('selected Cargo binary source unavailable')
     return lock
+
+
+def cargo_source_preflight(source_archive, binary_name):
+    """Validate a narrow root-package binary and report its lock digest."""
+    return {'lock_sha256': _source_lock_digest(Path(source_archive), binary_name),
+            'cargo_binary': binary_name}
 
 
 def _unique(pairs):
@@ -197,7 +234,7 @@ def _verify_git_source(repo, revision, source, timeout=120):
         process.stdout.close()
 
 
-def verify_docker_image_archive(archive, tag, revision, source_sha256):
+def verify_docker_image_archive(archive, tag, revision, source_sha256, *, expected_cmd=None):
     """Verify Docker-save labels, config and gzip or raw layer diff IDs."""
     try:
         fd = os.open(archive, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
@@ -234,6 +271,9 @@ def verify_docker_image_archive(archive, tag, revision, source_sha256):
                         labels.get('factory.git-revision') != revision or
                         labels.get('factory.source-archive-sha256') != source_sha256):
                     raise ValueError('image platform or source labels differ')
+                if expected_cmd is not None and ((config.get('config') or {}).get('Cmd') != expected_cmd or
+                        (config.get('config') or {}).get('Entrypoint') not in (None, [])):
+                    raise ValueError('image runtime command differs')
                 rootfs = config.get('rootfs') or {}; diffs = rootfs.get('diff_ids')
                 if (rootfs.get('type') != 'layers' or not isinstance(diffs, list) or
                         len(diffs) != len(image['Layers']) or
@@ -275,21 +315,24 @@ def _fsync_directory(path):
         os.close(fd)
 
 
-def _recipe(source_sha, cargo_sha):
+def _recipe(source_sha, cargo_sha, binary_name):
     return f'''FROM base
 COPY source.tar /factory-input/source.tar
 COPY cargo-inputs.tar /factory-input/cargo-inputs.tar
 RUN --network=none printf '%s  %s\\n' '{source_sha}' /factory-input/source.tar '{cargo_sha}' /factory-input/cargo-inputs.tar | sha256sum -c - && mkdir -p /factory/source /factory/cargo /factory/cargo-home && tar -xf /factory-input/source.tar -C /factory/source && tar -xf /factory-input/cargo-inputs.tar -C /factory/cargo && printf '%s\\n' '[source.crates-io]' 'replace-with = "vendored-sources"' '[source.vendored-sources]' 'directory = "/factory/cargo/vendor"' '[net]' 'offline = true' > /factory/cargo-home/config.toml
 ENV CARGO_HOME=/factory/cargo-home CARGO_NET_OFFLINE=true
 WORKDIR /factory/source
-RUN --network=none cargo build --release --locked --offline
+RUN --network=none cargo build --release --locked --offline --bin {binary_name}
+ENTRYPOINT []
+CMD ["/factory/source/target/release/{binary_name}"]
 '''.encode()
 
 
 def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source_sha256,
                           cargo_archive, cargo_sha256, base_layout, base_manifest,
                           builder_name, builder_container_id, builder_image_id,
-                          docker_host, docker_config, output_dir,
+                          docker_host, docker_config, output_dir, binary_name,
+                          docker_bin_sha256, buildx_bin_sha256,
                           docker_bin='/usr/local/bin/docker', timeout=900):
     """Build once from private copies and return incomplete evidence for signing.
 
@@ -299,9 +342,10 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
     Failures retain the output directory and never trigger an automatic retry.
     """
     # Deferred to avoid a cycle when the npm runner imports the image verifier.
-    from isolated_npm_build import (_builder_config, _freeze_base,
+    from isolated_npm_build import (_builder_config, _freeze_base, verify_docker_tools,
                                     _inspect_builder as _inspect_actual_builder)
-    for value, label in ((source_sha256, 'source'), (cargo_sha256, 'Cargo')):
+    for value, label in ((source_sha256, 'source'), (cargo_sha256, 'Cargo'),
+                         (docker_bin_sha256, 'Docker executable'), (buildx_bin_sha256, 'Buildx executable')):
         _digest(value, label)
     if not isinstance(base_manifest, str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', base_manifest):
         raise ValueError('pinned base manifest required')
@@ -309,9 +353,15 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
         raise ValueError('invalid Docker executable or timeout')
     if not isinstance(unit, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', unit):
         raise ValueError('invalid candidate unit')
+    if not isinstance(binary_name, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}', binary_name):
+        raise ValueError('invalid Cargo binary name')
     if not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{40}', revision):
         raise ValueError('exact Git revision required')
     tag = 'factory-candidate-' + unit.lower() + ':' + revision
+    original_docker = docker_bin
+    forbidden = [source_repo, output_dir, Path(__file__).resolve().parents[2]]
+    resolved_docker, plugin = verify_docker_tools(original_docker, docker_config,
+        docker_bin_sha256, buildx_bin_sha256, forbidden)
     env = _docker_env(docker_host, docker_config)
     builder_config, flags = _builder_config(docker_config, builder_name, docker_host)
     _inspect_actual_builder(docker_bin, builder_name, builder_container_id, builder_image_id, flags, env)
@@ -327,18 +377,20 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
     _pinned_copy(cargo_archive, cargo, cargo_sha256)
     _verify_git_source(source_repo, revision, source)
     cargo_report = verify_frozen_cargo(cargo, cargo_sha256)
-    if _source_lock_digest(source) != cargo_report['lock_sha256']:
+    if cargo_source_preflight(source, binary_name)['lock_sha256'] != cargo_report['lock_sha256']:
         raise ValueError('source and frozen Cargo lock differ')
     layout = output / 'base-layout'; layout.mkdir(mode=0o700)
     base_config = _freeze_base(base_layout, base_manifest, layout)
-    recipe = _recipe(source_sha256, cargo_sha256)
+    recipe = _recipe(source_sha256, cargo_sha256, binary_name)
     (context / 'Dockerfile').write_bytes(recipe)
     recipe_sha256 = hashlib.sha256(recipe).hexdigest()
     image = output / 'image.tar'; metadata = output / 'build-metadata.json'
     intent = {'revision': revision, 'tag': tag, 'source_sha256': source_sha256, 'cargo_sha256': cargo_sha256,
               'base_manifest_digest': base_manifest, 'base_config_digest': base_config,
               'builder_config_sha256': builder_config,
-              'recipe_sha256': recipe_sha256, 'builder': builder}
+              'recipe_sha256': recipe_sha256, 'builder': builder,
+              'cargo_binary': binary_name, 'docker_bin_sha256': docker_bin_sha256,
+              'buildx_bin_sha256': buildx_bin_sha256}
     with (output / 'build-intent.json').open('x') as stream:
         json.dump(intent, stream, sort_keys=True, separators=(',', ':')); stream.flush(); os.fsync(stream.fileno())
     _fsync_directory(output)
@@ -358,7 +410,11 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
     _inspect_actual_builder(docker_bin, builder_name, builder_container_id, builder_image_id, flags, env)
     if _inspect_builder(docker_bin, env, builder_name, builder_container_id, builder_image_id) != builder:
         raise ValueError('builder changed during build')
-    result = verify_docker_image_archive(image, tag, revision, source_sha256)
+    if verify_docker_tools(original_docker, docker_config, docker_bin_sha256,
+                           buildx_bin_sha256, forbidden) != (resolved_docker, plugin):
+        raise ValueError('Docker executables changed during build')
+    result = verify_docker_image_archive(image, tag, revision, source_sha256,
+        expected_cmd=['/factory/source/target/release/' + binary_name])
     # Recheck exact copied inputs after the build; concurrent same-owner writers
     # remain outside this function's trust boundary.
     for path, expected in ((source, source_sha256), (cargo, cargo_sha256)):

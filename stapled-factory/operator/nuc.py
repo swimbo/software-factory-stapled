@@ -165,12 +165,13 @@ def verify_controlled_materials(target, intent, binding, unit):
     controlled = binding.get('controlled')
     names = {'profile', 'coverage', 'source_sha256', 'materials_sha256', 'lock_sha256',
              'base_manifest', 'base_config', 'builder_container_id', 'builder_image_id',
-             'builder_config_sha256', 'recipe_sha256', 'unit', 'tag'}
+             'builder_config_sha256', 'recipe_sha256', 'docker_bin_sha256', 'buildx_bin_sha256', 'unit', 'tag'}
     if not isinstance(controlled, dict) or controlled.get('profile') not in ('npm', 'cargo'):
         raise ValueError('unsupported controlled material profile')
-    if controlled['profile'] == 'npm':names |= {'materials_manifest_sha256', 'cache_recipe_sha256'}
+    if controlled['profile'] == 'npm':names |= {'materials_manifest_sha256', 'cache_recipe_sha256', 'npm_entrypoint'}
+    else:names.add('cargo_binary')
     sha_fields = {'source_sha256', 'materials_sha256', 'lock_sha256', 'builder_container_id',
-                  'builder_config_sha256', 'recipe_sha256'}
+                  'builder_config_sha256', 'recipe_sha256', 'docker_bin_sha256', 'buildx_bin_sha256'}
     if controlled['profile'] == 'npm':sha_fields |= {'materials_manifest_sha256', 'cache_recipe_sha256'}
     digest_fields = {'base_manifest', 'base_config', 'builder_image_id'}
     if (set(controlled) != names or controlled.get('coverage') != 'incomplete' or
@@ -182,6 +183,18 @@ def verify_controlled_materials(target, intent, binding, unit):
             controlled['recipe_sha256'] != binding['dockerfile_sha256'] or
             controlled['materials_sha256'] != intent['files'].get('materials.tar')):
         raise ValueError('controlled build binding differs from signed manifest')
+    if controlled['profile'] == 'cargo':
+        binary = controlled['cargo_binary']
+        if not isinstance(binary, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}', binary):
+            raise ValueError('invalid signed Cargo binary')
+    else:
+        entry = controlled['npm_entrypoint']
+        if not isinstance(entry, str) or len(entry) > 4096:
+            raise ValueError('invalid signed npm entrypoint')
+        parts = entry.split('/')
+        if (any(not re.fullmatch(r'[A-Za-z0-9._-]+', p) or p in ('.', '..', 'node_modules', '.git') for p in parts) or
+                not entry.endswith(('.js', '.cjs', '.mjs'))):
+            raise ValueError('invalid signed npm entrypoint')
     pin = intent.get('material_verifier')
     if (not isinstance(pin, dict) or set(pin) != {'release', 'manifest_sha256'} or
             not isinstance(pin['release'], str) or not isinstance(pin['manifest_sha256'], str) or
@@ -601,10 +614,30 @@ def main(action, data):
                 labels.get('factory.git-revision') != intent['revision'] or
                 labels.get('factory.source-archive-sha256') != binding['archive_sha256']):
             raise ValueError('signed image labels or platform differ')
+        if controlled_verified:
+            controlled = binding['controlled']
+            if controlled['profile'] == 'cargo':
+                expected_cmd = ['/factory/source/target/release/' + controlled['cargo_binary']]
+            else:
+                expected_cmd = ['node', '/workspace/' + controlled['npm_entrypoint']]
+            if ((image.get('config') or {}).get('Cmd') != expected_cmd or
+                    (image.get('config') or {}).get('Entrypoint') not in (None, [])):
+                raise ValueError('signed controlled image command differs')
         return {'verified': True, 'attempt_id': intent['attempt_id'], 'revision': intent['revision'],
                 'config_digest': binding['config_digest'], 'image_tar_sha256': intent['files']['image.tar'],
                 'manifest_sha256': intent['files']['build.json'], 'tag': tag, 'loaded': False,
                 **controlled_verified}
+    if action == 'validation_transfer_preflight':
+        selected = main('validation_status', {'unit': unit})
+        if selected.get('accepted') is not False or selected.get('stage') != 'needs_validation':
+            raise ValueError('selected build no longer awaiting validation')
+        plan = json.loads((approval/'operator.json').read_text())
+        baseline = plan.get('baseline')
+        if not isinstance(baseline, str) or not re.fullmatch(r'[a-f0-9]{40}', baseline):
+            raise ValueError('original validation baseline unavailable')
+        pin = material_verifier_release(release())
+        return {'unit': unit, 'attempt_id': selected['attempt_id'], 'revision': selected['revision'],
+                'baseline': baseline, 'material_verifier': pin}
     if action in ('validation_transfer_begin', 'validation_transfer_status'):
         target = approval / 'validation-inputs'
         names = {'image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle'}
@@ -625,10 +658,16 @@ def main(action, data):
                     data.get('revision') != result.get('revision') or data.get('baseline') != plan.get('baseline')):
                 raise ValueError('validation transfer binding differs')
             if set(files) == controlled_names:
-                # Bind this attempt to the release active at original transfer;
-                # later observation must never silently switch verifier versions.
+                # Revalidate the exact preflight release, even if a different
+                # release is now active; never substitute the active release.
+                requested = data.get('material_verifier')
+                if (not isinstance(requested, dict) or set(requested) != {'release', 'manifest_sha256'} or
+                        not isinstance(requested['release'], str) or not isinstance(requested['manifest_sha256'], str) or
+                        not re.fullmatch(r'[a-f0-9]{64}', requested['manifest_sha256'])):
+                    raise ValueError('original material verifier release unavailable')
+                if requested != material_verifier_release(requested['release'], requested['manifest_sha256']):
+                    raise ValueError('original material verifier release differs')
                 data = dict(data)
-                data['material_verifier'] = material_verifier_release(release())
             target.mkdir(mode=0o700)
             private(target / 'transfer-intent.json', data)
             return {'created': True}
@@ -646,8 +685,11 @@ def main(action, data):
             else:
                 with path.open('rb') as stream:
                     matches[name] = hashlib.file_digest(stream, 'sha256').hexdigest() == expected
-        return {'complete': all(matches.values()), 'files': matches, 'expected': intent['files'], 'attempt_id': intent['attempt_id'],
-                'revision': intent['revision']}
+        result = {'complete': all(matches.values()), 'files': matches, 'expected': intent['files'],
+                  'attempt_id': intent['attempt_id'], 'revision': intent['revision']}
+        if set(intent['files']) == controlled_names:
+            result['material_verifier'] = intent['material_verifier']
+        return result
     if action == 'validation_status':
         result = json.loads((approval / 'result.json').read_text())
         if not result.get('binding_restored'):

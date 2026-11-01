@@ -30,14 +30,14 @@ def inputs(tmp_path):
         materials_sha256=hashlib.sha256(materials.read_bytes()).hexdigest(),base_layout=base,
         base_manifest='sha256:'+'a'*64,builder_name='fixture',builder_container_id='b'*64,
         builder_image_id='sha256:'+'c'*64,docker_host='unix:///tmp/test.sock',docker_config=config,
-        signing_key=key,output_dir=private/'output')
+        signing_key=key,output_dir=private/'output',docker_bin_sha256='8'*64,buildx_bin_sha256='9'*64,npm_entrypoint='server.js')
     return values,public
 
 
-def fake_image(path, tag, revision, source_sha):
+def fake_image(path, tag, revision, source_sha, cmd):
     layer=b'image layer'; diff='sha256:'+hashlib.sha256(layer).hexdigest()
     config=json.dumps({'os':'linux','architecture':'amd64','rootfs':{'type':'layers','diff_ids':[diff]},
-        'config':{'Labels':{'factory.git-revision':revision,'factory.source-archive-sha256':source_sha}}}).encode()
+        'config':{'Cmd':cmd,'Entrypoint':[],'Labels':{'factory.git-revision':revision,'factory.source-archive-sha256':source_sha}}}).encode()
     manifest=json.dumps([{'Config':'config.json','RepoTags':[tag],'Layers':['layer.tar']}]).encode()
     with tarfile.open(path,'w') as tar:
         for name,raw in [('manifest.json',manifest),('config.json',config),('layer.tar',layer)]:
@@ -48,26 +48,29 @@ def fake_image(path, tag, revision, source_sha):
 def fake_runners(monkeypatch, values, *, wrong_image=False):
     calls=[]
     def npm(**args):
-        calls.append('npm');sha,config=fake_image(args['output_tar'],args['tag'],args['revision'],args['source_sha256'])
+        calls.append('npm');sha,config=fake_image(args['output_tar'],args['tag'],args['revision'],args['source_sha256'],['node','/workspace/'+args['npm_entrypoint']])
         return {'status':'isolated-npm-ci-image','coverage':'incomplete','revision':args['revision'],
             'source_archive_sha256':args['source_sha256'],'materials_archive_sha256':args['materials_sha256'],
             'lock_sha256':'d'*64,'materials_manifest_sha256':'e'*64,'base_manifest':args['base_manifest'],
             'base_config':'sha256:'+'f'*64,'builder_container_id':args['builder_container_id'],
             'builder_image_id':args['builder_image_id'],'builder_config_sha256':'1'*64,
-            'recipe_sha256':hashlib.sha256(m.RECIPE).hexdigest(),'cache_recipe_sha256':hashlib.sha256(m.POPULATE).hexdigest(),
+            'recipe_sha256':hashlib.sha256(m.npm_recipe(args['npm_entrypoint'])).hexdigest(),'cache_recipe_sha256':hashlib.sha256(m.POPULATE).hexdigest(),
+            'npm_entrypoint':args['npm_entrypoint'],'docker_bin_sha256':args['docker_bin_sha256'],'buildx_bin_sha256':args['buildx_bin_sha256'],
             'image_tar_sha256':'0'*64 if wrong_image else sha,'config_digest':config}
     def cargo(**args):
         calls.append('cargo');out=args['output_dir'];(out/'context').mkdir(parents=True)
         recipe=b'FROM base\n';(out/'context/Dockerfile').write_bytes(recipe)
         tag='factory-candidate-'+args['unit'].lower()+':'+args['revision']
-        sha,config=fake_image(out/'image.tar',tag,args['revision'],args['source_sha256'])
+        sha,config=fake_image(out/'image.tar',tag,args['revision'],args['source_sha256'],['/factory/source/target/release/'+args['binary_name']])
         return {'status':'isolated-cargo-image-built','coverage':'incomplete','revision':args['revision'],
             'tag':tag,'source_sha256':args['source_sha256'],'cargo_sha256':args['cargo_sha256'],
             'cargo_lock_sha256':'d'*64,'base_manifest_digest':args['base_manifest'],
             'base_config_digest':'sha256:'+'f'*64,'builder_config_sha256':'1'*64,
             'recipe_sha256':hashlib.sha256(recipe).hexdigest(),'image_archive':str(out/'image.tar'),
-            'image_archive_sha256':sha,'image_config_digest':config,
+            'image_archive_sha256':sha,'image_config_digest':config,'cargo_binary':args['binary_name'],
+            'docker_bin_sha256':args['docker_bin_sha256'],'buildx_bin_sha256':args['buildx_bin_sha256'],
             'builder':{'container_id':args['builder_container_id'],'image_id':args['builder_image_id'],'network_mode':'none'}}
+    monkeypatch.setattr(m,'verify_docker_tools',lambda docker,*a:(docker,'/plugin'))
     monkeypatch.setattr(m,'isolated_npm_build',npm);monkeypatch.setattr(m,'build_cargo_candidate',cargo)
     return calls
 
@@ -75,6 +78,7 @@ def fake_runners(monkeypatch, values, *, wrong_image=False):
 @pytest.mark.parametrize('profile',['npm','cargo'])
 def test_signs_exact_runner_output_and_source(tmp_path,monkeypatch,profile):
     values,public=inputs(tmp_path);calls=fake_runners(monkeypatch,values)
+    if profile=='cargo':values.pop('npm_entrypoint');values['cargo_binary']='app'
     manifest=m.build_controlled(profile=profile,**values);out=values['output_dir']
     assert calls == [profile] and manifest['schema'] == 'factory.build.v2'
     assert manifest['controlled']['coverage'] == 'incomplete'

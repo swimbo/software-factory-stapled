@@ -1311,7 +1311,8 @@ def controlled_build_inputs(tmp_path, monkeypatch):
     config={'profile':'npm','materials_archive':str(tmp_path/'materials.tar'),'materials_sha256':'c'*64,
         'base_layout':str(tmp_path/'base'),'base_manifest':'sha256:'+'d'*64,'builder_name':'factory-builder',
         'builder_container_id':'e'*64,'builder_image_id':'sha256:'+'f'*64,
-        'docker_host':'unix:///tmp/fixture.sock','docker_config':str(tmp_path/'docker')}
+        'docker_host':'unix:///tmp/fixture.sock','docker_config':str(tmp_path/'docker'),
+        'docker_bin_sha256':'6'*64,'buildx_bin_sha256':'7'*64,'npm_entrypoint':'server.js'}
     path=tmp_path/'controlled.json';path.write_text(json.dumps(config));path.chmod(0o600)
     normalized=dict(config,docker_bin='/usr/local/bin/docker')
     plan['controlled_baseline']={'config':normalized,'config_sha256':hashlib.sha256(path.read_bytes()).hexdigest(),'report':{}}
@@ -1321,7 +1322,8 @@ def controlled_build_inputs(tmp_path, monkeypatch):
         'lock_sha256':'1'*64,'base_manifest':config['base_manifest'],'base_config':'sha256:'+'2'*64,
         'builder_container_id':config['builder_container_id'],'builder_image_id':config['builder_image_id'],
         'builder_config_sha256':'3'*64,'recipe_sha256':hashlib.sha256(recipe).hexdigest(),
-        'materials_manifest_sha256':'4'*64,'cache_recipe_sha256':'5'*64}
+        'materials_manifest_sha256':'4'*64,'cache_recipe_sha256':'5'*64,'npm_entrypoint':'server.js',
+        'docker_bin_sha256':'6'*64,'buildx_bin_sha256':'7'*64}
     plan['controlled_baseline']['report']=report
     (tmp_path/'operator.json').write_text(json.dumps(plan))
     marker=tmp_path/'controlled-dispatch-intent.json'
@@ -1420,13 +1422,18 @@ def test_controlled_transfer_binds_original_material_and_never_resends(tmp_path,
     out=tmp_path/'attested-build';out.mkdir()
     for name in ('image.tar','source.tar','diff','Dockerfile','build.json','build.sig'):(out/name).write_bytes(name.encode())
     monkeypatch.setattr(cli,'observe_candidate_build',lambda run:build)
-    monkeypatch.setattr(cli,'remote',lambda action,data:({'accepted':False,'stage':'needs_validation',
-        'attempt_id':'unit-1:0','revision':'b'*40} if action=='validation_status' else {}))
+    def remote(action,data):
+        if action == 'validation_status':return {'accepted':False,'stage':'needs_validation','attempt_id':'unit-1:0','revision':'b'*40}
+        if action == 'validation_transfer_preflight':return {'unit':'unit-1','attempt_id':'unit-1:0','revision':'b'*40,'baseline':'a'*40,
+            'material_verifier':{'release':'/fixture/release','manifest_sha256':'a'*64}}
+        return {}
+    monkeypatch.setattr(cli,'remote',remote)
     copies=[];monkeypatch.setattr(cli,'copy',lambda source,unit,name=None,receive=False:copies.append((source,name)))
     monkeypatch.setattr(cli,'observe_validation_transfer',lambda run:{'complete':True})
     assert cli.transfer_validation_inputs(tmp_path)=={'complete':True}
     intent=json.loads((tmp_path/'transfer-intent.json').read_text())
     assert intent['files']['materials.tar']==controlled['materials_sha256']
+    assert intent['material_verifier']=={'release':'/fixture/release','manifest_sha256':'a'*64}
     assert (material,'validation-inputs/materials.tar') in copies
     with pytest.raises(ValueError,match='original transfer'):cli.transfer_validation_inputs(tmp_path)
 

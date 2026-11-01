@@ -23,7 +23,7 @@ def inputs(tmp_path, monkeypatch):
     snapshot = freeze_cargo(lock, materials, vendor, tmp_path/'frozen')
     source = tmp_path/'source.tar'
     with tarfile.open(source, 'w') as tar:
-        for name, data in [('Cargo.toml', b'[package]\nname="app"\nversion="0.1.0"\n'), ('Cargo.lock', lock)]:
+        for name, data in [('Cargo.toml', b'[package]\nname="app"\nversion="0.1.0"\n'), ('Cargo.lock', lock), ('src/main.rs', b'fn main() {}')]:
             item = tarfile.TarInfo(name);item.size = len(data);tar.addfile(item, io.BytesIO(data))
     base = tmp_path/'base';base.mkdir();base_manifest = 'sha256:' + 'c'*64
     config = tmp_path/'config';config.mkdir(mode=0o700);(config/'config.json').write_text('{}')
@@ -51,7 +51,8 @@ def inputs(tmp_path, monkeypatch):
                   for i, item in enumerate(args) if i and args[i-1] == '--label'}
         layer_data = gzip.compress(b'compressed-layer-fixture')
         layer_name = 'blobs/sha256/' + hashlib.sha256(layer_data).hexdigest()
-        image = {'os': 'linux', 'architecture': 'amd64', 'config': {'Labels': labels},
+        image = {'os': 'linux', 'architecture': 'amd64', 'config': {'Labels': labels,
+                 'Cmd': ['/factory/source/target/release/app']},
                  'rootfs': {'type': 'layers', 'diff_ids': ['sha256:' + hashlib.sha256(b'compressed-layer-fixture').hexdigest()]}}
         config_data = json.dumps(image).encode();config_name = 'config.json'
         manifest = json.dumps([{'Config': config_name, 'RepoTags': [tag], 'Layers': [layer_name]}]).encode()
@@ -66,12 +67,14 @@ def inputs(tmp_path, monkeypatch):
     monkeypatch.setattr(npm_common, '_builder_config', lambda *args: ('d'*64, ['--allow-insecure-entitlement=network.host']))
     monkeypatch.setattr(npm_common, '_inspect_builder', lambda *args: None)
     monkeypatch.setattr(npm_common, '_freeze_base', lambda *args: 'sha256:'+'e'*64)
+    monkeypatch.setattr(npm_common, 'verify_docker_tools', lambda docker, *args: (docker, '/fixture/buildx'))
     params = dict(source_repo=tmp_path, revision='f'*40, unit='test',
                   source_archive=source, source_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
                   cargo_archive=snapshot['archive'], cargo_sha256=snapshot['archive_sha256'],
                   base_layout=base, base_manifest=base_manifest,
                   builder_name=name, builder_container_id=cid, builder_image_id=img,
-                  docker_host=host, docker_config=config, output_dir=tmp_path/'build')
+                  docker_host=host, docker_config=config, output_dir=tmp_path/'build', binary_name='app',
+                  docker_bin_sha256='3'*64, buildx_bin_sha256='4'*64)
     return params, state, calls
 
 
@@ -85,7 +88,10 @@ def test_fixed_offline_build_binds_inputs_and_rechecks_builder(tmp_path, monkeyp
     assert command[command.index('--network')+1] == 'none'
     assert '--no-cache' in command and not any(arg.startswith('--allow') for arg in command)
     recipe = (params['output_dir']/'context'/'Dockerfile').read_text()
-    assert 'RUN --network=none cargo build --release --locked --offline' in recipe
+    assert 'RUN --network=none cargo build --release --locked --offline --bin app' in recipe
+    assert 'ENTRYPOINT []' in recipe
+    assert 'CMD ["/factory/source/target/release/app"]' in recipe
+    assert result['cargo_binary'] == 'app' and result['docker_bin_sha256'] == '3'*64
     assert set(p.name for p in (params['output_dir']/'context').iterdir()) == {'Dockerfile', 'source.tar', 'cargo-inputs.tar'}
     assert len([c for c in calls if c[1:3] == ['buildx', 'inspect']]) == 2
     alias = tmp_path/'image-symlink.tar';alias.symlink_to(params['output_dir']/'image.tar')
@@ -118,7 +124,7 @@ def test_changed_source_and_secret_paths_rejected_before_dispatch(tmp_path, monk
     with pytest.raises(ValueError, match='restricted credential path'):build_cargo_candidate(**params)
     different = tmp_path/'different.tar'
     with tarfile.open(different, 'w') as tar:
-        for name, data in [('Cargo.toml', b'[package]'), ('Cargo.lock', b'version = 4\n')]:
+        for name, data in [('Cargo.toml', b'[package]\nname="app"\nversion="0.1.0"\n'), ('Cargo.lock', b'version = 4\n'), ('src/main.rs', b'fn main() {}')]:
             item = tarfile.TarInfo(name);item.size = len(data);tar.addfile(item, io.BytesIO(data))
     params['source_archive'] = different
     params['source_sha256'] = hashlib.sha256(different.read_bytes()).hexdigest()

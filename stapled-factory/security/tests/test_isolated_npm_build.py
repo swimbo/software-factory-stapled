@@ -30,7 +30,8 @@ def fixture(tmp_path):
         return subprocess.check_output(['git','-C',str(repo),*args]).strip()
     git('init','-q');git('config','user.name','Fixture');git('config','user.email','fixture@example.invalid')
     (repo/'package.json').write_bytes(b'{"name":"app"}');(repo/'package-lock.json').write_bytes(lock)
-    git('add','package.json','package-lock.json');git('commit','-qm','fixture')
+    (repo/'server.js').write_text('require("http").createServer().listen(8000)')
+    git('add','package.json','package-lock.json','server.js');git('commit','-qm','fixture')
     revision=git('rev-parse','HEAD').decode();source = private/'source.tar';source.write_bytes(git('archive',revision))
     base = private/'base';(base/'blobs/sha256').mkdir(parents=True)
     def blob(data, media):
@@ -52,7 +53,7 @@ def fixture(tmp_path):
         materials_tar=material_tar,materials_sha256=frozen['archive_sha256'],base_layout=base,
         base_manifest=manifest['digest'],docker='/usr/local/bin/docker',docker_config=docker_config,docker_host=host,
         builder=builder,builder_container_id=container_id,builder_image_id=image_id,
-        tag='factory-candidate-npm:'+revision,output_tar=private/'image.tar')
+        docker_bin_sha256='6'*64,buildx_bin_sha256='7'*64,npm_entrypoint='server.js',tag='factory-candidate-npm:'+revision,output_tar=private/'image.tar')
     metadata=[{'Id':container_id,'Image':image_id,'State':{'Running':True},
         'HostConfig':{'NetworkMode':'none','Binds':None},'Config':{'Entrypoint':['/usr/bin/buildkitd-entrypoint'],'Cmd':flags},
         'NetworkSettings':{'Networks':{'none':{}}},'Mounts':[{'Type':'volume','Destination':'/var/lib/buildkit'}]}]
@@ -61,6 +62,7 @@ def fixture(tmp_path):
 
 def test_fixed_offline_build_and_input_binding(tmp_path, monkeypatch):
     values, metadata, flags, _ = fixture(tmp_path);calls=[]; real_run = isolated._run
+    monkeypatch.setattr(isolated,'verify_docker_tools',lambda docker,*a:(docker,'/plugin'))
     def run(args, env, timeout=30):
         if args[0] == '/usr/bin/git':return real_run(args, env, timeout)
         calls.append(args)
@@ -72,11 +74,11 @@ def test_fixed_offline_build_and_input_binding(tmp_path, monkeypatch):
             return b''
         assert args[1:3] == ['buildx','build']
         assert '--allow' not in args and args[args.index('--network')+1] == 'none' and '--no-cache' in args
-        context=Path(args[-1]);assert (context/'Dockerfile').read_bytes() == isolated.RECIPE
+        context=Path(args[-1]);assert (context/'Dockerfile').read_bytes() == isolated.npm_recipe('server.js')
         assert '--network=none' in isolated.RECIPE.decode()
         image = Path(args[args.index('--output')+1].split('dest=',1)[1])
         layer=b'known layer bytes';diff='sha256:'+hashlib.sha256(layer).hexdigest()
-        config = json.dumps({'os':'linux','architecture':'amd64','rootfs':{'type':'layers','diff_ids':[diff]},'config':{'Labels':{
+        config = json.dumps({'os':'linux','architecture':'amd64','rootfs':{'type':'layers','diff_ids':[diff]},'config':{'Cmd':['node','/workspace/server.js'],'Entrypoint':[],'Labels':{
             'factory.git-revision':values['revision'],'factory.source-archive-sha256':values['source_sha256']}}}).encode()
         manifest = json.dumps([{'Config':'config.json','RepoTags':[values['tag']],'Layers':['layer.tar']}]).encode()
         with tarfile.open(image,'w') as tar:
@@ -103,6 +105,7 @@ def test_fixed_offline_build_and_input_binding(tmp_path, monkeypatch):
 
 def test_reject_insecure_builder_before_build(tmp_path, monkeypatch):
     values, _, _, instance = fixture(tmp_path)
+    monkeypatch.setattr(isolated,'verify_docker_tools',lambda docker,*a:(docker,'/plugin'))
     instance['Nodes'][0]['Flags'].append('--allow-insecure-entitlement=security.insecure')
     (values['docker_config']/'buildx/instances'/values['builder']).write_text(json.dumps(instance))
     real_run = isolated._run
@@ -126,11 +129,13 @@ def test_controlled_preflight_binds_frozen_material_before_dispatch(tmp_path, mo
     import controlled_preflight as preflight
     values, _, _, _ = fixture(tmp_path)
     monkeypatch.setattr(preflight, '_inspect_builder', lambda *args: None)
+    monkeypatch.setattr(preflight, 'verify_docker_tools',lambda docker,*a:(docker,'/plugin'))
     args = dict(profile='npm', repo=values['repo'], revision=values['revision'],
         source_tar=values['source_tar'], source_sha256=values['source_sha256'],
         materials_archive=values['materials_tar'], materials_sha256=values['materials_sha256'],
         base_layout=values['base_layout'], base_manifest=values['base_manifest'],
-        docker_bin=values['docker'], docker_config=values['docker_config'], docker_host=values['docker_host'],
+        docker_bin=values['docker'], docker_bin_sha256=values['docker_bin_sha256'],buildx_bin_sha256=values['buildx_bin_sha256'],
+        npm_entrypoint='server.js', docker_config=values['docker_config'], docker_host=values['docker_host'],
         builder_name=values['builder'], builder_container_id=values['builder_container_id'],
         builder_image_id=values['builder_image_id'])
     result = preflight.preflight_controlled(**args)
@@ -140,3 +145,26 @@ def test_controlled_preflight_binds_frozen_material_before_dispatch(tmp_path, mo
         stream.write(b'tamper')
     with pytest.raises(ValueError, match='digest differs'):
         preflight.preflight_controlled(**args)
+
+
+def test_npm_runtime_requires_regular_existing_source_entrypoint(tmp_path):
+    values, _, _, _ = fixture(tmp_path)
+    assert b'ENTRYPOINT []' in isolated.npm_recipe('server.js')
+    assert b'CMD ["node","/workspace/server.js"]' in isolated.npm_recipe('server.js')
+    with pytest.raises(ValueError,match='root npm package files required'):
+        isolated._source_lock(values['source_tar'],values['revision'],'missing.js')
+    with pytest.raises(ValueError,match='safe relative'):
+        isolated.npm_recipe('../server.js')
+
+
+def test_docker_and_buildx_tools_are_pinned_and_outside_source(tmp_path):
+    binary=tmp_path/'tool';binary.write_bytes(b'#!/bin/sh\nexit 0\n');binary.chmod(0o700)
+    config=tmp_path/'docker';(config/'cli-plugins').mkdir(parents=True);config.chmod(0o700)
+    (config/'cli-plugins/docker-buildx').symlink_to(binary)
+    digest=hashlib.sha256(binary.read_bytes()).hexdigest()
+    isolated.verify_docker_tools(str(binary),config,digest,digest,[tmp_path/'source'])
+    with pytest.raises(ValueError,match='inside source'):
+        isolated.verify_docker_tools(str(binary),config,digest,digest,[tmp_path])
+    binary.write_bytes(b'#!/bin/sh\nexit 1\n')
+    with pytest.raises(ValueError,match='digest differs'):
+        isolated.verify_docker_tools(str(binary),config,digest,digest,[tmp_path/'source'])
