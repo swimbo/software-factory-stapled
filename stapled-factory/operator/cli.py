@@ -347,6 +347,13 @@ def observe_candidate_build(run):
             hashlib.sha256((output / 'source.tar').read_bytes()).hexdigest() != record['archive_sha256'] or
             hashlib.sha256((output / 'Dockerfile').read_bytes()).hexdigest() != record['dockerfile_sha256']):
         raise ValueError('attested build differs from original intent')
+    if manifest.get('schema') == 'factory.build.v2':
+        with (output / 'image.tar').open('rb') as stream:
+            image_sha256 = hashlib.file_digest(stream, 'sha256').hexdigest()
+        if manifest.get('image_tar_sha256') != image_sha256:
+            raise ValueError('attested image archive differs from signed build')
+    elif manifest.get('schema') is not None:
+        raise ValueError('unsupported build manifest schema')
     return {'status': 'BUILD_OUTPUT_PRESENT', 'unit': record['unit'], 'attempt_id': record['attempt_id'],
             'revision': record['revision'], 'output': str(output), 'manifest': manifest,
             'signature_verified': False, 'image_verified': False}

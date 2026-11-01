@@ -7,6 +7,7 @@ import json
 import re
 import os
 import subprocess
+import stat
 import tarfile
 import tempfile
 import threading
@@ -404,6 +405,33 @@ def candidate_http_server(transport, transport_lock):
             server.shutdown()
         server.server_close()
 
+def verify_signed_image_archive(binding, path):
+    """Bind the retained v2 image archive to the signed config without loading it."""
+    if binding.get('schema') is None:
+        return  # Retained legacy sessions preserve their original contract.
+    if binding.get('schema') != 'factory.build.v2':
+        raise ValueError('unsupported build manifest schema')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise ValueError('unsafe signed image archive')
+        if hashlib.file_digest(stream, 'sha256').hexdigest() != binding.get('image_tar_sha256'):
+            raise ValueError('signed image archive mismatch')
+        stream.seek(0)
+        with tarfile.open(fileobj=stream, mode='r:') as tar:
+            def member(name, limit):
+                found = [entry for entry in tar.getmembers() if entry.name == name]
+                if len(found) != 1 or not found[0].isfile() or found[0].size > limit:
+                    raise ValueError('unsafe signed image metadata')
+                return tar.extractfile(found[0]).read()
+            images = json.loads(member('manifest.json', 1024 * 1024))
+            if not isinstance(images, list) or len(images) != 1 or not isinstance(images[0], dict) or not isinstance(images[0].get('Config'), str):
+                raise ValueError('ambiguous signed image')
+            config = member(images[0]['Config'], 8 * 1024 * 1024)
+            if 'sha256:' + hashlib.sha256(config).hexdigest() != binding.get('config_digest'):
+                raise ValueError('signed archive configuration mismatch')
+
+
 def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,manifest,signature,public_key, *, evidence_dir=None):
     if not re.fullmatch(r'[a-f0-9]{40}',revision):raise ValueError('exact revision required')
     if not re.fullmatch(r'sha256:[a-f0-9]{64}',image):raise ValueError('immutable local image required')
@@ -417,6 +445,7 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
     if Path(diff_file).read_bytes().rstrip(b'\n')!=diff.rstrip(b'\n'):raise ValueError('diff differs from selected commits')
     subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public_key),'-rawin','-in',str(manifest),'-sigfile',str(signature)],check=True,capture_output=True,timeout=15)
     binding=json.loads(Path(manifest).read_text())
+    verify_signed_image_archive(binding, Path(manifest).with_name('image.tar'))
     if hashlib.sha256(Path(manifest).with_name('Dockerfile').read_bytes()).hexdigest()!=binding['dockerfile_sha256']:raise ValueError('signed Dockerfile mismatch')
     if binding['revision']!=revision or binding['baseline']!=baseline or binding['archive_sha256']!=digest or binding['diff_sha256']!=hashlib.sha256(diff).hexdigest():raise ValueError('signed build source mismatch')
     scenario_digest=hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()

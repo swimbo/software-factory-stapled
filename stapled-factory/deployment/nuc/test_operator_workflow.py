@@ -292,7 +292,8 @@ def test_transfer_joins_local_and_nuc_original_files(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match='original transfer'):cli.transfer_validation_inputs(local)
 
 
-def test_verify_transferred_image_checks_real_signature_and_image_config(tmp_path, monkeypatch):
+@pytest.mark.parametrize('version', [1, 2])
+def test_verify_transferred_image_checks_real_signature_and_image_config(tmp_path, monkeypatch, version):
     import hashlib
     import io
     import tarfile
@@ -312,6 +313,8 @@ def test_verify_transferred_image_checks_real_signature_and_image_config(tmp_pat
     binding = {'revision': revision, 'baseline': baseline, 'archive_sha256': hashlib.sha256(files['source.tar']).hexdigest(),
         'diff_sha256': hashlib.sha256(files['diff']).hexdigest(), 'dockerfile_sha256': hashlib.sha256(files['Dockerfile']).hexdigest(),
         'config_digest': 'sha256:'+hashlib.sha256(config).hexdigest()}
+    if version == 2:
+        binding.update(schema='factory.build.v2', image_tar_sha256=hashlib.sha256((target/'image.tar').read_bytes()).hexdigest())
     (target/'build.json').write_text(json.dumps(binding))
     key = tmp_path/'fixture-key';public = tmp_path/'operator-build-public.pem'
     subprocess.run(['openssl', 'genpkey', '-algorithm', 'ed25519', '-out', str(key)], check=True)
@@ -349,7 +352,8 @@ def test_verify_transferred_image_checks_real_signature_and_image_config(tmp_pat
             info = tarfile.TarInfo(name);info.size = len(raw);tar.addfile(info, io.BytesIO(raw))
     intent['files']['image.tar'] = hashlib.sha256((target/'image.tar').read_bytes()).hexdigest()
     (target/'transfer-intent.json').write_text(json.dumps(intent))
-    with pytest.raises(ValueError, match='tag'):nuc.main('validation_verify_transfer', {'unit': unit})
+    with pytest.raises(ValueError, match='signed image archive' if version == 2 else 'tag'):
+        nuc.main('validation_verify_transfer', {'unit': unit})
     (target/'build.sig').write_bytes(b'forged')
     intent['files']['build.sig'] = hashlib.sha256(b'forged').hexdigest()
     (target/'transfer-intent.json').write_text(json.dumps(intent))

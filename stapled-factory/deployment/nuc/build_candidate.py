@@ -24,7 +24,8 @@ with tempfile.TemporaryDirectory(prefix='attested-build-') as temp:
  with tarfile.open(out/'image.tar') as tar:
   record=json.load(tar.extractfile('manifest.json'))
   config=tar.extractfile(record[0]['Config']).read()
- binding=dict(revision=a.revision,baseline=a.baseline,archive_sha256=hashlib.sha256(archive).hexdigest(),diff_sha256=hashlib.sha256(diff).hexdigest(),dockerfile_sha256=hashlib.sha256(dockerfile).hexdigest(),config_digest='sha256:'+hashlib.sha256(config).hexdigest())
+ with (out/'image.tar').open('rb') as stream:image_tar_sha256=hashlib.file_digest(stream,'sha256').hexdigest()
+ binding=dict(schema='factory.build.v2',image_tar_sha256=image_tar_sha256,revision=a.revision,baseline=a.baseline,archive_sha256=hashlib.sha256(archive).hexdigest(),diff_sha256=hashlib.sha256(diff).hexdigest(),dockerfile_sha256=hashlib.sha256(dockerfile).hexdigest(),config_digest='sha256:'+hashlib.sha256(config).hexdigest())
  (out/'source.tar').write_bytes(archive);(out/'diff').write_bytes(diff);(out/'Dockerfile').write_bytes(dockerfile)
  (out/'build.json').write_text(json.dumps(binding,sort_keys=True,separators=(',',':')))
  subprocess.run(['openssl','pkeyutl','-sign','-inkey',a.signing_key,'-rawin','-in',str(out/'build.json'),'-out',str(out/'build.sig')],check=True)

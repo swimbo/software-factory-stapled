@@ -123,7 +123,12 @@ received file hashes. After interruption, `transfer-status` observes the same
 intent; it never resends files. Isolated validation and signed acceptance still
 require separate operator steps; full security coverage remains incomplete.
 `verify-transfer` checks the trusted build signature, exact transferred source,
-image configuration, platform and image tag without loading or running it.
+image configuration, platform and image tag without loading or running it. New
+`factory.build.v2` manifests also sign the complete image archive digest. The
+validator checks that archive and config against the signed manifest and binds
+the manifest digest into signed validation evidence. Legacy builds and existing
+validation journals retain their original contracts. This binds artifacts; it
+does not establish a controlled build or dependency provenance.
 `load-validation` records one original load intent, refuses an existing tag,
 and verifies the loaded image's saved configuration. After an uncertain load,
 use `load-status` to observe it; do not repeat the load or delete the image.

@@ -37,7 +37,7 @@ test('validated wall receipt is signed, revision bound and stored atomically', a
     const proof = {unit_id: 'unit', attempt_id: 'unit:0', git_revision: revision,
       deployment_id: 'd'.repeat(64), artifact_digest: 'sha256:' + 'b'.repeat(64),
       scenario_digest: 'c'.repeat(64), source_archive_digest: 'e'.repeat(64),
-      checks_digest: 'f'.repeat(64), passed: true, scope: 'disposable-candidate',
+      checks_digest: 'f'.repeat(64), build_manifest_digest: '1'.repeat(64), passed: true, scope: 'disposable-candidate',
       security_engines: {sast: 'fixture'}, receipt};
     const sign = value => {
       const payload = JSON.stringify(value);
@@ -55,7 +55,9 @@ test('validated wall receipt is signed, revision bound and stored atomically', a
       assert.equal(state.stage, 'needs_validation');
       assert.equal(state.receipt, null);
     }
+    await assert.rejects(() => workUnit.object.acceptValidation(ctx, sign({...proof, build_manifest_digest: 'bad'})), /signed evidence/);
     assert.equal(await workUnit.object.acceptValidation(ctx, sign(proof)), true);
+    assert.equal(state.validation.build_manifest_digest, proof.build_manifest_digest);
     assert.deepEqual(state.receipt, receipt);
     assert.equal(state.stage, 'validated');
     assert.equal(await workUnit.object.acceptValidation(ctx, sign(proof)), false);

@@ -57,3 +57,5 @@ else: raise SystemExit(1)
     assert 'factory.git-revision=' + revision in labels
     assert 'factory.source-archive-sha256=' + digest in labels
     assert manifest['revision'] == revision and manifest['archive_sha256'] == digest
+    assert manifest['schema'] == 'factory.build.v2'
+    assert manifest['image_tar_sha256'] == hashlib.sha256((out / 'image.tar').read_bytes()).hexdigest()

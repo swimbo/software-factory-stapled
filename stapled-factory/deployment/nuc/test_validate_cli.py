@@ -39,7 +39,7 @@ def inputs(tmp_path):
               'build-signature': '/unused', 'session-dir': str(tmp_path / 'session')}
     for name, content in [('key-file', b'test-only-authority-32bytes-minimum'),
                           ('source-archive', b'exact source archive'),
-                          ('scenarios', b'private scenarios'), ('build-manifest', b'signed build')]:
+                          ('scenarios', b'private scenarios'), ('build-manifest', b'{}')]:
         path = tmp_path / name
         path.write_bytes(content)
         path.chmod(0o600)
@@ -51,9 +51,12 @@ def arguments(values):
     return [item for key, value in values.items() for item in ('--' + key, value)]
 
 
-def test_actual_http_response_loss_reconciles_without_second_validation(tmp_path, monkeypatch):
+@pytest.mark.parametrize('version', [1, 2])
+def test_actual_http_response_loss_reconciles_without_second_validation(tmp_path, monkeypatch, version):
     cli = load_cli()
     values = inputs(tmp_path)
+    if version == 2:
+        Path(values['build-manifest']).write_text(json.dumps({'schema': 'factory.build.v2'}))
     state = {'stage': 'needs_validation', 'build': {
         'status': 'completed', 'attempt_id': values['attempt'], 'git_revision': values['revision']}}
     calls = {'evaluate': 0, 'submit': 0}
@@ -104,6 +107,10 @@ def test_actual_http_response_loss_reconciles_without_second_validation(tmp_path
     try:
         receipt = cli.main(arguments(values))
         assert receipt['accepted'] is True
+        if version == 2:
+            assert receipt['evidence']['build_manifest_digest'] == hashlib.sha256(Path(values['build-manifest']).read_bytes()).hexdigest()
+        else:
+            assert 'build_manifest_digest' not in receipt['evidence']
         assert cli.main(arguments(values) + ['--observe-only']) == receipt
         assert calls == {'evaluate': 1, 'submit': 1}
     finally:

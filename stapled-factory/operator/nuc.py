@@ -439,6 +439,11 @@ def main(action, data):
                 any(binding.get(field) != intent['files'][name] for field, name in
                     [('archive_sha256', 'source.tar'), ('diff_sha256', 'diff'), ('dockerfile_sha256', 'Dockerfile')])):
             raise ValueError('signed build source differs from original transfer')
+        if binding.get('schema') == 'factory.build.v2':
+            if binding.get('image_tar_sha256') != intent['files']['image.tar']:
+                raise ValueError('signed image archive differs from original transfer')
+        elif binding.get('schema') is not None:
+            raise ValueError('unsupported build manifest schema')
         with tarfile.open(target/'image.tar') as tar:
             def member(name, limit):
                 matches = [entry for entry in tar.getmembers() if entry.name == name]

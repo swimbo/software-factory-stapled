@@ -59,6 +59,8 @@ First live probe evidence on the NUC:
 
 A local isolated BuildKit feasibility check exported an OCI image from a pinned local base with the builder network disabled; a TCP negative check failed to connect as intended. Its default policy rejected the OCI source, so the successful fixture did not use that build-time policy. The builder was privileged. A new standalone OCI archive verifier checks the pinned descriptor graph and exact archive bytes, but is not connected to receipts. This is not a provenance or release verdict; the deployment hold remains. [Evidence and limitations](../verification/delivery-lifecycle-2026-11-01/isolated-builder-spike.md).
 
+New local build manifests bind the exact Docker image archive to the operator signature; transfer and validation verify that binding, and new signed validation evidence includes the manifest digest. Legacy sessions keep their previous format. Targeted tests cover archive substitution, real signature verification, stored receipt validation and lost-response recovery. A synthetic local scratch-image build produced a v2 manifest whose signature and image archive verified; its first attempt stopped before Docker ran because the selected system Python lacked `tarfile` extraction filters. Retained fixture: `/Users/bo/.local/share/stapled-factory-release/out/signed-image-smoke-9c65afd859245f7c`. These changes are not deployed, and do not establish controlled npm/Rust build provenance or clear the deployment hold.
+
 ## Resume order
 
 1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.

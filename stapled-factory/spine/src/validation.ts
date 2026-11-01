@@ -10,6 +10,7 @@ export interface ValidationEvidence {
   security_engines: Record<string, string>;
   source_archive_digest?: string;
   checks_digest?: string;
+  build_manifest_digest?: string;
   receipt?: Receipt;
 }
 export interface SignedValidation { payload: string; signature: string }
@@ -60,6 +61,8 @@ export function verifyValidation(value: SignedValidation): ValidationEvidence {
   if ((result.source_archive_digest !== undefined || result.checks_digest !== undefined) &&
       (!/^[a-f0-9]{64}$/.test(result.source_archive_digest ?? '') ||
        !/^[a-f0-9]{64}$/.test(result.checks_digest ?? ''))) throw Error('Invalid validation check binding');
+  if (result.build_manifest_digest !== undefined &&
+      !/^[a-f0-9]{64}$/.test(result.build_manifest_digest)) throw Error('Invalid build manifest binding');
   validateReceipt(result);
   return result;
 }

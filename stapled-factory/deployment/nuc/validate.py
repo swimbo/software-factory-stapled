@@ -73,6 +73,11 @@ def main(argv=None):
                    source_archive_digest=digest(args.source_archive),
                    scenario_digest=args.expected_scenario_digest or scenario_digest,
                    build_manifest_digest=digest(args.build_manifest))
+    manifest = json.loads(Path(args.build_manifest).read_text())
+    if manifest.get('schema') == 'factory.build.v2':
+        binding['receipt_version'] = 2
+    elif manifest.get('schema') is not None:
+        raise ValueError('unsupported build manifest schema')
     directory = Path(args.session_dir)
     if args.resume_unstarted:
         if not args.resume_only or directory.name != 'validation-session' or args.expected_scenario_digest is None:

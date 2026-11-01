@@ -40,6 +40,16 @@ def result(passed=True):
                                   'cost_estimate_usd': None, 'ceiling_violation': ''}})
 
 
+def test_v2_proof_binds_manifest_and_preserves_legacy_contract():
+    original = binding()
+    assert 'build_manifest_digest' not in m.evidence(result(), original)
+    current = dict(original, receipt_version=2)
+    m.validate_binding(current)
+    assert m.evidence(result(), current)['build_manifest_digest'] == current['build_manifest_digest']
+    with pytest.raises(ValueError, match='receipt version'):
+        m.validate_binding(dict(original, receipt_version=3))
+
+
 def test_passing_receipt_requires_requests_for_each_scenario_run():
     checks = result()
     checks['wall']['receipt']['requests'] = 0

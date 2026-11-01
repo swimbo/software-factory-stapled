@@ -25,8 +25,10 @@ def read(path):
 def validate_binding(binding):
     fields = {'unit_id', 'attempt_id', 'git_revision', 'baseline', 'artifact_digest',
               'source_archive_digest', 'scenario_digest', 'build_manifest_digest'}
-    if not isinstance(binding, dict) or set(binding) != fields:
+    if not isinstance(binding, dict) or set(binding) not in (fields, fields | {'receipt_version'}):
         raise ValueError('complete immutable validation binding required')
+    if 'receipt_version' in binding and (type(binding['receipt_version']) is not int or binding['receipt_version'] != 2):
+        raise ValueError('unsupported validation receipt version')
     if not isinstance(binding['unit_id'], str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', binding['unit_id']):
         raise ValueError('invalid validation unit')
     if binding['attempt_id'] not in (binding['unit_id'] + ':0', binding['unit_id'] + ':0:successor'):
@@ -62,6 +64,8 @@ def evidence(result, binding):
                 source_archive_digest=binding['source_archive_digest'],
                 checks_digest=hashlib.sha256(canonical(result).encode()).hexdigest(),
                 scope='disposable-candidate', security_engines=result['security']['engines'], passed=passed)
+    if binding.get('receipt_version') == 2:
+        proof['build_manifest_digest'] = binding['build_manifest_digest']
     if passed:
         verdict = result['wall']['verdict']
         rate = verdict.get('aggregate_pass_rate')
