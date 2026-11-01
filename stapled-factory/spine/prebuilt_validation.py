@@ -265,6 +265,20 @@ class CandidateTransport:
             raise ValueError('validation transport response too large')
         return json.loads(result.stdout)
 
+
+@contextmanager
+def candidate_http_server(transport, transport_lock):
+    server = ThreadingHTTPServer(('127.0.0.1', 0), forwarder_handler(transport, transport_lock))
+    started = False
+    try:
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        started = True
+        yield server
+    finally:
+        if started:
+            server.shutdown()
+        server.server_close()
+
 def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,manifest,signature,public_key, *, evidence_dir=None):
     if not re.fullmatch(r'[a-f0-9]{40}',revision):raise ValueError('exact revision required')
     if not re.fullmatch(r'sha256:[a-f0-9]{64}',image):raise ValueError('immutable local image required')
@@ -297,7 +311,6 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
         raise ValueError('prebuilt source binding mismatch')
     if evidence_dir is None:
         raise ValueError('durable validation evidence directory required')
-    server=None
     with tempfile.TemporaryDirectory(prefix='prebuilt-validation-') as temp:
         source=Path(temp)/'source';source.mkdir()
         with tarfile.open(fileobj=io.BytesIO(raw)) as tar:tar.extractall(source,filter='data')
@@ -311,16 +324,12 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
             transport=CandidateTransport(container)
             transport_lock=threading.Lock()
             identity();time.sleep(.3)
-            server=ThreadingHTTPServer(('127.0.0.1',0),forwarder_handler(transport,transport_lock))
-            threading.Thread(target=server.serve_forever,daemon=True).start()
-            target='http://127.0.0.1:'+str(server.server_port)
-            try:
+            with candidate_http_server(transport, transport_lock) as server:
+                target='http://127.0.0.1:'+str(server.server_port)
                 wall=json.loads(command('python3',str(ROOT/'wall/evaluator/cli.py'),'--target',target,'--scenarios',str(scenarios),'--runs','3',timeout=180))
                 identity()
                 if hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()!=scenario_digest:raise ValueError('scenario set changed')
                 result = dict(scope='nuc-disposable-candidate',git_revision=revision,artifact_digest=metadata['Id'],deployment_id=container,source_archive_digest=digest,scenario_digest=scenario_digest,security=security,wall=wall,passed=security['verdict']=='pass' and wall['verdict']['passed'])
                 record(Path(evidence_dir) / 'checks.json', result)
-            finally:
-                server.shutdown();server.server_close()
         record(Path(evidence_dir) / 'result.json', result)
         return result
