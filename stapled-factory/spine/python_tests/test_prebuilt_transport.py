@@ -1,7 +1,7 @@
 """Candidate HTTP inputs must not be changed into misleading wall results."""
 import http.client
 import importlib.util
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from pathlib import Path
 import subprocess
 import sys
@@ -57,7 +57,9 @@ def bridge(request, monkeypatch):
         yield 'http://127.0.0.1:' + str(server.server_port), calls
     finally:
         server.shutdown();server.server_close()
-        if request.param == 'stream':
+        if request.param == 'production':
+            transport.close()
+        else:
             transport.terminate();transport.wait(timeout=5)
             transport.stdin.close();transport.stdout.close()
         candidate.shutdown();candidate.server_close()
@@ -112,3 +114,42 @@ def test_host_header_cannot_change_transport_destination(bridge):
     assert request(url, headers={'Host': 'elsewhere.invalid:1234', 'X-Api-Key': 'bad'})[0] == 200
     assert len(calls) == 1
     assert calls[0][2]['Host'] == 'elsewhere.invalid:1234'
+
+
+def test_full_wall_preserves_short_session_and_rate_window(monkeypatch):
+    """Process startup must not consume the fixture's 100ms request windows."""
+    import json
+    root = Path(__file__).resolve().parents[2]
+    target_spec = importlib.util.spec_from_file_location('bounded_wall_target', root / 'wall/target/app.py')
+    app = importlib.util.module_from_spec(target_spec)
+    target_spec.loader.exec_module(app)
+    candidate = HTTPServer(('127.0.0.1', 0), app.Handler)
+    thread = threading.Thread(target=candidate.serve_forever, daemon=True)
+    thread.start()
+    client = m.CLIENT.replace('8000', str(candidate.server_port))
+    monkeypatch.setattr(m, 'CLIENT', client)
+    launch = subprocess.Popen
+    children = []
+    def docker_exec(args, **kwargs):
+        if args[0] != 'docker':
+            return launch(args, **kwargs)
+        assert args == ['docker', 'exec', '-i', 'a'*64, 'python3', '-u', '-c', client]
+        child = launch([sys.executable, '-u', '-c', 'import time;time.sleep(.15)\n' + client], **kwargs)
+        children.append(child)
+        return child
+    monkeypatch.setattr(subprocess, 'Popen', docker_exec)
+    transport = m.CandidateTransport('a'*64)
+    try:
+        with m.candidate_http_server(transport, threading.Lock()) as server:
+            result = subprocess.run([sys.executable, str(root / 'wall/evaluator/cli.py'),
+                '--target', 'http://127.0.0.1:' + str(server.server_port),
+                '--scenarios', str(root / 'wall/holdout/scenarios.json'), '--runs', '3'],
+                check=True, capture_output=True, text=True, timeout=20)
+            wall = json.loads(result.stdout)
+            assert wall['verdict']['passed'] is True, wall['verdict']['failure_message']
+            assert wall['verdict']['aggregate_pass_rate'] == 1
+            assert len(children) == 1
+    finally:
+        transport.close()
+        candidate.shutdown();candidate.server_close();thread.join(timeout=5)
+    assert children[0].returncode is not None

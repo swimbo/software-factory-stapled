@@ -316,13 +316,25 @@ def candidate_lifecycle(evidence_dir, image):
 class CandidateTransport:
     def __init__(self, container):
         self.container = container
+        self.session = None
+        self.closed = False
 
     def exchange(self, request):
-        from validation_transport import capture
-        output = capture(
-            ['docker', 'exec', '-i', self.container, 'python3', '-u', '-c', CLIENT],
-            (json.dumps(request) + '\n').encode(), timeout=15)
-        return json.loads(output)
+        from validation_transport import Session
+        if self.closed:
+            raise ValueError('validation transport closed; original request must not be resent')
+        if self.session is None:
+            self.session = Session(['docker', 'exec', '-i', self.container, 'python3', '-u', '-c', CLIENT])
+        try:
+            return json.loads(self.session.exchange((json.dumps(request) + '\n').encode(), timeout=15))
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        self.closed = True
+        if self.session is not None:
+            self.session.close()
 
 
 @contextmanager
@@ -383,12 +395,15 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
             transport=CandidateTransport(container)
             transport_lock=threading.Lock()
             identity();time.sleep(.3)
-            with candidate_http_server(transport, transport_lock) as server:
-                target='http://127.0.0.1:'+str(server.server_port)
-                wall=json.loads(command('python3',str(ROOT/'wall/evaluator/cli.py'),'--target',target,'--scenarios',str(scenarios),'--runs','3',timeout=180))
-                identity()
-                if hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()!=scenario_digest:raise ValueError('scenario set changed')
-                result = dict(scope='nuc-disposable-candidate',git_revision=revision,artifact_digest=metadata['Id'],deployment_id=container,source_archive_digest=digest,scenario_digest=scenario_digest,security=security,wall=wall,passed=security['verdict']=='pass' and wall['verdict']['passed'])
-                record(Path(evidence_dir) / 'checks.json', result)
+            try:
+                with candidate_http_server(transport, transport_lock) as server:
+                    target='http://127.0.0.1:'+str(server.server_port)
+                    wall=json.loads(command('python3',str(ROOT/'wall/evaluator/cli.py'),'--target',target,'--scenarios',str(scenarios),'--runs','3',timeout=180))
+                    identity()
+                    if hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()!=scenario_digest:raise ValueError('scenario set changed')
+                    result = dict(scope='nuc-disposable-candidate',git_revision=revision,artifact_digest=metadata['Id'],deployment_id=container,source_archive_digest=digest,scenario_digest=scenario_digest,security=security,wall=wall,passed=security['verdict']=='pass' and wall['verdict']['passed'])
+                    record(Path(evidence_dir) / 'checks.json', result)
+            finally:
+                transport.close()
         record(Path(evidence_dir) / 'result.json', result)
         return result
