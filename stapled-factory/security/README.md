@@ -57,3 +57,13 @@ Verdict: `pass` (run dark) · `needs_review` (security-relevant / medium → hum
 ```bash
 cd security && python3 -m pytest tests -q     # or run the assertions inline
 ```
+
+## Material verification primitives
+
+`npm_materials.py` and `cargo_materials.py` check a deliberately narrow set of
+lockfile entries against archive bytes in an owner-only digest-addressed directory.
+`cargo_vendor.py` compares one vendored crate's regular files and executable
+bits with its locked archive; it reports Cargo-omitted Git metadata. These are
+point-in-time local checks. They neither freeze inputs nor attest what a builder
+consumed, publisher identity, a complete dependency inventory, or a release.
+They are not connected to the runtime validation or publication gate.
