@@ -1,0 +1,246 @@
+{
+  "schema": "factory.baseline-acceptance-audit/v2",
+  "model_trials_rerun": 0,
+  "frozen_checker_passes": 17,
+  "corrected_contract_passes": 18,
+  "corrections": [
+    "Allow explanatory JSON keys while enforcing every field the task actually requires.",
+    "Count parsed executed Python import snippets, excluding quoted heredoc data; verify observed ModuleNotFoundError."
+  ],
+  "results": [
+    {
+      "unit": "h9d-20261030-discovery-r1",
+      "task_id": "discovery",
+      "repeat": 1,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "cdc537dc27c4fe695753e14ff03af9e39309edba7413c29ea1aab4a9f8fb3e94",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-small-edit-r1",
+      "task_id": "small-edit",
+      "repeat": 1,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "cb25cf73782262e6e3a29e58e04cde7f16d7b8dca21409a1d545d4204d82254e",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-multi-file-r1",
+      "task_id": "multi-file",
+      "repeat": 1,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "893bba574570895c30adad96a025e6d5f211ba1209d00dcda518cda35114b739",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-failing-tests-r1-p2",
+      "task_id": "failing-tests",
+      "repeat": 1,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "6587699a68633c1711f575b1585b451c244e6373a8ea500c87bb5521c5e1dfde",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-noisy-output-r1",
+      "task_id": "noisy-output",
+      "repeat": 1,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "f81f20146ba825d7850fe53150bba86c617448cd0f93287874335d919ed13e70",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-stalled-run-r1",
+      "task_id": "stalled-run",
+      "repeat": 1,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "bf24b3feaf03af0dedf02699a078d374ea9a0d18975c16f5507faba6bd5fc91e",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-discovery-r2",
+      "task_id": "discovery",
+      "repeat": 2,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "2d81025e6e43c9e08829c3703302be6d29a03df5ea0a1fc04a8f2060dceb9601",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-small-edit-r2",
+      "task_id": "small-edit",
+      "repeat": 2,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "5912733070ef1200c05dcc6568655274cc6efc77dd7fe764f88106343e64a80e",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-multi-file-r2",
+      "task_id": "multi-file",
+      "repeat": 2,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "3b9aab3dde3374a25935181bc4fa38d8bdbfc76e84ddc434590498412ea0e22d",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-failing-tests-r2",
+      "task_id": "failing-tests",
+      "repeat": 2,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "57f862e4d1c41fcc0650a4c89944fd3028d794b569b0255c2343c9b1aa8d01f8",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-noisy-output-r2",
+      "task_id": "noisy-output",
+      "repeat": 2,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "bae00a4a3b79fe6613403dcd831931860eb4e8942ad07ec5aeead0ac30110f60",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-stalled-run-r2",
+      "task_id": "stalled-run",
+      "repeat": 2,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "b0f257b18141045f94b84d99bb4dde4518e3d265f274b99fa483b8e6a33f3a29",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-discovery-r3",
+      "task_id": "discovery",
+      "repeat": 3,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "7da9cdc774e62de79f0322660ef039c927f1ccef9d4814c797b5470069654360",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-small-edit-r3",
+      "task_id": "small-edit",
+      "repeat": 3,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "bf07c2d8be66e9b99f13c8e91bec6c82f51bc778ee46818e4197baa8b5aa11c8",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-multi-file-r3",
+      "task_id": "multi-file",
+      "repeat": 3,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "3f2bffc77d3d2dfe1de09b27382cebe8a85aa8c91e7f62b2b6784c15940b3f75",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-failing-tests-r3",
+      "task_id": "failing-tests",
+      "repeat": 3,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "d6b3df1f1ad8e6b01587fe0d098ecd0633bb84cc4aeef1669137e2fca85743fb",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-noisy-output-r3",
+      "task_id": "noisy-output",
+      "repeat": 3,
+      "frozen_checker_accepted": true,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "d4c25022e677ea02b8ada6b3ce795425e339674bd5086943235b1335eb198692",
+      "corrected_accepted": true
+    },
+    {
+      "unit": "h9d-20261030-stalled-run-r3",
+      "task_id": "stalled-run",
+      "repeat": 3,
+      "frozen_checker_accepted": false,
+      "corrected_artifact_check": {
+        "passed": true,
+        "exit_code": 0,
+        "timed_out": false
+      },
+      "candidate_archive_sha256": "7c6bb948bfacdf10fb5254259311734d4607c5e50c832964134a70a0caffe2fb",
+      "corrected_accepted": true
+    }
+  ]
+}

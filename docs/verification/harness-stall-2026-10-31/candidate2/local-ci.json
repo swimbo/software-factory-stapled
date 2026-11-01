@@ -1,0 +1,85 @@
+{
+  "revision": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "tree": "c69cc8a395394c62fef8847801ed57790b2ed0f3",
+  "started_at": "2026-10-31T21:26:14.564342+00:00",
+  "runner": "local",
+  "steps": [
+    {
+      "name": "secrets",
+      "command": [
+        "gitleaks",
+        "dir",
+        ".",
+        "--redact",
+        "--no-banner"
+      ],
+      "exit_code": 0,
+      "log_sha256": "62fb5ee8b415b987cbab968726e563f9da5ab0de5c5b671f8f87240fbbeb2573"
+    },
+    {
+      "name": "python",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "worker/tests",
+        "security/tests",
+        "wall/tests",
+        "wall/isolation",
+        "spine/python_tests",
+        "deployment/nuc",
+        "-q"
+      ],
+      "exit_code": 0,
+      "log_sha256": "57a97ff3a7cb95134e9805c92857073168671bbcd60c8c435d283717eb4807e1"
+    },
+    {
+      "name": "dependencies",
+      "command": [
+        "npm",
+        "ci",
+        "--ignore-scripts"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f5d52014b2a8b179e87ad7952ce6e6b923164c0cdf22d804ab433ee72fa48c51"
+    },
+    {
+      "name": "audit",
+      "command": [
+        "npm",
+        "audit",
+        "--audit-level=high"
+      ],
+      "exit_code": 0,
+      "log_sha256": "6d8c5c8f3d7684adb070417bd608d01ae90aa3dc26a65af03ffda4955f38d9a3"
+    },
+    {
+      "name": "build",
+      "command": [
+        "npm",
+        "run",
+        "build"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f78a4b179b39a62de1f139ab98ad784486d0ff3aa0a49605d3db25bf38eb470d"
+    },
+    {
+      "name": "node",
+      "command": [
+        "node",
+        "--test",
+        "tests/abandonment.test.mjs",
+        "tests/build.test.mjs",
+        "tests/endpoint.test.mjs",
+        "tests/ingress.test.mjs",
+        "tests/reconcile.test.mjs",
+        "tests/validation.test.mjs",
+        "tests/wall.test.mjs"
+      ],
+      "exit_code": 0,
+      "log_sha256": "f3dd98f361bb40429c45145af7abd47e68d2f334babfcd2ff620fdcb8c1150ec"
+    }
+  ],
+  "passed": true,
+  "finished_at": "2026-10-31T21:27:06.582536+00:00"
+}

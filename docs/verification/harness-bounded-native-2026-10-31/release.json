@@ -1,0 +1,8 @@
+{
+  "revision": "049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+  "setup": "/home/bo/.local/share/stapled-factory-control/baseline-setup/bounded-native-v1-20261031",
+  "files": 1105,
+  "manifest_sha256": "9fa09bdbd3af227d1aef74bca188a20e1fca38ea09ea598977cf2503ad39cd38",
+  "prebuilt_node_runtime_identical_to": "974aece75d62644b35b5f4e51928bb61cce140e2"
+}

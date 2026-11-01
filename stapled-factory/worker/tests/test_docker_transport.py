@@ -42,3 +42,16 @@ def test_exec_failure_does_not_expose_exception():
         with pytest.raises(DockerTransportError, match='outcome is uncertain') as exc:
             DockerTransport(ID, 'secret').request('GET', '/api/conversations/' + CONV)
         assert 'secret' not in str(exc.value)
+
+
+def test_stall_routes_are_narrow_and_cannot_restart_the_conversation():
+    from stall_runtime import DIAGNOSTIC
+    transport=DockerTransport(ID,'key')
+    with patch('docker_transport.subprocess.run',return_value=subprocess.CompletedProcess([],0,'{"ok":true,"body":{"success":true}}')) as run:
+        transport.request('POST','/api/conversations/'+CONV+'/events',{'role':'user','content':[{'type':'text','text':DIAGNOSTIC}],'run':False})
+        assert json.loads(run.call_args.kwargs['input'])['payload']['run'] is False
+        transport.request('GET','/api/conversations/'+CONV+'/events/search?limit=100&sort_order=TIMESTAMP')
+    for payload in ({'role':'system','content':[],'run':False},{'role':'user','content':[{'type':'text','text':DIAGNOSTIC}],'run':True}):
+        with pytest.raises(ValueError):transport.request('POST','/api/conversations/'+CONV+'/events',payload)
+    for path in ('/api/conversations/'+CONV+'/run','/api/conversations/'+CONV+'/events/search?limit=1000','/api/conversations/'+CONV+'/events/search?body=secret'):
+        with pytest.raises(ValueError):transport.request('GET',path)

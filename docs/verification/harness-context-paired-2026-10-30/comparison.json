@@ -1,0 +1,925 @@
+{
+  "schema": "factory.context-paired-comparison/v1",
+  "profile": "context-v1",
+  "baseline_contract_version": "contract-corrected-v2",
+  "baseline_frozen_original_accepts": 17,
+  "primary_metric": "total_prompt_tokens_including_cache_per_contract_v2_accepted_task",
+  "baseline": {
+    "trials": 18,
+    "accepted": 18,
+    "requests": 107,
+    "prompt_tokens": 1088401,
+    "input_tokens": 79889,
+    "cache_read_input_tokens": 1008512,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 19714,
+    "prompt_tokens_per_accepted_task": 60466.72222222222,
+    "requests_per_accepted_task": 5.944444444444445,
+    "cached_read_share_reported": 0.9265996631756127,
+    "median_workflow_elapsed_s": 44.451,
+    "median_agent_span_s": 12.184241,
+    "estimated_reserved_usd": 7.610171,
+    "actual_charges_usd": null,
+    "complete_responses": 107,
+    "telemetry_reservation_parity": true
+  },
+  "candidate": {
+    "trials": 18,
+    "accepted": 18,
+    "requests": 103,
+    "prompt_tokens": 605900,
+    "input_tokens": 70066,
+    "cache_read_input_tokens": 535834,
+    "cache_creation_input_tokens": 0,
+    "output_tokens": 20392,
+    "prompt_tokens_per_accepted_task": 33661.11111111111,
+    "requests_per_accepted_task": 5.722222222222222,
+    "cached_read_share_reported": 0.884360455520713,
+    "median_workflow_elapsed_s": 44.433,
+    "median_agent_span_s": 8.197934,
+    "estimated_reserved_usd": 4.843708,
+    "actual_charges_usd": null,
+    "complete_responses": 103,
+    "telemetry_reservation_parity": true
+  },
+  "primary_improvement_fraction": 0.44331179409059707,
+  "median_workflow_latency_change_fraction": -0.00040494027130999477,
+  "exploratory_six_task_cluster_bootstrap_95_improvement_interval": [
+    0.4162394225534415,
+    0.47375078234211676
+  ],
+  "actual_model_route_same_all_pairs": true,
+  "all_trial_boundaries_and_restoration_passed": true,
+  "paid_canary_passed": true,
+  "gateway_and_wire_prompt_and_request_accounting_match": true,
+  "candidate_complete_usage_all_requests": true,
+  "numeric_pilot_thresholds_passed": true,
+  "scoped_pilot_gate_passed": true,
+  "exact_provider_lane_sets_same_all_pairs": false,
+  "routing_lane_breakdown": {
+    "baseline": [
+      {
+        "provider": "ollama-flash-high",
+        "model": "deepseek-v4.1-flash:1017",
+        "served_model_or_reported_model": "deepseek-v4.1-flash:1017",
+        "requests": 81,
+        "prompt_tokens": 915279,
+        "completion_tokens": 15545,
+        "cache_read_tokens": 855168
+      },
+      {
+        "provider": "ollama-flash-low",
+        "model": "deepseek-v4.1-flash:1017",
+        "served_model_or_reported_model": "deepseek-v4.1-flash:1017",
+        "requests": 26,
+        "prompt_tokens": 173122,
+        "completion_tokens": 4169,
+        "cache_read_tokens": 153344
+      }
+    ],
+    "candidate": [
+      {
+        "provider": "ollama-flash-high",
+        "model": "deepseek-v4.1-flash:1017",
+        "served_model_or_reported_model": "deepseek-v4.1-flash:1017",
+        "requests": 78,
+        "prompt_tokens": 537725,
+        "completion_tokens": 14130,
+        "cache_read_tokens": 487546
+      },
+      {
+        "provider": "ollama-flash-low",
+        "model": "deepseek-v4.1-flash:1017",
+        "served_model_or_reported_model": "deepseek-v4.1-flash:1017",
+        "requests": 25,
+        "prompt_tokens": 68175,
+        "completion_tokens": 6262,
+        "cache_read_tokens": 48288
+      }
+    ]
+  },
+  "whole_phase_9d_5_complete": false,
+  "phase_9d_3_started": false,
+  "decision": "candidate meets scoped pilot thresholds; retain opt-in activation pending broader promotion gates and review provider-lane distributions",
+  "by_task": [
+    {
+      "task_id": "discovery",
+      "baseline_accepted": 3,
+      "candidate_accepted": 3,
+      "baseline_requests": [
+        6,
+        5,
+        7
+      ],
+      "candidate_requests": [
+        7,
+        5,
+        6
+      ],
+      "baseline_prompt_tokens": 185045,
+      "candidate_prompt_tokens": 108904,
+      "median_candidate_elapsed_s": 44.377
+    },
+    {
+      "task_id": "small-edit",
+      "baseline_accepted": 3,
+      "candidate_accepted": 3,
+      "baseline_requests": [
+        6,
+        6,
+        7
+      ],
+      "candidate_requests": [
+        6,
+        6,
+        6
+      ],
+      "baseline_prompt_tokens": 196518,
+      "candidate_prompt_tokens": 106037,
+      "median_candidate_elapsed_s": 44.953
+    },
+    {
+      "task_id": "multi-file",
+      "baseline_accepted": 3,
+      "candidate_accepted": 3,
+      "baseline_requests": [
+        5,
+        5,
+        7
+      ],
+      "candidate_requests": [
+        5,
+        5,
+        5
+      ],
+      "baseline_prompt_tokens": 172816,
+      "candidate_prompt_tokens": 85578,
+      "median_candidate_elapsed_s": 44.621
+    },
+    {
+      "task_id": "failing-tests",
+      "baseline_accepted": 3,
+      "candidate_accepted": 3,
+      "baseline_requests": [
+        6,
+        6,
+        6
+      ],
+      "candidate_requests": [
+        6,
+        6,
+        6
+      ],
+      "baseline_prompt_tokens": 183186,
+      "candidate_prompt_tokens": 109548,
+      "median_candidate_elapsed_s": 44.244
+    },
+    {
+      "task_id": "noisy-output",
+      "baseline_accepted": 3,
+      "candidate_accepted": 3,
+      "baseline_requests": [
+        6,
+        6,
+        6
+      ],
+      "candidate_requests": [
+        7,
+        6,
+        5
+      ],
+      "baseline_prompt_tokens": 181680,
+      "candidate_prompt_tokens": 106482,
+      "median_candidate_elapsed_s": 44.356
+    },
+    {
+      "task_id": "stalled-run",
+      "baseline_accepted": 3,
+      "candidate_accepted": 3,
+      "baseline_requests": [
+        6,
+        6,
+        5
+      ],
+      "candidate_requests": [
+        6,
+        5,
+        5
+      ],
+      "baseline_prompt_tokens": 169156,
+      "candidate_prompt_tokens": 89351,
+      "median_candidate_elapsed_s": 45.442
+    }
+  ],
+  "pairs": [
+    {
+      "task_id": "discovery",
+      "repeat": 1,
+      "baseline_unit": "h9d-20261030-discovery-r1",
+      "candidate_unit": "c9d1-20261030-discovery-r1",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 61401,
+      "candidate_prompt_tokens": 44554,
+      "baseline_requests": 6,
+      "candidate_requests": 7,
+      "baseline_elapsed_s": 44.429,
+      "candidate_elapsed_s": 44.13,
+      "baseline_agent_span_s": 11.396966,
+      "candidate_agent_span_s": 10.058013,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": false
+    },
+    {
+      "task_id": "small-edit",
+      "repeat": 1,
+      "baseline_unit": "h9d-20261030-small-edit-r1",
+      "candidate_unit": "c9d1-20261030-small-edit-r1",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 60168,
+      "candidate_prompt_tokens": 35373,
+      "baseline_requests": 6,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.331,
+      "candidate_elapsed_s": 44.953,
+      "baseline_agent_span_s": 10.043816,
+      "candidate_agent_span_s": 8.896553,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "multi-file",
+      "repeat": 1,
+      "baseline_unit": "h9d-20261030-multi-file-r1",
+      "candidate_unit": "c9d1-20261030-multi-file-r1",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 48783,
+      "candidate_prompt_tokens": 28745,
+      "baseline_requests": 5,
+      "candidate_requests": 5,
+      "baseline_elapsed_s": 44.51,
+      "candidate_elapsed_s": 44.621,
+      "baseline_agent_span_s": 8.584055,
+      "candidate_agent_span_s": 9.155113,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "failing-tests",
+      "repeat": 1,
+      "baseline_unit": "h9d-20261030-failing-tests-r1-p2",
+      "candidate_unit": "c9d1-20261030-failing-tests-r1",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 61127,
+      "candidate_prompt_tokens": 36267,
+      "baseline_requests": 6,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.382,
+      "candidate_elapsed_s": 44.2,
+      "baseline_agent_span_s": 12.082837,
+      "candidate_agent_span_s": 7.759785,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": false
+    },
+    {
+      "task_id": "noisy-output",
+      "repeat": 1,
+      "baseline_unit": "h9d-20261030-noisy-output-r1",
+      "candidate_unit": "c9d1-20261030-noisy-output-r1",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 60681,
+      "candidate_prompt_tokens": 43662,
+      "baseline_requests": 6,
+      "candidate_requests": 7,
+      "baseline_elapsed_s": 44.451,
+      "candidate_elapsed_s": 44.356,
+      "baseline_agent_span_s": 11.392062,
+      "candidate_agent_span_s": 9.134553,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "stalled-run",
+      "repeat": 1,
+      "baseline_unit": "h9d-20261030-stalled-run-r1",
+      "candidate_unit": "c9d1-20261030-stalled-run-r1",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 60155,
+      "candidate_prompt_tokens": 34698,
+      "baseline_requests": 6,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.451,
+      "candidate_elapsed_s": 45.442,
+      "baseline_agent_span_s": 10.866216,
+      "candidate_agent_span_s": 8.048684,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "discovery",
+      "repeat": 2,
+      "baseline_unit": "h9d-20261030-discovery-r2",
+      "candidate_unit": "c9d1-20261030-discovery-r2",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 48969,
+      "candidate_prompt_tokens": 28328,
+      "baseline_requests": 5,
+      "candidate_requests": 5,
+      "baseline_elapsed_s": 44.068,
+      "candidate_elapsed_s": 44.946,
+      "baseline_agent_span_s": 9.396506,
+      "candidate_agent_span_s": 7.421257,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "small-edit",
+      "repeat": 2,
+      "baseline_unit": "h9d-20261030-small-edit-r2",
+      "candidate_unit": "c9d1-20261030-small-edit-r2",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 61807,
+      "candidate_prompt_tokens": 35087,
+      "baseline_requests": 6,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.488,
+      "candidate_elapsed_s": 44.376,
+      "baseline_agent_span_s": 21.745353,
+      "candidate_agent_span_s": 8.450966,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "multi-file",
+      "repeat": 2,
+      "baseline_unit": "h9d-20261030-multi-file-r2",
+      "candidate_unit": "c9d1-20261030-multi-file-r2",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 48729,
+      "candidate_prompt_tokens": 28433,
+      "baseline_requests": 5,
+      "candidate_requests": 5,
+      "baseline_elapsed_s": 44.989,
+      "candidate_elapsed_s": 44.624,
+      "baseline_agent_span_s": 15.950265,
+      "candidate_agent_span_s": 7.864244,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "failing-tests",
+      "repeat": 2,
+      "baseline_unit": "h9d-20261030-failing-tests-r2",
+      "candidate_unit": "c9d1-20261030-failing-tests-r2",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 60834,
+      "candidate_prompt_tokens": 36943,
+      "baseline_requests": 6,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.364,
+      "candidate_elapsed_s": 44.244,
+      "baseline_agent_span_s": 12.285645,
+      "candidate_agent_span_s": 9.549298,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "noisy-output",
+      "repeat": 2,
+      "baseline_unit": "h9d-20261030-noisy-output-r2",
+      "candidate_unit": "c9d1-20261030-noisy-output-r2",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 60337,
+      "candidate_prompt_tokens": 35071,
+      "baseline_requests": 6,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.211,
+      "candidate_elapsed_s": 44.338,
+      "baseline_agent_span_s": 16.027134,
+      "candidate_agent_span_s": 8.347184,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": false
+    },
+    {
+      "task_id": "stalled-run",
+      "repeat": 2,
+      "baseline_unit": "h9d-20261030-stalled-run-r2",
+      "candidate_unit": "c9d1-20261030-stalled-run-r2",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 61193,
+      "candidate_prompt_tokens": 27398,
+      "baseline_requests": 6,
+      "candidate_requests": 5,
+      "baseline_elapsed_s": 44.836,
+      "candidate_elapsed_s": 45.559,
+      "baseline_agent_span_s": 24.874102,
+      "candidate_agent_span_s": 6.749957,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": false
+    },
+    {
+      "task_id": "discovery",
+      "repeat": 3,
+      "baseline_unit": "h9d-20261030-discovery-r3",
+      "candidate_unit": "c9d1-20261030-discovery-r3",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 74675,
+      "candidate_prompt_tokens": 36022,
+      "baseline_requests": 7,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.578,
+      "candidate_elapsed_s": 44.377,
+      "baseline_agent_span_s": 29.980389,
+      "candidate_agent_span_s": 9.212552,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "small-edit",
+      "repeat": 3,
+      "baseline_unit": "h9d-20261030-small-edit-r3",
+      "candidate_unit": "c9d1-20261030-small-edit-r3",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 74543,
+      "candidate_prompt_tokens": 35577,
+      "baseline_requests": 7,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 44.109,
+      "candidate_elapsed_s": 45.338,
+      "baseline_agent_span_s": 23.484078,
+      "candidate_agent_span_s": 8.356578,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": false
+    },
+    {
+      "task_id": "multi-file",
+      "repeat": 3,
+      "baseline_unit": "h9d-20261030-multi-file-r3",
+      "candidate_unit": "c9d1-20261030-multi-file-r3",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 75304,
+      "candidate_prompt_tokens": 28400,
+      "baseline_requests": 7,
+      "candidate_requests": 5,
+      "baseline_elapsed_s": 44.598,
+      "candidate_elapsed_s": 44.418,
+      "baseline_agent_span_s": 15.312288,
+      "candidate_agent_span_s": 7.095363,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": false
+    },
+    {
+      "task_id": "failing-tests",
+      "repeat": 3,
+      "baseline_unit": "h9d-20261030-failing-tests-r3",
+      "candidate_unit": "c9d1-20261030-failing-tests-r3",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 61225,
+      "candidate_prompt_tokens": 36338,
+      "baseline_requests": 6,
+      "candidate_requests": 6,
+      "baseline_elapsed_s": 45.411,
+      "candidate_elapsed_s": 44.448,
+      "baseline_agent_span_s": 22.860051,
+      "candidate_agent_span_s": 7.543163,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    },
+    {
+      "task_id": "noisy-output",
+      "repeat": 3,
+      "baseline_unit": "h9d-20261030-noisy-output-r3",
+      "candidate_unit": "c9d1-20261030-noisy-output-r3",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 60662,
+      "candidate_prompt_tokens": 27749,
+      "baseline_requests": 6,
+      "candidate_requests": 5,
+      "baseline_elapsed_s": 44.145,
+      "candidate_elapsed_s": 45.007,
+      "baseline_agent_span_s": 11.012909,
+      "candidate_agent_span_s": 7.835219,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-high",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ],
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": false
+    },
+    {
+      "task_id": "stalled-run",
+      "repeat": 3,
+      "baseline_unit": "h9d-20261030-stalled-run-r3",
+      "candidate_unit": "c9d1-20261030-stalled-run-r3",
+      "baseline_accepted": true,
+      "candidate_accepted": true,
+      "baseline_prompt_tokens": 47808,
+      "candidate_prompt_tokens": 27255,
+      "baseline_requests": 5,
+      "candidate_requests": 5,
+      "baseline_elapsed_s": 44.459,
+      "candidate_elapsed_s": 44.273,
+      "baseline_agent_span_s": 9.431749,
+      "candidate_agent_span_s": 6.935161,
+      "actual_route_same": true,
+      "baseline_routes": [
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "candidate_routes": [
+        [
+          "ollama-flash-low",
+          "deepseek-v4.1-flash:1017",
+          "deepseek-v4.1-flash:1017"
+        ]
+      ],
+      "exact_provider_lane_sets_same": true
+    }
+  ],
+  "limitations": [
+    "Historical paired run order, not randomized concurrent evaluation",
+    "One paid canary warmed candidate prefix; total prompt tokens is primary, avoiding uncached-only savings claims",
+    "Six development tasks and three repeats each, not private heldout or production acceptance",
+    "Combined profile; individual mechanism attribution was not evaluated",
+    "Actual billing unknown; all failed/exhausted trial consumption included",
+    "Gateway model identifiers are not independent model-weight attestations; high/low provider-lane distributions are reported separately"
+  ],
+  "descriptive_matched_provider_lane_set_subset": {
+    "pairs": 11,
+    "baseline_prompt_tokens": 633834,
+    "candidate_prompt_tokens": 370884,
+    "baseline_accepted": 11,
+    "candidate_accepted": 11,
+    "note": "Descriptive subset only; no primary-data exclusions or causal claim. Equal lane sets do not mean identical per-request distributions/settings."
+  },
+  "paired_factory_capture_actions": 0,
+  "uncached_input_improvement_fraction": 0.12295810436981314
+}

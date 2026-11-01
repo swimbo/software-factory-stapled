@@ -1,0 +1,34 @@
+{
+  "schema": "factory.heldout-contract-reconciliation/v1",
+  "original_frozen_scores_preserved": true,
+  "original_trials_sha256": "f7c0fca6a3e598df20d4cb8ba9a27cfaf0c1521ce8a09f173dff20a1cdb84ae0",
+  "changes": [
+    {
+      "unit": "s9d5-06-1",
+      "frozen_strict_accepted": false,
+      "contract_reconciled_accepted": true,
+      "basis": "Required JSON fields/types and independently confirmed original executed import/output; extra JSON keys and trailing shell echo are permitted by task wording."
+    },
+    {
+      "unit": "s9d5-06-0",
+      "frozen_strict_accepted": false,
+      "contract_reconciled_accepted": true,
+      "basis": "Required JSON fields/types and independently confirmed original executed import/output; extra JSON keys and trailing shell echo are permitted by task wording."
+    },
+    {
+      "unit": "s9d5-06-2",
+      "frozen_strict_accepted": false,
+      "contract_reconciled_accepted": true,
+      "basis": "Required JSON fields/types and independently confirmed original executed import/output; extra JSON keys and trailing shell echo are permitted by task wording."
+    },
+    {
+      "unit": "s9d5-06-3",
+      "frozen_strict_accepted": false,
+      "contract_reconciled_accepted": true,
+      "basis": "Required JSON fields/types and independently confirmed original executed import/output; extra JSON keys and trailing shell echo are permitted by task wording."
+    }
+  ],
+  "model_or_tool_reruns": 0,
+  "scope": "Read-only as-written acceptance appendix; no candidate or task changes, no publication/merge/deploy authority",
+  "automatic_promotion": false
+}

@@ -1,0 +1,56 @@
+{
+  "schema": "factory.canary-collector-followup/v1",
+  "status": "complete",
+  "verdict": "One-line nonterminal-reconciliation fix independently validated for next scoped trial",
+  "original_review_preserved": true,
+  "previous_finding_followup_preserved": true,
+  "scope": "Remove needs_reconciliation from polling terminal stages; one new regression. No runtime/model/profile/task-answer optimization or whole review rerun.",
+  "finding": {
+    "cause": "needs_reconciliation is a pending original-attempt stage, not proof that SDK stopped. Previous collector immediately cancelled a healthy original namespace on its first ambiguous build result.",
+    "fix": "Continue GET-only original WorkUnit observation through this stage up to the existing240-second operator limit. Only needs_validation/validated/failed terminate the ordinary wait early. Existing original-allocation stop/fence and no-redispatch boundaries retained."
+  },
+  "source_evidence": [
+    {
+      "path": "stapled-factory/spine/src/orchestrate.ts",
+      "lines": "67-82",
+      "observation": "unknown/blocked build persists original conversation and transitions needs_reconciliation; unknown sends keyed reconcileBuild workflow."
+    },
+    {
+      "path": "stapled-factory/spine/src/orchestrate.ts",
+      "lines": "123-141",
+      "observation": "reconcileBuild polls original reconciliation at most20times with30-second sleeps; completed exact original identity transitions through completeReconciliation; unknown means unresolved effects."
+    },
+    {
+      "path": "stapled-factory/spine/src/build.ts",
+      "lines": "49-50",
+      "observation": "reconcileBuildStep invokes worker reconcile mode, not build mode."
+    }
+  ],
+  "validation": {
+    "scoped_pytest": "67 passed in0.36s on independently invoked evaluation suite",
+    "negative_control": "In-memory faithful old collector with only removed terminal stage restored failed the new actual run() regression: active SDK was cancelled before read-only reconciliation completed. Fixed source passed same test. Shared repository source unchanged by reviewer.",
+    "one_dispatch_proven": true,
+    "existing_operator_limit_unchanged": 240,
+    "existing_paid_attempt_never_rerun": true
+  },
+  "failed_canary_interpretation": {
+    "source": "parent-provided operational receipt; no live infrastructure read by reviewer",
+    "retained_first_failed_trial": true,
+    "requests": 2,
+    "estimated_reserved_usd": 0.09399,
+    "input_token_coverage": "unknown; must remain unknown",
+    "remaining_preregistered_units": 23,
+    "next_scoped_trial": "Original scheduled context expiry, not a replacement or extra unit",
+    "promotion": "Missing primary metric coverage retains baseline; do not omit failed sample or claim uniform collector epoch."
+  },
+  "sha256": {
+    "stapled-factory/deployment/nuc/evaluation_trials.py": "3e590f0bf1ce5635ebfe22ce4b425662245a233e8e6b4db894ebf99f47a56dc5",
+    "stapled-factory/deployment/nuc/test_evaluation_recovery.py": "d7bd8e6c074ba949f49752ec2fcffb4639240ba9387a942f0932b9e89c953a3b"
+  },
+  "limits": [
+    "Offline focused validation only; no claim next live canary or all24trials passed.",
+    "The first failed sample and collector epoch change must remain in report and all consumption totals.",
+    "Parent must run exact source checks/sign updated collector inputs before further inference."
+  ],
+  "completed_at": "2026-11-01T02:15:29.585959+00:00"
+}

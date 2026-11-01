@@ -1,0 +1,76 @@
+{
+  "status": "complete",
+  "verdict": "Ready to merge",
+  "scope": {
+    "base": "ad70b75",
+    "branch": "codex/phase9d-native-batching",
+    "head_sha": "ad70b75c3f86e1c8319edf3c529399fdc94dfa83",
+    "pr_url": null,
+    "files_changed": 3,
+    "working_tree_delta": true,
+    "source_hashes": {
+      "stapled-factory/worker/STALL_PROFILE.md": "a480875fcf425e2045281110b479119790925f8e378ef48b9cb1bc92cbdfa864",
+      "stapled-factory/worker/stall_runtime.py": "ac07652599ed7d4cf12e81def47aee46691db383421a57729b26a8c2f9a98fe6",
+      "stapled-factory/worker/tests/test_stall_runtime.py": "8bc0a74168b2f56e067935bc5e2da80f94502fd93adff0ce6ce21169f5c3337c"
+    }
+  },
+  "intent": "Prevent diagnostic delivery to an SDK loop already observed inactive, preserve independently verified completion at terminal boundaries, and contain an inactive post-delivery loop without /run, retry or resume. Use a versioned three-failure/four-second runtime policy while retaining the one-shot intent and original allocation lifecycle.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "adversarial"
+  ],
+  "findings": [],
+  "actionable_findings": [],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "requirements_completeness": {
+    "scope": "Material live-SDK active-loop race correction only; prior Phase9d4 implementation remains covered by its full review and finding followup.",
+    "requirements": [
+      {
+        "requirement": "Never automatically resume an inactive loop or create another attempt; preserve unknown/reconciliation status.",
+        "status": "met",
+        "evidence": "Ready GET gates the initial intent; inactive states reread verified completion or cancel original deadline. Diagnostic POST retains run=false and durable one-shot claim."
+      },
+      {
+        "requirement": "Use actual pinned SDK/provider capabilities, without guessing run=false semantics.",
+        "status": "met",
+        "evidence": "Actual packaged bytecode contract receipt inspected: RUNNING remains unchanged, FINISHED/STUCK reset IDLE, run=false does not schedule a run."
+      }
+    ],
+    "intentional_pending_gate": "Fresh scoped canary must establish active-loop consumption; no claim about the first canary or production promotion."
+  },
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "The running-state GET and diagnostic POST cannot be atomic through the pinned API. A terminal transition between them remains possible; post-delivery inactivity is conservatively fenced without resuming or claiming consumption.",
+    "Active-loop diagnostic consumption still requires a fresh scoped canary. Original paid attempt remains retained and must not be redispatched or resumed."
+  ],
+  "testing_gaps": [],
+  "coverage": {
+    "depth": "focused",
+    "notes": [
+      "26 executable non-test changed lines,56 total changed lines,3 files; no hard full-review floor. Silent SDK lifecycle ordering warrants focused correctness plus independent adversarial read; no identity/permission, budget or external response contract was changed.",
+      "Exact three-file delta against ad70b75 only; all reviewed source hashes verified unchanged at completion.",
+      "One independent local adversarial reviewer completed; no other reviewer agents or validator ran.",
+      "All12 current stall_runtime cases passed independently, including inactive-before-send, inactive-after-delivery and verified terminal-boundary completion.",
+      "Additional read-only callback probe independently exercised the post-delivery second-read completion branch: one diagnostic, zero fences, verified completion retained.",
+      "Actual sdk-send-message-contract.json was read; no remote/Docker/model actions were executed during this review.",
+      "Successful empty criteria/policy search; no declared packs. Learnings, agent-native gaps and deployment notes were not independently assessed on this focused delta.",
+      "adversarial lens: in-process fallback (cross-model peer not run: caller prohibited external model calls)."
+    ],
+    "review_policy": {
+      "sources": [],
+      "removed": 0,
+      "regraded": 0,
+      "not_applied": []
+    }
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "adversarial lens: in-process fallback (cross-model peer not run: caller prohibited external model calls)."
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/stall-active-loop-ad70",
+  "run_id": "stall-active-loop-ad70"
+}

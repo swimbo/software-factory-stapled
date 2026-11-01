@@ -1,0 +1,15 @@
+{
+  "image_id": "sha256:53af2b513c1f7449965884f07572d40fa3741232a7174019201cb114a4e1d4fe",
+  "platform": "linux/amd64",
+  "packages": 106,
+  "same_package_versions_as_prior_accepted_proxy": true,
+  "vulnerability_counts": {
+    "LOW": 97,
+    "HIGH": 100,
+    "MEDIUM": 137,
+    "UNKNOWN": 4,
+    "CRITICAL": 3
+  },
+  "scan_sha256": "5f4b9d888db6c9f20aaba7b0ad94465ec879a395b0b43ef50fa701bcb8a98fd4",
+  "acceptance_scope": "18 explicitly authorized disposable baseline tasks; unchanged package inventory and existing documented sandbox residuals; no production promotion"
+}

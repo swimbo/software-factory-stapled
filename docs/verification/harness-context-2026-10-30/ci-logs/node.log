@@ -1,0 +1,160 @@
+TAP version 13
+# Subtest: operator signature is required and cannot cross from image approval domain
+ok 1 - operator signature is required and cannot cross from image approval domain
+  ---
+  duration_ms: 67.578708
+  type: 'test'
+  ...
+# Subtest: abandoned state cannot be reclaimed, reconciled, restarted or transitioned
+ok 2 - abandoned state cannot be reclaimed, reconciled, restarted or transitioned
+  ---
+  duration_ms: 0.287208
+  type: 'test'
+  ...
+# Subtest: worker crash returns a deterministic unknown identity instead of retrying dispatch
+ok 3 - worker crash returns a deterministic unknown identity instead of retrying dispatch
+  ---
+  duration_ms: 369.776666
+  type: 'test'
+  ...
+# Subtest: requires a durable absolute attempt store before launching a worker
+ok 4 - requires a durable absolute attempt store before launching a worker
+  ---
+  duration_ms: 0.152875
+  type: 'test'
+  ...
+# Subtest: passes the stable attempt identity and durable store to the worker
+ok 5 - passes the stable attempt identity and durable store to the worker
+  ---
+  duration_ms: 255.079791
+  type: 'test'
+  ...
+# Subtest: SDK endpoint requires a key and rejects unsigned requests
+ok 6 - SDK endpoint requires a key and rejects unsigned requests
+  ---
+  duration_ms: 171.837709
+  type: 'test'
+  ...
+# Subtest: ingress credential must be an owner-only regular file
+ok 7 - ingress credential must be an owner-only regular file
+  ---
+  duration_ms: 2.60675
+  type: 'test'
+  ...
+# Subtest: local ingress authenticates and forwards only approved methods without forwarding credentials
+ok 8 - local ingress authenticates and forwards only approved methods without forwarding credentials
+  ---
+  duration_ms: 12.983125
+  type: 'test'
+  ...
+# Subtest: state cannot skip validation or accept caller receipts
+ok 9 - state cannot skip validation or accept caller receipts
+  ---
+  duration_ms: 0.428625
+  type: 'test'
+  ...
+# Subtest: atomic recovered result cannot overwrite another attempt or a later stage
+ok 10 - atomic recovered result cannot overwrite another attempt or a later stage
+  ---
+  duration_ms: 0.482625
+  type: 'test'
+  ...
+# Subtest: repeatable observation rejects a different stored conversation before contacting worker
+ok 11 - repeatable observation rejects a different stored conversation before contacting worker
+  ---
+  duration_ms: 0.484208
+  type: 'test'
+  ...
+# Subtest: reconciliation rejects missing original recovery context
+ok 12 - reconciliation rejects missing original recovery context
+  ---
+  duration_ms: 0.31175
+  type: 'test'
+  ...
+# Subtest: reconciliation rejects a conversation belonging to another attempt
+ok 13 - reconciliation rejects a conversation belonging to another attempt
+  ---
+  duration_ms: 0.206583
+  type: 'test'
+  ...
+# Subtest: unknown reconciliation only polls the same attempt and cannot dispatch
+ok 14 - unknown reconciliation only polls the same attempt and cannot dispatch
+  ---
+  duration_ms: 466.12125
+  type: 'test'
+  ...
+# Subtest: blocked reconciliation stops without claiming completion or sleeping
+ok 15 - blocked reconciliation stops without claiming completion or sleeping
+  ---
+  duration_ms: 239.59275
+  type: 'test'
+  ...
+# Subtest: recovered revision is held until wall target is bound to it
+ok 16 - recovered revision is held until wall target is bound to it
+  ---
+  duration_ms: 157.821458
+  type: 'test'
+  ...
+# Subtest: newly completed build cannot validate an unbound target
+ok 17 - newly completed build cannot validate an unbound target
+  ---
+  duration_ms: 103.884
+  type: 'test'
+  ...
+# Subtest: blocked build retains identity; uncertain build schedules reconciliation
+ok 18 - blocked build retains identity; uncertain build schedules reconciliation
+  ---
+  duration_ms: 121.743791
+  type: 'test'
+  ...
+# Subtest: successor reservation excludes late source completion and rejects conflicting result
+ok 19 - successor reservation excludes late source completion and rejects conflicting result
+  ---
+  duration_ms: 1.167583
+  type: 'test'
+  ...
+# Subtest: unavailable successor preflight leaves original state retryable and performs no effect
+ok 20 - unavailable successor preflight leaves original state retryable and performs no effect
+  ---
+  duration_ms: 102.439
+  type: 'test'
+  ...
+# Subtest: preflight and dispatch use the worker CLI with the stored recovery identity
+ok 21 - preflight and dispatch use the worker CLI with the stored recovery identity
+  ---
+  duration_ms: 230.10925
+  type: 'test'
+  ...
+# Subtest: unknown successor is observed without redispatch and only its revision is accepted
+ok 22 - unknown successor is observed without redispatch and only its revision is accepted
+  ---
+  duration_ms: 135.506459
+  type: 'test'
+  ...
+# Subtest: successor reconciliation rejects a wrong identity and a stale state
+ok 23 - successor reconciliation rejects a wrong identity and a stale state
+  ---
+  duration_ms: 0.402958
+  type: 'test'
+  ...
+# Subtest: signed validation rejects substitution, tamper, failed verdict and replay
+ok 24 - signed validation rejects substitution, tamper, failed verdict and replay
+  ---
+  duration_ms: 5.887667
+  type: 'test'
+  ...
+# Subtest: wall invocation defaults to triple runs and preserves explicit run count
+ok 25 - wall invocation defaults to triple runs and preserves explicit run count
+  ---
+  duration_ms: 151.468625
+  type: 'test'
+  ...
+1..25
+# tests 25
+# suites 0
+# pass 25
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1640.81775

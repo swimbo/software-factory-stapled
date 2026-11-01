@@ -1,0 +1,18 @@
+{
+  "schema": "factory.stall-qualification/v1",
+  "source_revision": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "offline_python_tests": 586,
+  "offline_python_subtests": 12,
+  "node_tests": 25,
+  "final_canary_accepted": true,
+  "source_candidates": 2,
+  "initial_failed_canary_consumption_retained": true,
+  "total_canary_gateway_requests": 18,
+  "total_estimated_reserved_usd": 0.919142,
+  "actual_charges_usd": null,
+  "original_attempt_redispatches": 0,
+  "sdk_resumes": 0,
+  "reservation_resets": 0,
+  "broader_profile_promotion": false,
+  "phase_9d_5_started": false
+}

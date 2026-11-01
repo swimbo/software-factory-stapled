@@ -1,0 +1,99 @@
+{
+  "status": "complete",
+  "verdict": "Ready to merge",
+  "scope": {
+    "base": "049e51a",
+    "branch": "codex/phase9d-native-batching",
+    "head_sha": "049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+    "pr_url": null,
+    "files_changed": 5,
+    "explicit_untracked_code_scope": true
+  },
+  "intent": "Publish reproducible offline comparison and operator preservation/checkpoint-hash helpers for the completed bounded experiment; preserve unknown usage, honest denominators and safe bounded file collection without changing production runtime.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "security",
+    "testing",
+    "reliability",
+    "adversarial"
+  ],
+  "findings": [],
+  "actionable_findings": [],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "requirements_completeness": null,
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "Checkpoint hashing relies on the stated precondition that both original namespaces are stopped and the host operator remains trusted; it does not establish an atomic snapshot against a concurrent privileged host writer.",
+    "Remote collection and final preservation were reviewed statically; no SSH, Docker, model calls, or live state checks were executed."
+  ],
+  "testing_gaps": [
+    "test_checkpoint_evidence.py:13 checks only aggregate digest length. Add an independent expected digest for the fixture and a same-length content-change case; a constant 64-character digest currently passes although retained checkpoint integrity would be lost.",
+    "checkpoint_evidence.py aggregate MAX_TOTAL and depth rejection branches have no dedicated cases. Exercise many individually legal files exceeding MAX_TOTAL and a directory chain exceeding depth 16; these enforce limits not covered by the existing single-file and node-count cases."
+  ],
+  "resolved_before_final_target": [
+    {
+      "title": "Resolve collector inputs from the evidence directory",
+      "severity": "P2",
+      "file": "docs/verification/harness-bounded-native-2026-10-31/operator/collect_final.py",
+      "line": 2,
+      "status": "resolved by caller",
+      "verification": "Merge leaf verified final source SHA256 and AST-only out expression resolving published schedule/trials; no SSH executed."
+    }
+  ],
+  "coverage": {
+    "depth": "full",
+    "independent_reviewers": [
+      "correctness",
+      "security",
+      "testing"
+    ],
+    "inline_reviewers": [
+      "reliability",
+      "adversarial"
+    ],
+    "independence_degraded": true,
+    "notes": [
+      "Only five explicitly named new evidence helpers reviewed; production runtime and generated receipt data excluded. Original project base049e51a; untracked helper bytes included by caller instruction.",
+      "Faithful private snapshot used for scope counting:219 changed lines,182 executable non-test lines. Empty snapshot commit is not project history.",
+      "Correctness, security and testing were independently dispatched. Reliability and adversarial ran inline after spawn and follow-up hit agent thread limit; those passes are not independent and provide no agreement promotion.",
+      "Full merge and report leaves ultimately launched and completed. No current findings required validator; validator outcome empty-batch, shortcut-skipped0.",
+      "One initial P2 public collector root defect was fixed by caller before final target. AST-only verification and source SHA256 confirm published schedule/trials resolve from parent evidence directory; original finding retained in correctness.json and packaging-fix-followup.json.",
+      "7 checkpoint tests passed independently. Caller reports offline comparison reproduced byte-identical output and positive plus8negative usage controls passed.",
+      "No SSH, Docker, model calls or live-state checks executed during this helper review. Remote operator helpers reviewed statically.",
+      "No applicable standards/review policy or declared packs. No plan discovered; settlement suppression not evaluated.",
+      "No confidence suppression, malformed findings/returns or quote demotions; first_evidence_backfilled1. Stage5c skipped: agent report-only, no code/index mutation by report leaf.",
+      "adversarial lens: inline fallback (cross-model peer not run: caller prohibited model calls; local adversarial dispatch and follow-up failed with agent thread limit reached)."
+    ],
+    "validator": {
+      "outcome": "empty-batch",
+      "confirmed": 0,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0
+    },
+    "suppressed_by_confidence": {},
+    "mode_aware_demotions": 0,
+    "first_evidence_backfilled": 1,
+    "quote_gate_demotions": 0,
+    "failed_reviewers": [],
+    "timed_out_reviewers": [],
+    "review_policy": {
+      "sources": [],
+      "removed": 0,
+      "regraded": 0,
+      "not_applied": []
+    }
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "adversarial lens: inline fallback (cross-model peer not run: caller prohibited model calls; local adversarial dispatch and follow-up failed with agent thread limit reached)."
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/bounded-evidence-final",
+  "run_id": "bounded-evidence-final"
+}

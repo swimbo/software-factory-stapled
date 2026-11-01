@@ -9,6 +9,7 @@ The local SQLite backend is not sufficient against coordinated rollback.
 """
 import argparse
 import http.client
+import hashlib
 import json
 import os
 import socketserver
@@ -16,6 +17,7 @@ import sqlite3
 import sys
 import time
 import uuid
+from harness_telemetry import ResponseObserver, TelemetryLog, digest, request_shape
 from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from guarded_store import GuardedAttemptStore, StoreQuarantined
@@ -129,9 +131,10 @@ class RequestBudget:
 class UnixServer(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
     daemon_threads = True
 
-    def __init__(self, path, key, host, port, model, budget, gateway_ip=None):
+    def __init__(self, path, key, host, port, model, budget, gateway_ip=None, telemetry=None):
         self.key, self.host, self.port, self.model = key, host, port, model
         self.gateway_ip = gateway_ip
+        self.telemetry = telemetry
         self.budget = budget
         if model == ROUTER_MODEL and not isinstance(budget, RequestBudget):
             raise ValueError('router requires body-sized local request reservations')
@@ -173,12 +176,31 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, TypeError, UnicodeError, RecursionError):
             return self.send_error(400)
         try:
-            reserved = (self.server.budget.reserve(router_reservation_microdollars(len(raw)))
+            estimate = (router_reservation_microdollars(len(raw)) if self.server.model == ROUTER_MODEL
+                        else getattr(self.server.budget, 'cost', None))
+            reserved = (self.server.budget.reserve(estimate)
                         if self.server.model == ROUTER_MODEL else self.server.budget.reserve())
             if not reserved:
                 return self.send_error(429)
         except (sqlite3.Error, ValueError, StoreQuarantined):
             return self.send_error(503)
+        request_id = uuid.uuid4().hex
+        started = time.monotonic()
+        observed = None
+        response_bytes = 0
+        status = None
+        complete = False
+        transport_error = False
+        if self.server.telemetry is not None:
+            try:
+                self.server.telemetry.emit({'kind': 'request_started', 'request_id': request_id,
+                    'model_sha256': digest(self.server.model),
+                    'session_sha256': digest(self.server.router_session_id) if self.server.router_session_id else None,
+                    'request_sha256': hashlib.sha256(raw).hexdigest(),
+                    'request_bytes': len(raw), 'reserved_microdollars': estimate, **request_shape(body)})
+            except Exception:
+                # Diagnostic failure must not refund, retry or change admission.
+                print('harness telemetry unavailable: request start not recorded', file=sys.stderr)
         if self.server.gateway_ip is None:
             conn = http.client.HTTPSConnection(self.server.host, self.server.port, timeout=90)
         else:
@@ -193,6 +215,9 @@ class Handler(BaseHTTPRequestHandler):
                 headers['x-bf-session-id'] = self.server.router_session_id
             conn.request('POST', '/anthropic/v1/messages', raw, headers)
             response = conn.getresponse()
+            status = response.status
+            if self.server.telemetry is not None:
+                observed = ResponseObserver(response.getheader('Content-Type', 'application/json'))
             # Do not follow redirects or relay their location headers.
             if 300 <= response.status < 400:
                 return self.send_error(502)
@@ -203,18 +228,33 @@ class Handler(BaseHTTPRequestHandler):
             # read() may wait for the whole buffer or EOF, holding SSE events
             # while the model continues running. Forward available bytes promptly.
             while data := response.read1(8192):
+                response_bytes += len(data)
+                if observed is not None:
+                    observed.feed(data)
                 self.wfile.write(data)
                 self.wfile.flush()
+            complete = True
         except (OSError, http.client.HTTPException):
             self.close_connection = True
+            transport_error = True
         finally:
             conn.close()
+            if self.server.telemetry is not None:
+                try:
+                    metrics = observed.finish() if observed is not None else ResponseObserver('').finish()
+                    self.server.telemetry.emit({'kind': 'request_ended', 'request_id': request_id,
+                        'http_status': status, 'elapsed_ms': round((time.monotonic()-started)*1000),
+                        'response_bytes': response_bytes, 'transport_complete': complete,
+                        'transport_error': transport_error, **metrics})
+                except Exception:
+                    print('harness telemetry unavailable: request end not recorded', file=sys.stderr)
 
 
 def main():
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     parser.add_argument('--socket', required=True)
     parser.add_argument('--model', required=True)
+    parser.add_argument('--telemetry-dir', help='opt-in private diagnostic directory outside worker mounts; not an accounting ledger')
     parser.add_argument('--gateway-ip', help='trusted pinned IPv4 address; requires matching namespace firewall')
     parser.add_argument('--max-requests', type=int, required=True)
     parser.add_argument('--authority-socket', help='trusted authority Unix socket, separate from worker socket')
@@ -266,7 +306,8 @@ def main():
         budget = AuthorityClient(args.authority_socket, args.attempt_id, capability, args.attempt_fingerprint, args.model)
     else:
         budget = RequestBudget(args.budget_db, args.attempt_id, args.model, args.max_requests, args.attempt_fingerprint, anchor_path=args.budget_anchor, ceiling_microdollars=args.ceiling_microdollars, reserve_microdollars=args.worst_case_request_microdollars, policy_id=args.pricing_policy_id, expires_at=args.pricing_policy_expires_at)
-    server = UnixServer(args.socket, key, 'hermes-control.tail4296e6.ts.net', 443, args.model, budget, gateway_ip=args.gateway_ip)
+    telemetry = TelemetryLog(args.telemetry_dir, args.attempt_id, args.attempt_fingerprint) if args.telemetry_dir else None
+    server = UnixServer(args.socket, key, 'hermes-control.tail4296e6.ts.net', 443, args.model, budget, gateway_ip=args.gateway_ip, telemetry=telemetry)
     try:
         server.serve_forever()
     finally:

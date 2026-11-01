@@ -1,0 +1,148 @@
+{
+  "unit": "b9d3-20261031-stalled-run-r1-p2",
+  "task_id": "stalled-run",
+  "repeat": 1,
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+  "allowed_paths": [
+    "blocker.json"
+  ],
+  "runtime_sha256": "d3ea899d22b6f903b2a0177292607d9afc82277e35fcfc43c14b981642095c8d",
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "b9d3-20261031-stalled-run-r1-p2:0",
+      "status": "completed",
+      "conversation_id": "6df1c772-4abd-59ed-af5b-707f99911d13",
+      "git_revision": "54eed8f57138137a90feef8e91e53b3f29b2079a"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793453651204
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "b9d3-20261031-stalled-run-r1-p2",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "baseline-external-development-checks",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/b9d3-20261031-stalled-run-r1-p2/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/b9d3-20261031-stalled-run-r1-p2/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "revision": "54eed8f57138137a90feef8e91e53b3f29b2079a",
+  "changed": [
+    "blocker.json"
+  ],
+  "accepted": true,
+  "task_wall_elapsed_s": 44.335,
+  "budget": {
+    "budgets": [
+      [
+        "b9d3-20261031-stalled-run-r1-p2:0",
+        "auto",
+        12,
+        6,
+        "fd702725393b739e727ff9a4ae86b42c57b52f0747ea597e442ccd82fa385f65"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "b9d3-20261031-stalled-run-r1-p2:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-v2-best-effort",
+        1793468150,
+        280810
+      ]
+    ]
+  },
+  "telemetry": {
+    "schema": "factory.harness-telemetry/v1",
+    "requests_observed": 6,
+    "requests_without_end": 0,
+    "actual_cost_usd": null,
+    "cached_input_share": null,
+    "actual_routed_model": null,
+    "retries": null,
+    "complete_responses": 6,
+    "observed_input_tokens": 7638,
+    "input_tokens_coverage": 6,
+    "input_tokens": 7638,
+    "observed_output_tokens": 772,
+    "output_tokens_coverage": 6,
+    "output_tokens": 772,
+    "observed_cache_read_input_tokens": 27392,
+    "cache_read_input_tokens_coverage": 6,
+    "cache_read_input_tokens": 27392,
+    "observed_cache_creation_input_tokens": 0,
+    "cache_creation_input_tokens_coverage": 6,
+    "cache_creation_input_tokens": 0,
+    "estimated_reserved_microdollars": 280810,
+    "log_sha256": "48e8e45a66b35344ca95694f987ef5e928db64092ebaf7db97e5cba8f728af56"
+  },
+  "trace": {
+    "event_count": 20,
+    "event_kinds": {
+      "SystemPromptEvent": 1,
+      "MessageEvent": 2,
+      "other": 9,
+      "ActionEvent": 4,
+      "ObservationEvent": 4
+    },
+    "tool_actions": {
+      "terminal": 3,
+      "file_editor": 1
+    },
+    "module_not_found_observed": true,
+    "observation_serialized_bytes": 3284,
+    "dependency_diagnostic_commands": 1,
+    "install_commands": 0,
+    "command_sha256": [
+      "77feab133b7de762dfa7d95b259733136ebe8f37b90a51c94d27abff6a17eda0",
+      "df448730e660466648d7f8dcc58180a5ffe547d034459688991415a07a683144",
+      "fa8847b0c33183273f5945508b31c3208a9e4ece58ca47233a05628d8dba3799",
+      "0bc1771a68aa64605992a32f7857d72d36f24b7b7ab0c995740ad8fe2cdd5144"
+    ],
+    "first_event_timestamp": "2026-10-31T13:24:19.818261",
+    "last_event_timestamp": "2026-10-31T13:24:29.165510",
+    "complete": true,
+    "diagnostic_audit_version": "baseline-contract-v2",
+    "actions_sha256": "5a5ad19105d251faaecb96a4178e0d50086ffdd8d6dff590a0b72a5489d2719e",
+    "output_artifacts_exported_before_stop": 0,
+    "output_artifacts_sha256": {}
+  },
+  "candidate_archive_sha256": "b9832d86aabf623641594e19d73566928ff5ec57e2d6bb3f5be3729ba59ebbe2",
+  "candidate_check": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "reservation_count_matches_telemetry": true,
+  "worker_telemetry_and_budget_paths_denied": true,
+  "resources_stopped": true,
+  "requires_abandonment": false,
+  "worker": "0c0d82a9e1ac75763cad902c7c4017d4fe405ac5153df7302ea040bc59dab501",
+  "proxy": "4af86b80fb78094a2df043bc220cfaccfd5828df874783aa624e41cdf9bff312",
+  "actual_charges": null,
+  "phase_9d_2_started": true,
+  "binding_restored": true,
+  "checkpoint_evidence": {
+    "schema": "factory.retained-checkpoint-evidence/v1",
+    "files": 25,
+    "bytes": 47868,
+    "sha256": "fc0ac34637b3dea07f59d236dab302f5421533f8d3a0705652bc021ae6bb21fb",
+    "base_state_files": 1,
+    "event_files": 22,
+    "no_follow": true,
+    "read_after_namespace_stop": true,
+    "verified": true
+  },
+  "context_profile": "context-v1",
+  "phase_9d_3_started": true,
+  "acceptance_version": "contract-corrected-v2"
+}

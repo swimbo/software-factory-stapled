@@ -1,0 +1,10 @@
+{
+  "frozen_checker_false_negative_reproduced": true,
+  "required_fields_with_extra_explanation_pass_v2": true,
+  "wrong_status_wrong_dependency_and_missing_field_rejected": true,
+  "quoted_heredoc_diagnostic_false_positive_reproduced": true,
+  "actual_import_one_and_repeat_two_distinguished": true,
+  "grader_v2_sha256": "5bf12b249399a6b8af03a025eb384cccf5c450d34df64dfc358872a6d3d20e21",
+  "diagnostic_audit_sha256": "e8a1b36db94e838db7b65d32b5f82db184f91a8a230b4db6b3b622e80dc0c43f",
+  "model_calls": 0
+}

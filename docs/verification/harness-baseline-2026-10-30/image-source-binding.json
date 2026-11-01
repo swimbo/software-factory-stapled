@@ -1,0 +1,12 @@
+{
+  "verified": true,
+  "image": "sha256:fea034647968423021eb9f4cea2cc44debd1c14fb4626cf9ef6d5db4248a005d",
+  "files": {
+    "egress_proxy.py": "76ae96079fb9c54ee52c7c313b2bd22a66e5f5576b5706e6147d06a2eb85b63a",
+    "harness_telemetry.py": "bb3a12014f1655355ca94a6b05bab97e286ae2ebea2369c6cfde4928d7274553",
+    "guarded_store.py": "a40286049685d638c5a9efa56a86e56e8a82c507d614252ab90e598816ee33d7",
+    "pinned_https.py": "b9d093e536d48ae6bcd6bd53c92b8b7646b1c55036ff5ed4cd11107b7bbf059e",
+    "budget_authority.py": "1723f367d9e1f451ac2cfb41367486db688b12b115ffee2c53abdb0b5dcd5ffa",
+    "pricing_policy.py": "abd0a4e25d6fc78d33f26769309bcf4477d53d1997b5f120b39cf864631510af"
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "schema": "factory.docker-environment-order/v1",
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "observations": 8,
+  "same_unique_names_and_exact_values": 8,
+  "different_order": 2,
+  "model_requests": 0,
+  "all_containers_never_started_and_removed_by_exact_id": true,
+  "observed_override_orders": [
+    [
+      "HOME",
+      "OH_CONVERSATIONS_PATH",
+      "OH_BASH_EVENTS_DIR",
+      "OH_PERSISTENCE_DIR"
+    ],
+    [
+      "OH_BASH_EVENTS_DIR",
+      "OH_PERSISTENCE_DIR",
+      "HOME",
+      "OH_CONVERSATIONS_PATH"
+    ],
+    [
+      "OH_CONVERSATIONS_PATH",
+      "OH_BASH_EVENTS_DIR",
+      "OH_PERSISTENCE_DIR",
+      "HOME"
+    ]
+  ]
+}

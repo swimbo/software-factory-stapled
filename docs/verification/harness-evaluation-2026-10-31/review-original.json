@@ -1,0 +1,443 @@
+{
+  "status": "complete",
+  "verdict": "Not ready",
+  "scope": {
+    "base": "a8bccfd",
+    "branch": "codex/phase9d-native-batching",
+    "head_sha": "a8bccfdcb8eaf9398be092c8a4e53d56b110c1f3",
+    "pr_url": null,
+    "files_changed": 6
+  },
+  "intent": "Add operator-only separate held-out evaluation tools and24fresh paired trial execution across6tasks and4pinned profiles. Keep candidate runtime frozen3b, hidden oracle outsideworker, all consumption counted, unknown metrics preserved and broader promotion gated.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "security",
+    "testing",
+    "reliability",
+    "maintainability",
+    "adversarial"
+  ],
+  "findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:155 -- return {**entry, 'accepted': check['passed'], 'requests': requests,",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:35 -- '-B', '/oracle/check.py', entry['task_id'], '/candidate']",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:134 -- check = check_candidate(setup, entry, runtime, candidate)",
+        "stapled-factory/worker/evaluation_events.py:93-94 -- if isinstance(action.get('command'), str): commands.append(hashlib.sha256(action['command'].encode()).hexdigest())",
+        "Review intent includes the unavailable-dependency task with exactly one diagnostic attempt; no private oracle/task file was read."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:155 -- return {**entry, 'accepted': check['passed'], 'requests': requests,",
+      "independent_reviewers": [
+        "correctness",
+        "adversarial"
+      ],
+      "line": 155,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "correctness",
+        "adversarial"
+      ],
+      "severity": "P1",
+      "suggested_fix": "For held-out tasks with execution requirements, freeze explicit trace predicates in the preregistration and combine their independently audited result with the candidate oracle. In particular, count the required unavailable-dependency import and reject zero or repeated diagnostic attempts before accepted can be true; retain counts or hashes only, not raw thoughts.",
+      "title": "Validate required diagnostic execution before accepting blocker artifacts",
+      "why_it_matters": "A blocker trial can be accepted after writing the expected JSON without making the required diagnostic attempt, or after repeating that attempt. The held-out blocked task requires exactly one import, but acceptance is solely the candidate-file oracle result, and that oracle receives only the candidate tree. Neither retained event reduction nor the live baseline trace enforces this task-specific execution predicate, so completion comparisons can silently count an unmet task as accepted.",
+      "validation_status": "confirmed",
+      "validation_reason": "For the stated exactly-once diagnostic task, evaluation_trials.py:134,155 accepts only the candidate-tree oracle result while evaluation_events.py:93-94 exports command hashes with no diagnostic predicate, so zero or repeated attempts remain indistinguishable to acceptance; live incidence was not measured and private oracle/tasks were not read."
+    },
+    {
+      "#": 2,
+      "autofix_class": "manual",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:109 -- binding = trial_binding(root, unit)",
+        "stapled-factory/deployment/nuc/baseline_trials.py:124 -- if not row or not allocation:raise ValueError('bound allocation unavailable')",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:216-217 -- value = collect(config, entry, runtime, started, finished); write_new(collected, value); restore(root, trial, active, service)",
+        "Non-mutating reproduction: collect with trial_binding raising bound allocation unavailable returned ValueError before accounting; called=['binding']. Prior plan evidence records real pre-binding admission failures."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:109 -- binding = trial_binding(root, unit)",
+      "independent_reviewers": [
+        "correctness"
+      ],
+      "line": 109,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "correctness"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Add an observation-only no-allocation collection branch that verifies the original durable dispatch and proves absence of allocation/gateway activity before recording an unsuccessful zero-call receipt; retain unknown counts when absence cannot be proven. Restore the owned service binding after preserving this receipt, without replacement or redispatch.",
+      "title": "Retain failed admissions that never acquire a bound allocation",
+      "why_it_matters": "A failed admission before allocation cannot become a trial result: collection raises before recording its failed consumption or restoring the service binding. The evaluator explicitly supports zero-call admissions, but the runner cannot produce those receipts, so one such failure prevents the frozen suite from reaching its complete-result gate. Handle this case through read-only original-attempt evidence rather than omitting or replacing it.",
+      "validation_status": "confirmed",
+      "validation_reason": "A pre-binding failed admission is reachable in prior bounded rollout report.md:31; evaluation_trials.py:109 calls trial_binding before any receipt and baseline_trials.py:124 raises when binding is absent, preventing original failed-trial receipt publication/restoration rather than silently dropping it; current-campaign incidence was not measured."
+    },
+    {
+      "#": 3,
+      "autofix_class": "gated_auto",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:193 --         if json.loads(active.read_text())['unit'] != unit or service.read_text() not in (previous.read_text(), desired.read_text()):",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:217 --         write_new(collected, value); restore(root, trial, active, service)",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:218 --         value['binding_restored'] = True; write_new(output, value)",
+        "stapled-factory/deployment/nuc/baseline_trials.py: restore unlinks active after restoring the previous service; its absence is a normal successful restoration outcome."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:193 --         if json.loads(active.read_text())['unit'] != unit or service.read_text() not in (previous.read_text(), desired.read_text()):",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 193,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Check the durable collected receipt before unconditionally reading active. Allow receipt publication when active is absent and service exactly equals the saved previous service; otherwise require the matching active owner before restoration. Add a fault-injection test stopping between restore and final output creation.",
+      "title": "Resume receipt publication after successful binding restoration",
+      "why_it_matters": "If the process stops after restore removes operator-active.json but before the final result is written, the durable collected receipt exists but rerunning raises FileNotFoundError at the active-marker read. This prevents the intended collected-receipt recovery branch from publishing the completed trial, leaving the paired evaluation incomplete despite a safely restored service. Recovery must recognize the already-restored state before requiring an active marker.",
+      "validation_status": "confirmed",
+      "validation_reason": "If interrupted between evaluation_trials.py:217 restoration and :218 result publication, baseline_trials.restore removes active while :193 unconditionally reads it before :196 collected recovery, so restarting deterministically fails despite a durable receipt; ordering is reachable at that crash boundary and live incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 4,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:199 --         if intent.exists():",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:200 --             raise ValueError('original dispatch already exists; use read-only recovery, never redispatch')",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:197 --             value = json.loads(collected.read_text()); restore(root, trial, active, service)",
+        "stapled-factory/deployment/nuc/test_evaluation_trials.py:27 --     monkeypatch.setattr(mod, '_stop_original', lambda *a: ({'status': 'stopped-failed'}, 'cid', 'allocation'))",
+        "Text search across stapled-factory test files finds evaluation_trials imported only by test_evaluation_trials.py; its tests invoke collect() and check_candidate(), never run(). test_baseline_trials.py exercises dispatch_once directly, not this new lifecycle."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:199 --         if intent.exists():",
+      "independent_reviewers": [
+        "testing"
+      ],
+      "line": 199,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "testing"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Add offline tests calling run() with temporary setup/service files and mocked approval, transport, systemctl, and collection. Cover existing intent causing no dispatch or service writes, collected receipt restoring without redispatch, foreign binding refusing restore, and a changed runtime digest causing no external effects. Patch Path.home() to the temporary home so the real service is unreachable.",
+      "title": "Exercise restart safety through the evaluation entry point",
+      "why_it_matters": "An interrupted operator invocation must preserve the original dispatch and restore only its own service binding. None of the new tests invokes run(): collection tests replace cleanup, and checker tests stop at the subprocess wrapper. Consequently the new existing-intent refusal, collected-receipt recovery, ownership rejection, and runtime-digest-before-service-mutation contracts have no executable negative controls. The older dispatch_once test covers the helper, but cannot catch run() bypassing that helper or mutating the service before a refusal. These are consequential recovery boundaries for this one-repeat experiment and shared endpoint.",
+      "validation_status": "confirmed",
+      "validation_reason": "All nine test_evaluation_trials.py tests exercise collect or checker boundaries and none invokes run, leaving runtime digest rejection, existing-intent no-redispatch and service-owner recovery checks at evaluation_trials.py:176,193-200 untested; the concrete collected-recovery defect in finding3 demonstrates this reachable gap.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 5,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:212 --             state = post(root, 'WorkUnit/' + unit + '/getState', {})",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:216 --         value = collect(config, entry, runtime, started, finished)",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:200 --             raise ValueError('original dispatch already exists; use read-only recovery, never redispatch')",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:73 --         # Baseline has no bounded-profile timer; identical operator observation limit."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:212 --             state = post(root, 'WorkUnit/' + unit + '/getState', {})",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 212,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Catch bounded polling I/O failures after dispatch, retain an error receipt, and stop/fence only the verified original allocation before returning failure. Add a recovery path for existing intents that observes and contains the original without redispatching; test a state-read timeout immediately after accepted dispatch.",
+      "title": "Contain original workers when state polling fails",
+      "why_it_matters": "A transient endpoint error after dispatch exits the operator runner before it reaches original-worker cleanup. Baseline and context-v1 have no bounded-profile timer, so their original containers can continue beyond the intended observation limit; rerunning this command then refuses the existing intent instead of completing containment. Preserve the no-redispatch rule while providing bounded observation and identity-checked cleanup for that original allocation.",
+      "validation_status": "confirmed",
+      "validation_reason": "A getState timeout at evaluation_trials.py:212 after dispatch209 propagates without collect216 or _stop_original, and baseline/context have no bounded timer per :73 while rerun rejects intent199-200, so original allocation containment is skipped on this reachable transport-failure path; live incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "actionable_findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:155 -- return {**entry, 'accepted': check['passed'], 'requests': requests,",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:35 -- '-B', '/oracle/check.py', entry['task_id'], '/candidate']",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:134 -- check = check_candidate(setup, entry, runtime, candidate)",
+        "stapled-factory/worker/evaluation_events.py:93-94 -- if isinstance(action.get('command'), str): commands.append(hashlib.sha256(action['command'].encode()).hexdigest())",
+        "Review intent includes the unavailable-dependency task with exactly one diagnostic attempt; no private oracle/task file was read."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:155 -- return {**entry, 'accepted': check['passed'], 'requests': requests,",
+      "independent_reviewers": [
+        "correctness",
+        "adversarial"
+      ],
+      "line": 155,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "correctness",
+        "adversarial"
+      ],
+      "severity": "P1",
+      "suggested_fix": "For held-out tasks with execution requirements, freeze explicit trace predicates in the preregistration and combine their independently audited result with the candidate oracle. In particular, count the required unavailable-dependency import and reject zero or repeated diagnostic attempts before accepted can be true; retain counts or hashes only, not raw thoughts.",
+      "title": "Validate required diagnostic execution before accepting blocker artifacts",
+      "why_it_matters": "A blocker trial can be accepted after writing the expected JSON without making the required diagnostic attempt, or after repeating that attempt. The held-out blocked task requires exactly one import, but acceptance is solely the candidate-file oracle result, and that oracle receives only the candidate tree. Neither retained event reduction nor the live baseline trace enforces this task-specific execution predicate, so completion comparisons can silently count an unmet task as accepted.",
+      "validation_status": "confirmed",
+      "validation_reason": "For the stated exactly-once diagnostic task, evaluation_trials.py:134,155 accepts only the candidate-tree oracle result while evaluation_events.py:93-94 exports command hashes with no diagnostic predicate, so zero or repeated attempts remain indistinguishable to acceptance; live incidence was not measured and private oracle/tasks were not read."
+    },
+    {
+      "#": 2,
+      "autofix_class": "manual",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:109 -- binding = trial_binding(root, unit)",
+        "stapled-factory/deployment/nuc/baseline_trials.py:124 -- if not row or not allocation:raise ValueError('bound allocation unavailable')",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:216-217 -- value = collect(config, entry, runtime, started, finished); write_new(collected, value); restore(root, trial, active, service)",
+        "Non-mutating reproduction: collect with trial_binding raising bound allocation unavailable returned ValueError before accounting; called=['binding']. Prior plan evidence records real pre-binding admission failures."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:109 -- binding = trial_binding(root, unit)",
+      "independent_reviewers": [
+        "correctness"
+      ],
+      "line": 109,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "correctness"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Add an observation-only no-allocation collection branch that verifies the original durable dispatch and proves absence of allocation/gateway activity before recording an unsuccessful zero-call receipt; retain unknown counts when absence cannot be proven. Restore the owned service binding after preserving this receipt, without replacement or redispatch.",
+      "title": "Retain failed admissions that never acquire a bound allocation",
+      "why_it_matters": "A failed admission before allocation cannot become a trial result: collection raises before recording its failed consumption or restoring the service binding. The evaluator explicitly supports zero-call admissions, but the runner cannot produce those receipts, so one such failure prevents the frozen suite from reaching its complete-result gate. Handle this case through read-only original-attempt evidence rather than omitting or replacing it.",
+      "validation_status": "confirmed",
+      "validation_reason": "A pre-binding failed admission is reachable in prior bounded rollout report.md:31; evaluation_trials.py:109 calls trial_binding before any receipt and baseline_trials.py:124 raises when binding is absent, preventing original failed-trial receipt publication/restoration rather than silently dropping it; current-campaign incidence was not measured."
+    },
+    {
+      "#": 3,
+      "autofix_class": "gated_auto",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:193 --         if json.loads(active.read_text())['unit'] != unit or service.read_text() not in (previous.read_text(), desired.read_text()):",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:217 --         write_new(collected, value); restore(root, trial, active, service)",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:218 --         value['binding_restored'] = True; write_new(output, value)",
+        "stapled-factory/deployment/nuc/baseline_trials.py: restore unlinks active after restoring the previous service; its absence is a normal successful restoration outcome."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:193 --         if json.loads(active.read_text())['unit'] != unit or service.read_text() not in (previous.read_text(), desired.read_text()):",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 193,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Check the durable collected receipt before unconditionally reading active. Allow receipt publication when active is absent and service exactly equals the saved previous service; otherwise require the matching active owner before restoration. Add a fault-injection test stopping between restore and final output creation.",
+      "title": "Resume receipt publication after successful binding restoration",
+      "why_it_matters": "If the process stops after restore removes operator-active.json but before the final result is written, the durable collected receipt exists but rerunning raises FileNotFoundError at the active-marker read. This prevents the intended collected-receipt recovery branch from publishing the completed trial, leaving the paired evaluation incomplete despite a safely restored service. Recovery must recognize the already-restored state before requiring an active marker.",
+      "validation_status": "confirmed",
+      "validation_reason": "If interrupted between evaluation_trials.py:217 restoration and :218 result publication, baseline_trials.restore removes active while :193 unconditionally reads it before :196 collected recovery, so restarting deterministically fails despite a durable receipt; ordering is reachable at that crash boundary and live incidence was not measured.",
+      "protected_subject": "concurrency"
+    },
+    {
+      "#": 4,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:199 --         if intent.exists():",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:200 --             raise ValueError('original dispatch already exists; use read-only recovery, never redispatch')",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:197 --             value = json.loads(collected.read_text()); restore(root, trial, active, service)",
+        "stapled-factory/deployment/nuc/test_evaluation_trials.py:27 --     monkeypatch.setattr(mod, '_stop_original', lambda *a: ({'status': 'stopped-failed'}, 'cid', 'allocation'))",
+        "Text search across stapled-factory test files finds evaluation_trials imported only by test_evaluation_trials.py; its tests invoke collect() and check_candidate(), never run(). test_baseline_trials.py exercises dispatch_once directly, not this new lifecycle."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:199 --         if intent.exists():",
+      "independent_reviewers": [
+        "testing"
+      ],
+      "line": 199,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "testing"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Add offline tests calling run() with temporary setup/service files and mocked approval, transport, systemctl, and collection. Cover existing intent causing no dispatch or service writes, collected receipt restoring without redispatch, foreign binding refusing restore, and a changed runtime digest causing no external effects. Patch Path.home() to the temporary home so the real service is unreachable.",
+      "title": "Exercise restart safety through the evaluation entry point",
+      "why_it_matters": "An interrupted operator invocation must preserve the original dispatch and restore only its own service binding. None of the new tests invokes run(): collection tests replace cleanup, and checker tests stop at the subprocess wrapper. Consequently the new existing-intent refusal, collected-receipt recovery, ownership rejection, and runtime-digest-before-service-mutation contracts have no executable negative controls. The older dispatch_once test covers the helper, but cannot catch run() bypassing that helper or mutating the service before a refusal. These are consequential recovery boundaries for this one-repeat experiment and shared endpoint.",
+      "validation_status": "confirmed",
+      "validation_reason": "All nine test_evaluation_trials.py tests exercise collect or checker boundaries and none invokes run, leaving runtime digest rejection, existing-intent no-redispatch and service-owner recovery checks at evaluation_trials.py:176,193-200 untested; the concrete collected-recovery defect in finding3 demonstrates this reachable gap.",
+      "protected_subject": "authorization-authentication"
+    },
+    {
+      "#": 5,
+      "autofix_class": "gated_auto",
+      "confidence": 75,
+      "evidence": [
+        "stapled-factory/deployment/nuc/evaluation_trials.py:212 --             state = post(root, 'WorkUnit/' + unit + '/getState', {})",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:216 --         value = collect(config, entry, runtime, started, finished)",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:200 --             raise ValueError('original dispatch already exists; use read-only recovery, never redispatch')",
+        "stapled-factory/deployment/nuc/evaluation_trials.py:73 --         # Baseline has no bounded-profile timer; identical operator observation limit."
+      ],
+      "file": "stapled-factory/deployment/nuc/evaluation_trials.py",
+      "first_evidence": "stapled-factory/deployment/nuc/evaluation_trials.py:212 --             state = post(root, 'WorkUnit/' + unit + '/getState', {})",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 212,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P2",
+      "suggested_fix": "Catch bounded polling I/O failures after dispatch, retain an error receipt, and stop/fence only the verified original allocation before returning failure. Add a recovery path for existing intents that observes and contains the original without redispatching; test a state-read timeout immediately after accepted dispatch.",
+      "title": "Contain original workers when state polling fails",
+      "why_it_matters": "A transient endpoint error after dispatch exits the operator runner before it reaches original-worker cleanup. Baseline and context-v1 have no bounded-profile timer, so their original containers can continue beyond the intended observation limit; rerunning this command then refuses the existing intent instead of completing containment. Preserve the no-redispatch rule while providing bounded observation and identity-checked cleanup for that original allocation.",
+      "validation_status": "confirmed",
+      "validation_reason": "A getState timeout at evaluation_trials.py:212 after dispatch209 propagates without collect216 or _stop_original, and baseline/context have no bounded timer per :73 while rerun rejects intent199-200, so original allocation containment is skipped on this reachable transport-failure path; live incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "triage_groups": [
+    {
+      "title": "Original-attempt recovery and receipt publication",
+      "findings": [
+        2,
+        3,
+        4,
+        5
+      ],
+      "context": "apply-queue: interruption and pre-binding failure paths must preserve original identity and complete accounting without redispatch.",
+      "preferred_resolution": "Fix containment and post-restoration recovery, then add entry-point negative controls; handle no-allocation observations conservatively.",
+      "why": "These paths share the same durable intent, active marker and final receipt lifecycle."
+    }
+  ],
+  "pre_existing_findings": [],
+  "requirements_completeness": {
+    "source": "explicit",
+    "path": "/Users/bo/.local/share/stapled-factory-release/out/phase9d-telemetry-20261030/source/docs/planning/stapled-factory/phase-9d-plan.md",
+    "requirements": [
+      {
+        "requirement": "Keep separate held-out checks outsideworker andcandidateoptimizer.",
+        "status": "met",
+        "evidence": "Operator-only oracle mount is confined to the separate checker; private task/oracle content was excluded from review."
+      },
+      {
+        "requirement": "Pair identical task revisions on pinnedprofiles; separate differingroutedmodels.",
+        "status": "met",
+        "evidence": "Schedule validation requires a complete task/profile matrix; route sets are separately compared."
+      },
+      {
+        "requirement": "Include unsuccessfulconsumption, independentlyacceptedcounts,requests/tokens,elapsed,stallfalsepositives,truncationsandunknowncostcoverage.",
+        "status": "partially addressed",
+        "evidence": "All-consumption and unknown-metric summaries exist, but required diagnostic execution is not accepted independently (#1) and pre-binding failures cannot produce receipts (#2)."
+      },
+      {
+        "requirement": "Promotionnoaccepteddecline, primaryinputtokens10percentbetter,medianlatencyatmost10percentworse,allregressionspass.",
+        "status": "met",
+        "evidence": "Pure evaluator enforces the prespecified primary improvement, acceptance and latency gates; missing truncation/accounting evidence prevents eligibility."
+      },
+      {
+        "requirement": "Keep profile optin and restorationwithout replay/reset.",
+        "status": "partially addressed",
+        "evidence": "Profiles remain opt-in and intent blocks redispatch; receipt/restoration and polling-failure containment need fixes (#3,#5)."
+      }
+    ],
+    "implementation_units": [],
+    "unrequested_behavior_rules": [],
+    "scope_note": "Tooling review before authorized live trials; trial outcomes and broader promotion were not claimed complete."
+  },
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "Private held-out oracle and task contents were excluded, so malicious early-exit resistance and task-specific oracle quality remain caller verification boundaries."
+  ],
+  "testing_gaps": [
+    "The collection fixture always returns stage=failed and uses stall-v1, so successful candidate scope/export/check acceptance and the baseline/context-v1 live SDK metadata branch have no end-to-end offline collection coverage. A mocked SDK event adapter and a temporary candidate repository can exercise these paths without accessing held-out tasks."
+  ],
+  "coverage": {
+    "depth": "full",
+    "notes": [
+      "scope: standalone current stagedtree againsta8bccfd",
+      "Project standards not run: successfulsearchfoundnoapplicablefiles; noCompoundPacks orsolutionscorpus.",
+      "Private held-out oracle/tasks excluded; live trialexecution notperformed.",
+      "Nopeerjobs outstanding; bothfailedroutejobs terminal andremoved.",
+      "adversarial lens: in-process fallback (cross-model peer not run: Claude transport unavailable pre-egress, route Internal error; one replacement Antigravity had no installed ACP route)",
+      "Semantic duplicate blocker diagnostic findings merged; same-model agreement did not increase confidence.",
+      "Validation shortcut skipped0: no independent cross-model corroboration.",
+      "No review policy; zero policy removals/regrades; no settled decisions."
+    ],
+    "reviewer_reasons": {
+      "correctness": "always-on",
+      "security": "hostileSDKmetadata,signedinputauthorizationandisolatedcandidateexecution",
+      "testing": "newharness/testnegativecontrols",
+      "reliability": "durabledispatch,partialfailures,cleanup/restoration",
+      "maintainability": "503executablechangedlines/newoperatorabstractions",
+      "adversarial": "silent-passpromotionguard;crossmodelfallback"
+    },
+    "suppressed_by_confidence": {},
+    "mode_aware_demotions": 0,
+    "first_evidence_backfilled": 4,
+    "quote_gate_demotions": 0,
+    "malformed_findings": 0,
+    "malformed_returns": 0,
+    "validation": {
+      "confirmed": 5,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0,
+      "batch_outcome": "verdicts landed within bound",
+      "incidence": "Current live campaign incidence not measured; review uses source and reachable failure ordering."
+    },
+    "review_policy": {
+      "sources": [],
+      "removed": 0,
+      "regraded": 0,
+      "not_applied": []
+    },
+    "compound_packs": {
+      "roots": [],
+      "warnings": [],
+      "errors": []
+    },
+    "failed_reviewers": []
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "adversarial lens: in-process fallback (cross-model peer not run: Claude transport unavailable pre-egress, route Internal error; one replacement Antigravity had no installed ACP route)"
+  },
+  "verdict_reason": "Fix task-specific diagnostic acceptance before paid evaluation, then complete original-attempt containment, interrupted receipt recovery and entry-point tests. These gaps leave explicit acceptance/accounting/restoration requirements partially addressed.",
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/evaluation-20261031",
+  "run_id": "evaluation-20261031"
+}

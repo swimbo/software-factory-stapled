@@ -1,0 +1,216 @@
+{
+  "schema": "factory.baseline-trials/v1",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/850259ae877e0cb171310e95d11719d9882e879e",
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "suite_sha256": "0bb3d7b7516c6453295f287215184c73fcbc0e2f4e731c3740fcc4df7e6c46f1",
+  "primary_metric": "input_tokens_per_accepted_task",
+  "authorization": "Go ahead and deploy context-v1, run the canary and 18 paired candidate trials, then compare the results against the baseline before starting Phase 9d.3.",
+  "runs": [
+    {
+      "unit": "c9d1-20261030-discovery-r1",
+      "task_id": "discovery",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "683222f66f5edfe1209f469178873d42fb8d41b495ee5d57e0057a65d5764c44"
+    },
+    {
+      "unit": "c9d1-20261030-small-edit-r1",
+      "task_id": "small-edit",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "bb6147950041f4abc5913605d0c9634e9aa83a66fd09d500336f4ed1f6e078bc"
+    },
+    {
+      "unit": "c9d1-20261030-multi-file-r1",
+      "task_id": "multi-file",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "72ae0f694a6c8d34c6a4c90e381e5b7ee75a280af708de4599ad2a7a5a2f694d"
+    },
+    {
+      "unit": "c9d1-20261030-failing-tests-r1",
+      "task_id": "failing-tests",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "b6681db064c617cb6260cdc262faa2253bb8efe6ffdb363452bf8531ef4317d6"
+    },
+    {
+      "unit": "c9d1-20261030-noisy-output-r1",
+      "task_id": "noisy-output",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "482c983e6a3ba59f38023e7df4406d54c675cd1e4a2c860e37da2204fafeeaa9"
+    },
+    {
+      "unit": "c9d1-20261030-stalled-run-r1",
+      "task_id": "stalled-run",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "2d09bc4fb20a5e5c6c7f28287ef79a7afb12e7918495c85cd6df92e5dfb08458"
+    },
+    {
+      "unit": "c9d1-20261030-discovery-r2",
+      "task_id": "discovery",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "e000d52e63a8899d657a57fabbc470b3d5e90cfb912ae989b761d0293d2a423d"
+    },
+    {
+      "unit": "c9d1-20261030-small-edit-r2",
+      "task_id": "small-edit",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "ea72f4fb60ab8eb227daada99c9f827d58b7c37e59c417a2cd48661e474a90b0"
+    },
+    {
+      "unit": "c9d1-20261030-multi-file-r2",
+      "task_id": "multi-file",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "e91f7a00f3a782f0ea7c138967714b8cd0ecc85f1e5141d5edc499aeb9d5c287"
+    },
+    {
+      "unit": "c9d1-20261030-failing-tests-r2",
+      "task_id": "failing-tests",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "f4bb7d2843104a9b36c1f50ec88f147bde3dab14a8a369f136c38d6c6ee4e4ca"
+    },
+    {
+      "unit": "c9d1-20261030-noisy-output-r2",
+      "task_id": "noisy-output",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "8e9460d925d52e2d1850655a30458b0567d76723df91ce9038129e63a2c4dad2"
+    },
+    {
+      "unit": "c9d1-20261030-stalled-run-r2",
+      "task_id": "stalled-run",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "0a3eb22e1040fce80b074f3be030d077f041edbdb55bceeaa0211735d9da0da3"
+    },
+    {
+      "unit": "c9d1-20261030-discovery-r3",
+      "task_id": "discovery",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "7e207e708f9329fcc3db49882081294ad71481b38d0c65145cf44f94af0cf31d"
+    },
+    {
+      "unit": "c9d1-20261030-small-edit-r3",
+      "task_id": "small-edit",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "4312691b3a8e971a57e27f81f7fa9f0edc4022a3547acb3720109455764d7d52"
+    },
+    {
+      "unit": "c9d1-20261030-multi-file-r3",
+      "task_id": "multi-file",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "3de59d9204b7bdb388b76c04f89553075f7fb2d4f72e3f42db13013a7ef7c2b9"
+    },
+    {
+      "unit": "c9d1-20261030-failing-tests-r3",
+      "task_id": "failing-tests",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "538874cff8e06e430c2e5441616f2d90afd367f2aec566059a6e0de9c7bcd31e"
+    },
+    {
+      "unit": "c9d1-20261030-noisy-output-r3",
+      "task_id": "noisy-output",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "55c6991101af605e2b27e71e88471fcd90ae47fa9da7e08932d3461a7a4dcffe"
+    },
+    {
+      "unit": "c9d1-20261030-stalled-run-r3",
+      "task_id": "stalled-run",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "3ec327f67ebc7738afd3bddf1dd7cafa45053f3c48df36822a91d22e24dadf0e"
+    }
+  ],
+  "estimated_target_per_trial_usd": 2,
+  "actual_charge_cap": false,
+  "context_profile": "context-v1",
+  "phase_9d_3_started": false,
+  "primary_metric_interpretation": "total_prompt_tokens_including_cached_per_contract_v2_accepted_task"
+}

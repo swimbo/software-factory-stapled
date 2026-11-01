@@ -1,0 +1,25 @@
+{
+  "schema": "factory.stall-canary-preregistration/v1",
+  "scope": "One authorized disposable sandbox canary after offline regressions and code review; no broader promotion",
+  "profile": "stall-v1 with context-v1 and bounded-native-v1",
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "mechanism": "Existing pinned SDK conversation, one fixed user diagnostic with run=false, no /run, no conversation recreation",
+  "model_route": "auto through existing confined proxy and unchanged Bifrost router",
+  "max_requests": 12,
+  "max_output_tokens": 1024,
+  "estimated_reservation_target_microdollars": 2000000,
+  "actual_provider_charge_cap": null,
+  "lifetime_seconds": 300,
+  "paid_reruns": 0,
+  "acceptance": [
+    "at least four separate repeated terminal failures observed before intervention",
+    "exactly one fixed diagnostic stored and delivered into the original SDK conversation with run=false",
+    "either the agent adapts and produces only independently checked canary.txt plus a clean scoped commit, or continued identical failures cause original namespace fencing and remain unknown/reconciliation, never success",
+    "all actual gateway calls reconcile with retained telemetry and reservations",
+    "original allocation and attempt identity retained; no retry, replacement, budget reset or successor",
+    "original containers stopped, SDK checkpoints/volumes/workspace retained, prior service binding restored"
+  ],
+  "failed_canary_policy": "retain all outcomes and reservations; no automatic paid rerun or broader activation",
+  "interpretation": "development behavior canary, not model-quality or production/held-out acceptance",
+  "task_sha256": "2e2ea3d598c6ae6aeed90c629eb86e0a9c2c2ad0b2bba26f9802b942581f36ea"
+}

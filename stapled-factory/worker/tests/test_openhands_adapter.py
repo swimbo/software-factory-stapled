@@ -170,3 +170,24 @@ def test_guarded_recovery_with_injected_container_transport(tmp_path):
     assert result['status'] == 'completed' and result['git_revision'] == 'a' * 40
     assert execute_openhands_attempt(GuardedAttemptStore(db, anchor), 'attempt', request, adapter, reconcile_only=True) == result
     assert transport.calls == ['POST', 'GET']
+
+
+def test_opt_in_lifecycle_observation_does_not_change_verification(server):
+    state, url = server
+    class Sink:
+        def __init__(self): self.rows = []
+        def emit(self, record): self.rows.append(record)
+    sink = Sink()
+    adapter = OpenHandsAdapter(url, 'test-key', lambda *_: None, telemetry=sink)
+    import uuid
+    cid = str(uuid.uuid4())
+    payload = {'initial_message': {'run': True, 'content': [{'type': 'text', 'text': 'secret-task'}]}}
+    assert adapter.create(cid, payload) is None
+    state['status'] = 'finished'
+    assert adapter.read(cid, payload) is None
+    assert [r['observation'] for r in sink.rows] == ['running', 'finished']
+    assert cid not in json.dumps(sink.rows) and 'secret-task' not in json.dumps(sink.rows)
+    def broken(_): raise OSError('disk full')
+    sink.emit = broken
+    assert adapter.read(cid, payload) is None
+    assert state['posts'] == 1

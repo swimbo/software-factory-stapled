@@ -390,3 +390,50 @@ def test_routed_task_has_room_to_finish_after_six_calls(tmp_path):
         assert db.execute('SELECT used FROM budgets').fetchone()[0]==12
         assert db.execute('SELECT spent FROM monetary_budgets').fetchone()[0]==12*cost
         assert db.execute('SELECT ceiling FROM monetary_budgets').fetchone()[0]==2000000
+
+
+def test_opt_in_telemetry_preserves_raw_stream_and_failed_reservation(tmp_path, monkeypatch):
+    from harness_telemetry import TelemetryLog, summarize
+    frames = [b'data: {"type":"message_start","message":{"usage":{"input_tokens":8}}}\n\n',
+              b'data: {"type":"message_delta","usage":{"output_tokens":2}}\n\n',
+              b'data: {"type":"message_stop"}\n\n']
+    sent = []
+    class Response:
+        status = 200
+        def __init__(self): self.frames = iter(frames)
+        def getheader(self, name, default): return 'text/event-stream'
+        def read1(self, size): return next(self.frames, b'')
+    class Upstream:
+        def __init__(self, *args, **kwargs): pass
+        def request(self, method, path, raw, headers): sent.append(raw)
+        def getresponse(self): return Response()
+        def close(self): pass
+    monkeypatch.setattr(egress_proxy.http.client, 'HTTPSConnection', Upstream)
+    directory = tmp_path/'telemetry'; directory.mkdir(mode=0o700)
+    log = TelemetryLog(directory, 'a', 'a'*64)
+    b = budget(str(tmp_path/'budget.db'), 'a', 'model', 1, 'a'*64)
+    path = '/tmp/sf-'+next(tempfile._get_candidate_names())+'.sock'
+    server = egress_proxy.UnixServer(path, 'secret-key', 'example.com', 443, 'model', b, telemetry=log)
+    thread = threading.Thread(target=server.serve_forever, daemon=True); thread.start()
+    try:
+        conn = UnixHTTP(path)
+        raw = b'{ "model":"model", "max_tokens":1, "messages":[{"content":"secret-task"}] }'
+        conn.request('POST', '/v1/messages', raw)
+        response = conn.getresponse()
+        assert response.read() == b''.join(frames)
+        conn.close()
+        # End is recorded after the stream closes; wait on handler, not timing.
+        server.shutdown(); thread.join()
+        for worker in threading.enumerate():
+            if worker.name.endswith('(process_request_thread)'): worker.join(3)
+        rows = [json.loads(line) for line in (directory/'telemetry.jsonl').read_text().splitlines()]
+        assert sent == [raw]
+        summary = summarize(rows)
+        assert summary['requests_observed'] == 1
+        assert summary['input_tokens'] == 8 and summary['output_tokens'] == 2
+        assert summary['cache_read_input_tokens'] is None
+        assert summary['estimated_reserved_microdollars'] == 10
+        assert 'secret-task' not in json.dumps(rows) and 'secret-key' not in json.dumps(rows)
+        assert not b.reserve()  # Recording never refunds the original request.
+    finally:
+        server.shutdown(); server.server_close(); thread.join(); os.unlink(path)

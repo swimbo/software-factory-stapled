@@ -1,0 +1,271 @@
+{
+  "schema": "factory.baseline-trials/v1",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "suite_sha256": "0bb3d7b7516c6453295f287215184c73fcbc0e2f4e731c3740fcc4df7e6c46f1",
+  "primary_metric": "input_tokens_per_accepted_task",
+  "authorization": "k, continue \u2014 deploy and validate bounded-native-v1; canary then eighteen paired candidate trials against context-v1 before Phase9d.4.",
+  "runs": [
+    {
+      "unit": "b9d3-20261031-discovery-r1",
+      "task_id": "discovery",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "db666c56510f1b3614006475109fbf02b4cc54b79977b078783558da9c6cde4c"
+    },
+    {
+      "unit": "b9d3-20261031-small-edit-r1",
+      "task_id": "small-edit",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "32e33b5f04fe915eed527f7ae37de70bc25c746ec98f5193e687881771b7b93a"
+    },
+    {
+      "unit": "b9d3-20261031-multi-file-r1",
+      "task_id": "multi-file",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "e716d5b2c0710750b7f606182e3683e2732305c63ec54b14089bd81453d2fb97"
+    },
+    {
+      "unit": "b9d3-20261031-failing-tests-r1",
+      "task_id": "failing-tests",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "e4abc80950bc58923930799b5380ecd3704ad37ca2a772ec460114c110efae10"
+    },
+    {
+      "unit": "b9d3-20261031-noisy-output-r1-p3",
+      "task_id": "noisy-output",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "9932a5079af579225f3046a465aad0bb50122abd7b53bed5a25dccffa9aec75f"
+    },
+    {
+      "unit": "b9d3-20261031-stalled-run-r1-p2",
+      "task_id": "stalled-run",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "d3ea899d22b6f903b2a0177292607d9afc82277e35fcfc43c14b981642095c8d"
+    },
+    {
+      "unit": "b9d3-20261031-discovery-r2-p2",
+      "task_id": "discovery",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "1d9ba6a21b181e6c75d0c404ba23161025458b2baa9ef20c689e36eac8cf8bbe"
+    },
+    {
+      "unit": "b9d3-20261031-small-edit-r2",
+      "task_id": "small-edit",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "99b330e8b1691bf2f126b0f42924cf60dab69059aa20dc820b4f7f94a347ffda"
+    },
+    {
+      "unit": "b9d3-20261031-multi-file-r2",
+      "task_id": "multi-file",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "d52eab5b2e722b03fe6142a65edbda686fafd6b28b9f48e1fe06642787b4c16a"
+    },
+    {
+      "unit": "b9d3-20261031-failing-tests-r2",
+      "task_id": "failing-tests",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "22d52804684bd6fabdee652c05b53d6c0b421c763ecb0bb07721ad71d99ca313"
+    },
+    {
+      "unit": "b9d3-20261031-noisy-output-r2",
+      "task_id": "noisy-output",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "1c089877425a72c1b6b101f550b8b4d5a401e62a223c9e36f536a4c7e0a254b7"
+    },
+    {
+      "unit": "b9d3-20261031-stalled-run-r2",
+      "task_id": "stalled-run",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "adf1ac550fbf0aeb7fe0d8551cf1b7b28da3a3b372de8d54710d3ad51b43e26c"
+    },
+    {
+      "unit": "b9d3-20261031-discovery-r3",
+      "task_id": "discovery",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "fd83ac9d0d2d783c9f6aad5e690358f1f368236b5ba335e5bf14850955a9a6a2"
+    },
+    {
+      "unit": "b9d3-20261031-small-edit-r3",
+      "task_id": "small-edit",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "593108c8edff95750e5d116310e19b9a8cb8f2b3280a64cab4c84a486fe669e6"
+    },
+    {
+      "unit": "b9d3-20261031-multi-file-r3",
+      "task_id": "multi-file",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "2187134919e35862af5930ba79a70b4c7a96860aa0d489c1170696466fdb2711"
+    },
+    {
+      "unit": "b9d3-20261031-failing-tests-r3",
+      "task_id": "failing-tests",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "b1897f3b7554e94ddbda01d17dd1bfb1f5b9e2ce1654ad95eab544440ee58f7d"
+    },
+    {
+      "unit": "b9d3-20261031-noisy-output-r3",
+      "task_id": "noisy-output",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "a1ce23d920e7a292fcb6a9dde55421ae9d16450a27757f982c91bf03c38ba7cc"
+    },
+    {
+      "unit": "b9d3-20261031-stalled-run-r3",
+      "task_id": "stalled-run",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "6a2df86c9cfb2dd031dc39e7e81971d58af9a5dcb9c6817f88c099545abf17e1"
+    }
+  ],
+  "estimated_target_per_trial_usd": 2,
+  "actual_charge_cap": false,
+  "execution_profile": "bounded-native-v1",
+  "context_profile": "context-v1",
+  "phase_9d_3_started": true,
+  "primary_metric_interpretation": "total_prompt_tokens_including_cached_per_contract_v2_accepted_task",
+  "controller_release_epochs": {
+    "model_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+    "initial_host_release": "645cb597b45a21a89580f0d9b2ebb6a45c4f533e",
+    "completed_units_before_admission_fix": [
+      "b9d3-20261031-discovery-r1",
+      "b9d3-20261031-small-edit-r1",
+      "b9d3-20261031-multi-file-r1",
+      "b9d3-20261031-failing-tests-r1",
+      "b9d3-20261031-noisy-output-r1-p3",
+      "b9d3-20261031-stalled-run-r1-p2"
+    ],
+    "completed_host_epochs": {
+      "645cb59": [
+        "b9d3-20261031-discovery-r1",
+        "b9d3-20261031-small-edit-r1",
+        "b9d3-20261031-multi-file-r1",
+        "b9d3-20261031-failing-tests-r1"
+      ],
+      "db96ddd": [
+        "b9d3-20261031-noisy-output-r1-p3"
+      ]
+    },
+    "remaining_host_release": "049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+    "admission_change": "compare unique exact environment values independent of Docker override ordering; model image/context/task/router/limits unchanged",
+    "original_failed_slot": "b9d3-20261031-discovery-r2",
+    "original_model_requests": 0,
+    "original_reservation_and_uncertain_workunit_retained": true
+  },
+  "pre_dispatch_failures": [
+    {
+      "unit": "b9d3-20261031-noisy-output-r1",
+      "model_requests": 0,
+      "replacement": "b9d3-20261031-noisy-output-r1-p2",
+      "no_original_redispatch_or_refund": true
+    },
+    {
+      "unit": "b9d3-20261031-noisy-output-r1-p2",
+      "model_requests": 0,
+      "replacement": "b9d3-20261031-noisy-output-r1-p3",
+      "no_original_redispatch_or_refund": true
+    },
+    {
+      "unit": "b9d3-20261031-stalled-run-r1",
+      "model_requests": 0,
+      "replacement": "b9d3-20261031-stalled-run-r1-p2",
+      "no_original_redispatch_or_refund": true
+    },
+    {
+      "unit": "b9d3-20261031-discovery-r2",
+      "model_requests": 0,
+      "replacement": "b9d3-20261031-discovery-r2-p2",
+      "no_original_redispatch_or_refund": true
+    }
+  ]
+}

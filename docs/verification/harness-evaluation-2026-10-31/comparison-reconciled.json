@@ -1,0 +1,428 @@
+{
+  "adjacent": [
+    {
+      "baseline": "baseline",
+      "candidate": "context-v1",
+      "decision": "retain_baseline",
+      "gates": {
+        "acceptance_no_decline": true,
+        "full_accounting": false,
+        "known_truncations": false,
+        "matched_routes": false,
+        "median_latency_within_ten_percent": true,
+        "primary_improves_at_least_ten_percent": false,
+        "regressions_passed": true,
+        "task_acceptance_no_loss": false,
+        "zero_stall_false_positives": true
+      },
+      "median_latency_change_fraction": 0.0010148139507757295,
+      "paired_primary_outcomes": {
+        "improved": 4,
+        "tied": 0,
+        "unknown": 2,
+        "worse": 0
+      },
+      "primary_improvement_fraction": null,
+      "route_strata": {
+        "matched": {
+          "baseline": {
+            "accepted": 4,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 2.386803,
+            "input_tokens": 346104,
+            "input_tokens_per_accepted_task": 86526.0,
+            "median_elapsed_s": 43.056,
+            "output_tokens": 6175,
+            "requests": 32,
+            "requests_per_accepted_task": 8.0,
+            "stall_false_positives": 0,
+            "trials": 4,
+            "truncations": null
+          },
+          "candidate": {
+            "accepted": 4,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.495166,
+            "input_tokens": 193178,
+            "input_tokens_per_accepted_task": 48294.5,
+            "median_elapsed_s": 42.908500000000004,
+            "output_tokens": 6454,
+            "requests": 30,
+            "requests_per_accepted_task": 7.5,
+            "stall_false_positives": 0,
+            "trials": 4,
+            "truncations": null
+          }
+        },
+        "matched_pairs": 4,
+        "mismatched": {
+          "baseline": {
+            "accepted": 1,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 0.783693,
+            "input_tokens": null,
+            "input_tokens_per_accepted_task": null,
+            "median_elapsed_s": 26.344,
+            "output_tokens": null,
+            "requests": 11,
+            "requests_per_accepted_task": 11.0,
+            "stall_false_positives": 0,
+            "trials": 2,
+            "truncations": null
+          },
+          "candidate": {
+            "accepted": 1,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.110333,
+            "input_tokens": 155113,
+            "input_tokens_per_accepted_task": 155113.0,
+            "median_elapsed_s": 141.414,
+            "output_tokens": 8604,
+            "requests": 19,
+            "requests_per_accepted_task": 19.0,
+            "stall_false_positives": 0,
+            "trials": 2,
+            "truncations": null
+          }
+        },
+        "mismatched_pairs": 2
+      }
+    },
+    {
+      "baseline": "context-v1",
+      "candidate": "bounded-native-v1",
+      "decision": "retain_baseline",
+      "gates": {
+        "acceptance_no_decline": true,
+        "full_accounting": true,
+        "known_truncations": false,
+        "matched_routes": false,
+        "median_latency_within_ten_percent": true,
+        "primary_improves_at_least_ten_percent": false,
+        "regressions_passed": true,
+        "task_acceptance_no_loss": true,
+        "zero_stall_false_positives": true
+      },
+      "median_latency_change_fraction": -0.02295582460351677,
+      "paired_primary_outcomes": {
+        "improved": 4,
+        "tied": 0,
+        "unknown": 1,
+        "worse": 1
+      },
+      "primary_improvement_fraction": 0.051316284371401955,
+      "route_strata": {
+        "matched": {
+          "baseline": {
+            "accepted": 2,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.452532,
+            "input_tokens": 199127,
+            "input_tokens_per_accepted_task": 99563.5,
+            "median_elapsed_s": 42.682,
+            "output_tokens": 10059,
+            "requests": 26,
+            "requests_per_accepted_task": 13.0,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          },
+          "candidate": {
+            "accepted": 2,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.480855,
+            "input_tokens": 200769,
+            "input_tokens_per_accepted_task": 100384.5,
+            "median_elapsed_s": 42.827,
+            "output_tokens": 7631,
+            "requests": 27,
+            "requests_per_accepted_task": 13.5,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          }
+        },
+        "matched_pairs": 3,
+        "mismatched": {
+          "baseline": {
+            "accepted": 3,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.1529669999999999,
+            "input_tokens": 149164,
+            "input_tokens_per_accepted_task": 49721.333333333336,
+            "median_elapsed_s": 43.135,
+            "output_tokens": 4999,
+            "requests": 23,
+            "requests_per_accepted_task": 7.666666666666667,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          },
+          "candidate": {
+            "accepted": 3,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.017751,
+            "input_tokens": 129649,
+            "input_tokens_per_accepted_task": 43216.333333333336,
+            "median_elapsed_s": 41.68,
+            "output_tokens": 3287,
+            "requests": 21,
+            "requests_per_accepted_task": 7.0,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          }
+        },
+        "mismatched_pairs": 3
+      }
+    },
+    {
+      "baseline": "bounded-native-v1",
+      "candidate": "stall-v1",
+      "decision": "retain_baseline",
+      "gates": {
+        "acceptance_no_decline": true,
+        "full_accounting": true,
+        "known_truncations": false,
+        "matched_routes": false,
+        "median_latency_within_ten_percent": true,
+        "primary_improves_at_least_ten_percent": true,
+        "regressions_passed": true,
+        "task_acceptance_no_loss": true,
+        "zero_stall_false_positives": true
+      },
+      "median_latency_change_fraction": -0.3268333989290017,
+      "paired_primary_outcomes": {
+        "improved": 1,
+        "tied": 0,
+        "unknown": 1,
+        "worse": 4
+      },
+      "primary_improvement_fraction": 0.18898940130380312,
+      "route_strata": {
+        "matched": {
+          "baseline": {
+            "accepted": 2,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.4313890000000002,
+            "input_tokens": 194580,
+            "input_tokens_per_accepted_task": 97290.0,
+            "median_elapsed_s": 41.99,
+            "output_tokens": 7605,
+            "requests": 26,
+            "requests_per_accepted_task": 13.0,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          },
+          "candidate": {
+            "accepted": 3,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.178104,
+            "input_tokens": 154941,
+            "input_tokens_per_accepted_task": 51647.0,
+            "median_elapsed_s": 28.215,
+            "output_tokens": 6556,
+            "requests": 23,
+            "requests_per_accepted_task": 7.666666666666667,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          }
+        },
+        "matched_pairs": 3,
+        "mismatched": {
+          "baseline": {
+            "accepted": 3,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.0672169999999999,
+            "input_tokens": 135838,
+            "input_tokens_per_accepted_task": 45279.333333333336,
+            "median_elapsed_s": 41.857,
+            "output_tokens": 3313,
+            "requests": 22,
+            "requests_per_accepted_task": 7.333333333333333,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          },
+          "candidate": {
+            "accepted": 3,
+            "actual_charges_usd": null,
+            "estimated_reserved_usd": 1.2747950000000001,
+            "input_tokens": 166626,
+            "input_tokens_per_accepted_task": 55542.0,
+            "median_elapsed_s": 28.228,
+            "output_tokens": 4730,
+            "requests": 25,
+            "requests_per_accepted_task": 8.333333333333334,
+            "stall_false_positives": 0,
+            "trials": 3,
+            "truncations": null
+          }
+        },
+        "mismatched_pairs": 3
+      }
+    }
+  ],
+  "combined": {
+    "baseline": "baseline",
+    "candidate": "stall-v1",
+    "decision": "retain_baseline",
+    "gates": {
+      "acceptance_no_decline": true,
+      "full_accounting": false,
+      "known_truncations": false,
+      "matched_routes": false,
+      "median_latency_within_ten_percent": true,
+      "primary_improves_at_least_ten_percent": false,
+      "regressions_passed": true,
+      "task_acceptance_no_loss": true,
+      "zero_stall_false_positives": true
+    },
+    "median_latency_change_fraction": -0.3416190365099732,
+    "paired_primary_outcomes": {
+      "improved": 5,
+      "tied": 0,
+      "unknown": 1,
+      "worse": 0
+    },
+    "primary_improvement_fraction": null,
+    "route_strata": {
+      "matched": {
+        "baseline": {
+          "accepted": 3,
+          "actual_charges_usd": null,
+          "estimated_reserved_usd": 1.793761,
+          "input_tokens": 259799,
+          "input_tokens_per_accepted_task": 86599.66666666667,
+          "median_elapsed_s": 42.865,
+          "output_tokens": 4617,
+          "requests": 24,
+          "requests_per_accepted_task": 8.0,
+          "stall_false_positives": 0,
+          "trials": 3,
+          "truncations": null
+        },
+        "candidate": {
+          "accepted": 3,
+          "actual_charges_usd": null,
+          "estimated_reserved_usd": 1.277363,
+          "input_tokens": 166890,
+          "input_tokens_per_accepted_task": 55630.0,
+          "median_elapsed_s": 28.228,
+          "output_tokens": 5238,
+          "requests": 25,
+          "requests_per_accepted_task": 8.333333333333334,
+          "stall_false_positives": 0,
+          "trials": 3,
+          "truncations": null
+        }
+      },
+      "matched_pairs": 3,
+      "mismatched": {
+        "baseline": {
+          "accepted": 2,
+          "actual_charges_usd": null,
+          "estimated_reserved_usd": 1.376735,
+          "input_tokens": null,
+          "input_tokens_per_accepted_task": null,
+          "median_elapsed_s": 42.865,
+          "output_tokens": null,
+          "requests": 19,
+          "requests_per_accepted_task": 9.5,
+          "stall_false_positives": 0,
+          "trials": 3,
+          "truncations": null
+        },
+        "candidate": {
+          "accepted": 3,
+          "actual_charges_usd": null,
+          "estimated_reserved_usd": 1.1755360000000001,
+          "input_tokens": 154677,
+          "input_tokens_per_accepted_task": 51559.0,
+          "median_elapsed_s": 28.215,
+          "output_tokens": 6048,
+          "requests": 23,
+          "requests_per_accepted_task": 7.666666666666667,
+          "stall_false_positives": 0,
+          "trials": 3,
+          "truncations": null
+        }
+      },
+      "mismatched_pairs": 3
+    }
+  },
+  "grade_version": "as-written-contract-reconciliation-v1",
+  "primary_metric": "input_tokens_per_accepted_task",
+  "profiles": {
+    "baseline": {
+      "accepted": 5,
+      "actual_charges_usd": null,
+      "estimated_reserved_usd": 3.170496,
+      "input_tokens": null,
+      "input_tokens_per_accepted_task": null,
+      "median_elapsed_s": 42.865,
+      "output_tokens": null,
+      "requests": 43,
+      "requests_per_accepted_task": 8.6,
+      "stall_false_positives": 0,
+      "trials": 6,
+      "truncations": null
+    },
+    "bounded-native-v1": {
+      "accepted": 5,
+      "actual_charges_usd": null,
+      "estimated_reserved_usd": 2.498606,
+      "input_tokens": 330418,
+      "input_tokens_per_accepted_task": 66083.6,
+      "median_elapsed_s": 41.923500000000004,
+      "output_tokens": 10918,
+      "requests": 48,
+      "requests_per_accepted_task": 9.6,
+      "stall_false_positives": 0,
+      "trials": 6,
+      "truncations": null
+    },
+    "context-v1": {
+      "accepted": 5,
+      "actual_charges_usd": null,
+      "estimated_reserved_usd": 2.605499,
+      "input_tokens": 348291,
+      "input_tokens_per_accepted_task": 69658.2,
+      "median_elapsed_s": 42.908500000000004,
+      "output_tokens": 15058,
+      "requests": 49,
+      "requests_per_accepted_task": 9.8,
+      "stall_false_positives": 0,
+      "trials": 6,
+      "truncations": null
+    },
+    "stall-v1": {
+      "accepted": 6,
+      "actual_charges_usd": null,
+      "estimated_reserved_usd": 2.452899,
+      "input_tokens": 321567,
+      "input_tokens_per_accepted_task": 53594.5,
+      "median_elapsed_s": 28.2215,
+      "output_tokens": 11286,
+      "requests": 48,
+      "requests_per_accepted_task": 8.0,
+      "stall_false_positives": 0,
+      "trials": 6,
+      "truncations": null
+    }
+  },
+  "promotion_authority": false,
+  "schema": "factory.held-out-evaluation/v1",
+  "uncertainty": {
+    "independent_tasks": 6,
+    "limitations": [
+      "Small held-out task sample; no within-task replication.",
+      "Route-set equality does not attest identical weights or inference settings.",
+      "Matched-route strata are descriptive; no mismatched pair is discarded."
+    ],
+    "method": "Exact descriptive paired sign counts; no significance or causal claim.",
+    "repeats_per_task": 1
+  }
+}

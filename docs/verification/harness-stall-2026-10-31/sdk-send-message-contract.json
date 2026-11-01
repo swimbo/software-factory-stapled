@@ -1,0 +1,53 @@
+{
+  "schema": "factory.sdk-send-message-contract/v1",
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "method": "Actual packaged Python bytecode disassembly, including inspect.unwrap(LocalConversation.send_message), in new disposable no-network probes",
+  "event_service": {
+    "send_message_first_calls_stop_goal_loop_unless_from_goal_loop": true,
+    "then_calls_local_conversation_send_message": true,
+    "all_run_or_rerun_paths_guarded_by_run_true": true,
+    "run_false_returns_without_scheduling": true
+  },
+  "stop_goal_loop": {
+    "only_cancels_goal_background_task": true,
+    "returns_false_when_absent_or_done": true,
+    "does_not_unconditionally_pause_ordinary_conversation": true
+  },
+  "local_conversation_send_message": {
+    "asserts_user_role": true,
+    "under_state_lock_resets_finished_or_stuck_to_idle": true,
+    "running_status_unchanged": true,
+    "calls_pause_or_interrupt": false,
+    "emits_user_message_event": true,
+    "initialization_may_run_before_message": true
+  },
+  "interpretation": {
+    "run_false_can_deliver_to_already_running_loop_without_pause": true,
+    "run_false_does_not_resume_idle_paused_or_terminated_loop": true,
+    "idle_after_post_does_not_prove_send_paused_running_loop": true,
+    "possible_terminal_boundary_race": "SDK FINISHED/STUCK before send is reset to IDLE; static contract does not establish the live canary sequence",
+    "no_automatic_resume_or_run_authorized_by_this_audit": true
+  },
+  "logs": [
+    {
+      "name": "send-message-disassembly.log",
+      "sha256": "22abba9bc77092fe41623a1ecb37f4f3c08c64924fda4f18d40cf91465403ef3",
+      "bytes": 80247
+    },
+    {
+      "name": "send-message-inner-disassembly.log",
+      "sha256": "61d67d31eacfcb77744b4049fa9148b526dbb22f11f75a31ccd31e0a6cd294ea",
+      "bytes": 12272
+    },
+    {
+      "name": "send-message-unwrapped-disassembly.log",
+      "sha256": "cd7a38ffd1c2168ec595a376f756753ba9b229936f6c0ae691f3b96657a6e4de",
+      "bytes": 9777
+    }
+  ],
+  "model_requests": 0,
+  "http_conversations_created": 0,
+  "live_canary_read_or_modified": false,
+  "gateway_credentials": false,
+  "probe_containers_auto_removed": true
+}

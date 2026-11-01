@@ -1,0 +1,27 @@
+{
+  "schema": "factory.context-rollout-verification/v1",
+  "candidate_profile": "context-v1",
+  "code_revision": "850259ae877e0cb171310e95d11719d9882e879e",
+  "deployed": true,
+  "paired_trials_completed": 18,
+  "paired_contract_v2_accepts": 18,
+  "paid_canary_passed": true,
+  "candidate_requests": 103,
+  "independent_gateway_requests": 103,
+  "usage_coverage_complete": true,
+  "scoped_pilot_gate_passed": true,
+  "full_phase_9d_5_promotion_complete": false,
+  "default_task_binding_restored": true,
+  "legacy_workunit_states_preserved": 29,
+  "containers_stopped_and_owned_networks_released": true,
+  "all_bound_volumes_retained": true,
+  "operator_active_marker_absent": true,
+  "actual_charges_unknown": true,
+  "candidate_model_trials_rerun": 0,
+  "phase_9d_3_started": false,
+  "notes": [
+    "Two dummy-credential startup helper requests rejected401; original reservations retained; separate from paid model trials",
+    "Existing release/image security residuals remain scoped to authorized disposable evaluation",
+    "Paired tasks did not invoke factory_capture; explicit capture/pagination validated by paid canary"
+  ]
+}

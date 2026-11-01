@@ -1,0 +1,399 @@
+{
+  "schema": "factory.heldout-final-preservation/v1",
+  "runtime_source": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "operator_tools_source": "7c5c5069ac7397a03a37bfdef1befa1d26c480f7",
+  "prior_workunit_states_unchanged": 74,
+  "prior_volumes_unchanged": 348,
+  "signed_inputs_verified": 249,
+  "prior_binding_restored": true,
+  "active_marker_absent": true,
+  "resources": [
+    {
+      "unit": "s9d5-01-0",
+      "root_attempt_status": "reserved",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": false
+    },
+    {
+      "unit": "s9d5-01-1",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-02-1",
+      "root_attempt_status": "reserved",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": false
+    },
+    {
+      "unit": "s9d5-02-0",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-03-0",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-03-1",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-04-1",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-04-0",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-05-0",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-05-1",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true
+    },
+    {
+      "unit": "s9d5-06-1",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": false
+    },
+    {
+      "unit": "s9d5-06-0",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": false
+    },
+    {
+      "unit": "s9d5-06-2",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": false,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8226,
+        "mount_id": "4056",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 33,
+        "bytes": 58081,
+        "sha256": "20104b126d9d6c71c3c013d42095dc0da61fded50a4f103a0c135e1b896f76be",
+        "base_state_files": 1,
+        "event_files": 29,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-05-2",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8227,
+        "mount_id": "3943",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 29,
+        "bytes": 51480,
+        "sha256": "114c9cbed22a64a4a165b445deba0d39013364aac2ec857fb4c2659cb2bcba92",
+        "base_state_files": 1,
+        "event_files": 25,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-04-2",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8228,
+        "mount_id": "3991",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 35,
+        "bytes": 65239,
+        "sha256": "cfeba776a2ebbfd8082bd0ae9311ff5b551c3ed1ffaec7f91a08f8f295529f9f",
+        "base_state_files": 1,
+        "event_files": 31,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-03-2",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8229,
+        "mount_id": "4023",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 27,
+        "bytes": 49195,
+        "sha256": "2a71efe9def8f5016f58516d6ef1b2eed5403ce1c28f9b6c5eda61c978833d90",
+        "base_state_files": 1,
+        "event_files": 23,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-02-2",
+      "root_attempt_status": "reserved",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": false,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8230,
+        "mount_id": "4055",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 50,
+        "bytes": 101058,
+        "sha256": "b9d50c14ad7a21ed90a110b396b9c6eeb111ca6973b82612f564eaf6f7f5a20a",
+        "base_state_files": 1,
+        "event_files": 46,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-01-2",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8231,
+        "mount_id": "4119",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 30,
+        "bytes": 50837,
+        "sha256": "c54b30e6821abe4d613b9243704f37d13e97746e43c9213fa152bbce1a8a0620",
+        "base_state_files": 1,
+        "event_files": 26,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-06-3",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": false,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8232,
+        "mount_id": "4151",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 35,
+        "bytes": 62300,
+        "sha256": "4253167bf416bce005d780d4d002461373efecda6409555bf8ba3c675f6e3bd8",
+        "base_state_files": 1,
+        "event_files": 31,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-05-3",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8233,
+        "mount_id": "4183",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 44,
+        "bytes": 69585,
+        "sha256": "540bc8d39ba319db13711982459f866693ba60544f1661a2ffb8c13a2ea59368",
+        "base_state_files": 1,
+        "event_files": 40,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-04-3",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8234,
+        "mount_id": "4312",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 31,
+        "bytes": 53598,
+        "sha256": "4ab2a8db22681279ecc81a53eab21f1e8cf2a90935445ef47fd381e24c325497",
+        "base_state_files": 1,
+        "event_files": 27,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-03-3",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8235,
+        "mount_id": "4362",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 34,
+        "bytes": 57482,
+        "sha256": "2646fc8782c48c0ab61ae699708310e2b58cb57b5a563350294516a9534bfcef",
+        "base_state_files": 1,
+        "event_files": 30,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-02-3",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8236,
+        "mount_id": "4394",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 35,
+        "bytes": 78695,
+        "sha256": "7c04aeada4e86289eba2f2418bc7ba080188535b5b0801fcd04d59c670e0c32f",
+        "base_state_files": 1,
+        "event_files": 31,
+        "no_follow": true
+      }
+    },
+    {
+      "unit": "s9d5-01-3",
+      "root_attempt_status": "completed",
+      "original_container_lifecycles_stopped": true,
+      "bound_volumes_retained": true,
+      "owned_empty_network_released": true,
+      "accepted": true,
+      "retained_mount": {
+        "device": 1793,
+        "inode": 8237,
+        "mount_id": "4426",
+        "filesystem": "ext4",
+        "capacity_bytes": 1020702720
+      },
+      "sdk_checkpoint_evidence": {
+        "schema": "factory.retained-checkpoint-evidence/v1",
+        "files": 31,
+        "bytes": 51258,
+        "sha256": "b09fd297a5317eac2bc19cf0721afc7589ee94f6d4efc3b3507bf0a0abe150d6",
+        "base_state_files": 1,
+        "event_files": 27,
+        "no_follow": true
+      }
+    }
+  ],
+  "shared_services_restarted": false,
+  "original_attempts_resumed_or_redispatched": false,
+  "automatic_promotion": false
+}

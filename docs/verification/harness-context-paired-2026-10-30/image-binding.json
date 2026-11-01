@@ -1,0 +1,37 @@
+{
+  "worker_image": "sha256:d1d11b40384c2eb25d5d9d38a069abed9801a0a290c64101a24cc200a8a26e30",
+  "worker_environment": [
+    "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+    "OH_ENABLE_VSCODE=true",
+    "OPENHANDS_BUILD_GIT_SHA=d0d9d81324210414462fb676b377e0563a08a0cb",
+    "OPENHANDS_BUILD_GIT_REF=refs/heads/main",
+    "ACP_NODE_DIR=/acp-node",
+    "LC_ALL=C.UTF-8",
+    "LANG=C.UTF-8",
+    "LOG_JSON=true",
+    "OH_ACP_SKILL_SOURCING=openhands_managed",
+    "EDITOR=code",
+    "VISUAL=code",
+    "GIT_EDITOR=code --wait",
+    "OPENVSCODE_SERVER_ROOT=/openhands/.openvscode-server",
+    "CHROME_BIN=/usr/bin/chromium",
+    "PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium",
+    "CHROMIUM_FLAGS=--no-sandbox --disable-dev-shm-usage --disable-gpu",
+    "LD_LIBRARY_PATH=/usr/lib/aarch64-linux-gnu:/usr/lib:/usr/lib/x86_64-linux-gnu:",
+    "HOME=/tmp/factory-home",
+    "OH_EXTRA_PYTHON_PATH=/opt/factory"
+  ],
+  "accepted_parent": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77",
+  "base_layers_unchanged": true,
+  "one_copy_layer_added": true,
+  "files": {
+    "egress_bridge.py": "58729b42fb0910cf49048ac3489ddd83e054af57e2ae697e2d3daf44f6c0b83d",
+    "agent_entrypoint.py": "53e881e91906d83fd166faf1dd63f0670cf85a439aff1c77a9611607f157d5da",
+    "factory_capture_tool.py": "f8d1b8d2b7d18b95ae453541d918a275b99ab365136d8d70eef028e8b6a8a003",
+    "output_artifacts.py": "c203dfbd534f43b418b8e027ee63e64200a41a6cf488b4a09387ab411367df26"
+  },
+  "package_inventory_sha256": "fdaa64759b6b3c913cc06ac757d2cba860ac55ad39562ec094285e6fc3b0e465",
+  "package_versions_unchanged": true,
+  "new_dependencies": false,
+  "scope": "authorized disposable canary and eighteen candidate trials; not production promotion"
+}

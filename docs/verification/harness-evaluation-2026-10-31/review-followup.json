@@ -1,0 +1,66 @@
+{
+  "schema": "factory.review-finding-followup/v1",
+  "status": "complete",
+  "original_review": "/tmp/compound-engineering-501/ce-code-review/evaluation-20261031/review.json",
+  "original_review_preserved": true,
+  "scope": "Bounded independent validation of five original findings and related collector recovery; not a whole review rerun or live qualification",
+  "verdict": "All five findings resolved for scoped trial execution",
+  "findings": [
+    {
+      "number": 1,
+      "status": "resolved",
+      "evidence": "Acceptance combines candidate oracle, AST diagnosticcount1, exactlyone paired completed nonzero ModuleNotFoundError dependency observation, zero installcommands, full trace. Generated live code and retained-event filesystem independently tested terminal/capture success; exit0, unfinished, timeout, unmatched toolcall, missingerror and ifFalse cases yield zero dependency-error observations; malformed syntax remains unknown."
+    },
+    {
+      "number": 2,
+      "status": "resolved",
+      "evidence": "No-binding collection requires matching original dispatch, returned failure/reconciliation, guarded-store no binding, no labelled original partial containers and no canonical-session gatewayrows. ActualGuardedStore12tests preserve reservation/anchor and reject ambiguous conditions. provision_runtime binds callback before credentials; no blind replacement."
+    },
+    {
+      "number": 3,
+      "status": "resolved",
+      "evidence": "Collected receipt branch precedes unconditional active marker read. Missing active allowed only exact saved previous service; test recoverafterrestore publishes original without effects. Foreign service/owner remain refused."
+    },
+    {
+      "number": 4,
+      "status": "resolved",
+      "evidence": "New run entrypoint tests cover preexisting intent refusal/no dispatch/effects, changedruntime hash, foreignbinding, collectedreceipt afterrestore, observeonlyrequiresoriginalintent and no new servicebinding/dispatch."
+    },
+    {
+      "number": 5,
+      "status": "resolved",
+      "evidence": "State I/O failure saves durable failure marker and contains identitychecked original namespace. Observe-only handles existing intent without redispatch; `_stop_original` rereads guardedstatus after stopping to preserve completed boundary."
+    }
+  ],
+  "validation": {
+    "scoped_pytest": "66 passed in 0.20s, independent reviewer invocation",
+    "generated_live_and_retained_event_cases": 9,
+    "generated_code_compiled": true,
+    "command_and_capture_argv_supported": true,
+    "malformed_syntax_unknown": true,
+    "candidate_export_recovery": "Actual scratch Git repository: first collection failed after frozen export; subsequent collect reused saved elapsed metadata and same exact candidate receipt/path without re-export; independent checker accepted retainedbytes. No model/SDK/tool rerun.",
+    "probe_paths": [
+      "/tmp/eval-live-paired-probe.py",
+      "/tmp/eval-export-recovery-probe.py"
+    ]
+  },
+  "source_sha256": {
+    "stapled-factory/deployment/nuc/evaluation_trials.py": "a37741bdc2019780c88db60928c030d3848485680fb8818aabd8f6c6b881d298",
+    "stapled-factory/deployment/nuc/test_evaluation_trials.py": "a71ba42ac5b50f7cb620907f24c2d990540d6b1a26ecd17fdc2de32fad416855",
+    "stapled-factory/deployment/nuc/test_evaluation_recovery.py": "9b1b0e5f9db4104e9b122c1ea8ca54982629aa06da5b42c1c7e5f80f7ae8225d",
+    "stapled-factory/deployment/nuc/test_evaluation_unbound.py": "f5b046f1a327691f99c1d577ccccabc4fca6aff904e33a29d3c2ed8c9aee5b31",
+    "stapled-factory/worker/evaluation_events.py": "4919410cdb3ffe850ef8adf665f4f4b9a350cc29ac40ad91e33f6f5e4d586971",
+    "stapled-factory/worker/evaluation_diagnostics.py": "36d80c85a31996b231cb43607fe79b18c66138634bb6de37322b0158f9851050",
+    "stapled-factory/worker/tests/test_evaluation_events.py": "30a304c609ff8453544b0a3ca5a0f645078e87bdcd82140381b9376f2892fa7e",
+    "stapled-factory/worker/tests/test_evaluation_diagnostics.py": "8c09acee3b8f1ec59e49a4f11c22eac3dd77e05ca2818d413e519a49e6a42efc",
+    "stapled-factory/worker/harness_evaluation.py": "49501c08b497417f56f861eabda79e8cd3cc88d4d0b75278c4f1a9a5ce5288f8",
+    "stapled-factory/worker/tests/test_harness_evaluation.py": "f7fcc0ffc8563bf935cd0e193443302977fab5711de78fc0535159949e5d32bf"
+  },
+  "limits": [
+    "No held-out oracle/tasks or live infrastructure read; no paid work.",
+    "AST plus explicit observation evidence is an audit of recorded development commands, not a general proof of dynamic shell/Python execution or malicious event authenticity.",
+    "Pinned SDK truncation coverage remains unknown, so evaluation must not claim broader promotion from missing evidence.",
+    "Independent Docker/systemd/host and original allocation containment remain trust/liveness boundaries."
+  ],
+  "completed_at": "2026-11-01T02:06:43.484222+00:00"
+}

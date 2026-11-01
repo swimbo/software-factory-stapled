@@ -1,0 +1,217 @@
+{
+  "schema": "factory.baseline-trials/v1",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/974aece75d62644b35b5f4e51928bb61cce140e2",
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "suite_sha256": "0bb3d7b7516c6453295f287215184c73fcbc0e2f4e731c3740fcc4df7e6c46f1",
+  "primary_metric": "input_tokens_per_accepted_task",
+  "authorization": "Go ahead and deploy the telemetry, then run the 18 baseline trials before starting Phase 9d.2.",
+  "runs": [
+    {
+      "unit": "h9d-20261030-discovery-r1",
+      "task_id": "discovery",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "201aa956c236585030c22fda3b6d981836417f08249b2d8f944b6855eebbaa9f"
+    },
+    {
+      "unit": "h9d-20261030-small-edit-r1",
+      "task_id": "small-edit",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "4f15776023cbc9b35e3df0182552b51187168d8f780984a847790a75939830c2"
+    },
+    {
+      "unit": "h9d-20261030-multi-file-r1",
+      "task_id": "multi-file",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "1c789a14d998d98e853353b74453935f57396cad624760acc363cf549df1e18e"
+    },
+    {
+      "unit": "h9d-20261030-failing-tests-r1-p2",
+      "task_id": "failing-tests",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "89ed439845a5c1cec6f62d7ab2b0fe1f720eccf69b9886e238f176bce63ef6dd",
+      "replacement_for": "h9d-20261030-failing-tests-r1"
+    },
+    {
+      "unit": "h9d-20261030-noisy-output-r1",
+      "task_id": "noisy-output",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "146ef89200589674b4badbffcbcdb348b12dcc9ee05a76f635a17f859aae1f8c"
+    },
+    {
+      "unit": "h9d-20261030-stalled-run-r1",
+      "task_id": "stalled-run",
+      "repeat": 1,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "5e24c24492c75cfc398f6223a60b587f4761d4a41dc68e417fa4e2b93d6e8dc5"
+    },
+    {
+      "unit": "h9d-20261030-discovery-r2",
+      "task_id": "discovery",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "fa78230b059c207b7dc2d21b34a01296ec203e9a2c31d665aa72ad7251660b32"
+    },
+    {
+      "unit": "h9d-20261030-small-edit-r2",
+      "task_id": "small-edit",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "560f25cce6c2d576dbdff19381ef66edd143effa849aaa16bbf6def4fa0ec5b3"
+    },
+    {
+      "unit": "h9d-20261030-multi-file-r2",
+      "task_id": "multi-file",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "b9834596e05412106b3aef48dcd82aaca259dff86c7aafeb04ef8c6039eaf1c7"
+    },
+    {
+      "unit": "h9d-20261030-failing-tests-r2",
+      "task_id": "failing-tests",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "2517e44eb9ebdc20ac2f3ca601a9e7ce452f77c7d7837bb4dd8d1f9b60e64f96"
+    },
+    {
+      "unit": "h9d-20261030-noisy-output-r2",
+      "task_id": "noisy-output",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "351635c3581a33e5c853bb30007dbc41219158eda7cff29f7d5ee6e660ed6d8f"
+    },
+    {
+      "unit": "h9d-20261030-stalled-run-r2",
+      "task_id": "stalled-run",
+      "repeat": 2,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "e6d230b47d912ff5d803365b472f67c9b87fc478332132184ec1a6485cda5a86"
+    },
+    {
+      "unit": "h9d-20261030-discovery-r3",
+      "task_id": "discovery",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+      "allowed_paths": [
+        "discovery.json"
+      ],
+      "runtime_sha256": "76f58fa3fd87549da18fe276f3e93534bc626650900935a8bdf1650d57e71935"
+    },
+    {
+      "unit": "h9d-20261030-small-edit-r3",
+      "task_id": "small-edit",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "9357fc7193336f2e49ae38627e470d2f0332d878a1348bdda9421db8aa7d8bf5",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "571d9859c85127abc506b77312b832750e12057e3646e123c27606091a66321f"
+    },
+    {
+      "unit": "h9d-20261030-multi-file-r3",
+      "task_id": "multi-file",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "32f826ffef72725a2cf1a7559b2e9fc0ff76ce1ff892bb64587211ab02bcaa40",
+      "allowed_paths": [
+        "catalog.py",
+        "app.py"
+      ],
+      "runtime_sha256": "0a70986c1e039175e84222f9b628488d5af8448ff78fa4afab13d8525d9e6b0b"
+    },
+    {
+      "unit": "h9d-20261030-failing-tests-r3",
+      "task_id": "failing-tests",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "c2ae923fd9c7a392edaad08970ce2199db054795329b4914a782ad4cbb21bbf1",
+      "allowed_paths": [
+        "catalog.py"
+      ],
+      "runtime_sha256": "df2dfda92e54e808219c1a2658e989acd52e8aed2999c84553af591be14ff758"
+    },
+    {
+      "unit": "h9d-20261030-noisy-output-r3",
+      "task_id": "noisy-output",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "1c1aaef69e3675d795e6eae8594661ba626922fe1ebaf6be380e2d92c892ad9e",
+      "allowed_paths": [
+        "noisy-result.json"
+      ],
+      "runtime_sha256": "60b81b7e2db5f74e3ddee7bd2da10c11457de131d1689cacc926ca4083616a93"
+    },
+    {
+      "unit": "h9d-20261030-stalled-run-r3",
+      "task_id": "stalled-run",
+      "repeat": 3,
+      "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+      "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+      "allowed_paths": [
+        "blocker.json"
+      ],
+      "runtime_sha256": "3110a478d92e603092c54add7520b91c13c1d51e7b75f78686774ccd6198c59b"
+    }
+  ],
+  "estimated_target_per_trial_usd": 2,
+  "actual_charge_cap": false,
+  "pre_dispatch_failures": [
+    "h9d-20261030-failing-tests-r1"
+  ]
+}

@@ -1,0 +1,905 @@
+{
+  "schema": "factory.context-final-preservation/v1",
+  "legacy_workunit_states_verified_unchanged": 29,
+  "legacy_states": {
+    "wall-count-batched-replay-20261030-01": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "wall-count-batched-replay-20261030-01:0",
+        "status": "completed",
+        "conversation_id": "1221c064-6f09-5965-8fed-09f75af4417b",
+        "git_revision": "3b31356bd48c6076e751d1362aed77eb5f512900"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793378359772
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "wall-count-batched-replay-20261030-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-local-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/wall-count-batched-replay-20261030-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/wall-count-batched-replay-20261030-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "wall-request-count-20261030-01": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "wall-request-count-20261030-01:0",
+        "status": "completed",
+        "conversation_id": "16f78db5-9cd8-53bd-b4e3-74c41c840d96",
+        "git_revision": "5a403f4dd1d713cd806edf81b80d67b911110bcc"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793376747018
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "wall-request-count-20261030-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-local-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/wall-request-count-20261030-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/wall-request-count-20261030-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "batch-spec-types-20261029-01": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "batch-spec-types-20261029-01:0",
+        "status": "completed",
+        "conversation_id": "20689e94-da0e-567e-9e7f-00f21af14416",
+        "git_revision": "78a351c6c952cc17d52fa5189f622a01c15819df"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793326541315
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "batch-spec-types-20261029-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-local-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/batch-spec-types-20261029-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/batch-spec-types-20261029-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "batch-fixture-json-20261029-01": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "batch-fixture-json-20261029-01:0",
+        "status": "completed",
+        "conversation_id": "97117c01-6b7c-5537-b7ba-408d1383a2d4",
+        "git_revision": "e88b33829c965d0808a28c70427934602e42a3d8"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793326625749
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "batch-fixture-json-20261029-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-local-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/batch-fixture-json-20261029-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/batch-fixture-json-20261029-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "batch-scan-cleanup-20261029-01": {
+      "stage": "abandoned",
+      "build": {
+        "attempt_id": "batch-scan-cleanup-20261029-01:0",
+        "status": "unknown",
+        "conversation_id": "cf65296b-400f-5907-99c5-7b921ffff34a",
+        "error": "Attempt outcome cannot be established; no repeat dispatch was made"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793326688297
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "batch-scan-cleanup-20261029-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-local-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/batch-scan-cleanup-20261029-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/batch-scan-cleanup-20261029-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      },
+      "abandonment": {
+        "payload": "{\"allocation_id\":\"debc010a71c24d6992e05ac4580d6d2f\",\"attempt_id\":\"batch-scan-cleanup-20261029-01:0\",\"conversation_id\":\"cf65296b-400f-5907-99c5-7b921ffff34a\",\"generation\":55,\"kind\":\"operator-abandon-v1\",\"proxy_id\":\"0272ced02fa64c4b10a47585dd2f3761bf39620aa3d6bbcfc34517d65ac51aa8\",\"reason\":\"Request allowance exhausted; recovered source independently reviewed and merged as PR #9\",\"request_hash\":\"8db0b23082e28492bcfa9e6cd991b856bd054af84b07fb12ee28dbb6fed98494\",\"specification_hash\":\"26ab0f4e6e2a59b114279f7dc2e3bfba5774d2327a5caa2fe6cbf0a4a4df72ee\",\"store_id\":\"1b889a60-bdb1-4994-bc75-3bd826fdd0ef\",\"unit_id\":\"batch-scan-cleanup-20261029-01\",\"worker_id\":\"4ef37acc3958be669f23359941d5a2618d0b38974df31428f58bbc464224d2e9\"}",
+        "evidence": {
+          "allocation_id": "debc010a71c24d6992e05ac4580d6d2f",
+          "attempt_id": "batch-scan-cleanup-20261029-01:0",
+          "conversation_id": "cf65296b-400f-5907-99c5-7b921ffff34a",
+          "generation": 55,
+          "kind": "operator-abandon-v1",
+          "proxy_id": "0272ced02fa64c4b10a47585dd2f3761bf39620aa3d6bbcfc34517d65ac51aa8",
+          "reason": "Request allowance exhausted; recovered source independently reviewed and merged as PR #9",
+          "request_hash": "8db0b23082e28492bcfa9e6cd991b856bd054af84b07fb12ee28dbb6fed98494",
+          "specification_hash": "26ab0f4e6e2a59b114279f7dc2e3bfba5774d2327a5caa2fe6cbf0a4a4df72ee",
+          "store_id": "1b889a60-bdb1-4994-bc75-3bd826fdd0ef",
+          "unit_id": "batch-scan-cleanup-20261029-01",
+          "worker_id": "4ef37acc3958be669f23359941d5a2618d0b38974df31428f58bbc464224d2e9"
+        }
+      }
+    },
+    "operator-wall-ports-replay-20261029-02": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "operator-wall-ports-replay-20261029-02:0",
+        "status": "completed",
+        "conversation_id": "e3f6bee6-2142-5a14-8079-66e3e5b98f21",
+        "git_revision": "adc5ee0bef97e61ff0bda222c0c31397c76f30e2"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793325618489
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "operator-wall-ports-replay-20261029-02",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-local-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/operator-wall-ports-replay-20261029-02/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/operator-wall-ports-replay-20261029-02/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "nuc-merged-runtime-20261028-01": {
+      "stage": "validated",
+      "build": {
+        "attempt_id": "nuc-merged-runtime-20261028-01:0",
+        "status": "completed",
+        "conversation_id": "1f11594a-5db0-52a7-bea1-e2088f6c486c",
+        "git_revision": "e1073ad9c94c979300967d8190b019593be07ebe"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793240122747
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "nuc-merged-runtime-20261028-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-canary-no-wall-acceptance",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-merged-runtime-20261028-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-merged-runtime-20261028-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      },
+      "validation": {
+        "artifact_digest": "sha256:dc366e3bc7e25c9b7a99122b1947d2596c7345d8009cff2c8b38006d1ea0e27f",
+        "attempt_id": "nuc-merged-runtime-20261028-01:0",
+        "deployment_id": "3e5f6150b993f00e6c8bb02855d995d17f719f5d70046fcbe51aee977385a47d",
+        "git_revision": "e1073ad9c94c979300967d8190b019593be07ebe",
+        "passed": true,
+        "scenario_digest": "3c5fe0887d7fa15c6c83843013cce24196f6cb36030ff20ec6f96290bbb627f9",
+        "scope": "disposable-candidate",
+        "security_engines": {
+          "dependency": "manifest-flag",
+          "sast": "regex-fallback",
+          "secret": "regex-fallback"
+        },
+        "unit_id": "nuc-merged-runtime-20261028-01"
+      }
+    },
+    "nuc-version-example-20261028-02": {
+      "stage": "validated",
+      "build": {
+        "attempt_id": "nuc-version-example-20261028-02:0",
+        "status": "completed",
+        "conversation_id": "8222ca33-ac0b-56a7-ab83-7395e37f50d8",
+        "git_revision": "d8bf750a3c8c0b03c3481b9d8c07b508fc3fc3f3"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793208288484
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "nuc-version-example-20261028-02",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-canary-no-wall-acceptance",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-version-example-20261028-02/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-version-example-20261028-02/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      },
+      "validation": {
+        "artifact_digest": "sha256:0e94798bb030eb1e6ce2dd58e447cc804e09ad8b46d3d38c812002e2308ce5de",
+        "attempt_id": "nuc-version-example-20261028-02:0",
+        "deployment_id": "0a23f1cc21f874a29306c2404c743e5703edad6294837e1661e1df4dab157728",
+        "git_revision": "d8bf750a3c8c0b03c3481b9d8c07b508fc3fc3f3",
+        "passed": true,
+        "scenario_digest": "3c5fe0887d7fa15c6c83843013cce24196f6cb36030ff20ec6f96290bbb627f9",
+        "scope": "disposable-candidate",
+        "security_engines": {
+          "dependency": "manifest-flag",
+          "sast": "regex-fallback",
+          "secret": "regex-fallback"
+        },
+        "unit_id": "nuc-version-example-20261028-02"
+      }
+    },
+    "nuc-wall-defaults-20261028-01": {
+      "stage": "validated",
+      "build": {
+        "attempt_id": "nuc-wall-defaults-20261028-01:0",
+        "status": "completed",
+        "conversation_id": "6dd46276-1122-507d-bec8-5a2ce742067f",
+        "git_revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793213081301
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "nuc-wall-defaults-20261028-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-canary-no-wall-acceptance",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-wall-defaults-20261028-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/nuc-wall-defaults-20261028-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      },
+      "validation": {
+        "artifact_digest": "sha256:9029c1cc11d697e5090de26e1eddf4031ebfca74d49507a6fd126fbe6837d254",
+        "attempt_id": "nuc-wall-defaults-20261028-01:0",
+        "deployment_id": "82b7fb89804f930f26214ecc5fc5a1583fe143eeced9e0a021834cc5b5faf471",
+        "git_revision": "e1a39fa47835c28b8591e9d9648866cfea9d90aa",
+        "passed": true,
+        "scenario_digest": "06e3e3e4940d5331e7316166d56461608fbe048e0cdafc916f1c560d0d1eda3e",
+        "scope": "disposable-candidate",
+        "security_engines": {
+          "dependency": "manifest-flag",
+          "sast": "regex-fallback",
+          "secret": "regex-fallback"
+        },
+        "unit_id": "nuc-wall-defaults-20261028-01"
+      }
+    },
+    "operator-nuc-readme-20261028-01": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "operator-nuc-readme-20261028-01:0",
+        "status": "completed",
+        "conversation_id": "0461809b-bc08-51d5-8715-6ecbb87fb9fe",
+        "git_revision": "0227f9123d17f29cecb10151c316afc4032a9640"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793242962325
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "operator-nuc-readme-20261028-01",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "operator-local-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/operator-nuc-readme-20261028-01/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/operator-nuc-readme-20261028-01/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-discovery-r1": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-discovery-r1:0",
+        "status": "completed",
+        "conversation_id": "4dcdad5b-651f-55cf-a6ff-54dc39738190",
+        "git_revision": "f674b620c9defb456fb124ba520efb464e40e7b2"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793384335277
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-discovery-r1",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r1/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r1/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-small-edit-r1": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-small-edit-r1:0",
+        "status": "completed",
+        "conversation_id": "aefc246b-9844-5fe9-8789-7df3bb7318be",
+        "git_revision": "2e18d34c1a233671cb6d2034ee30ee64b07e4165"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793384393504
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-small-edit-r1",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-small-edit-r1/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-small-edit-r1/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-multi-file-r1": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-multi-file-r1:0",
+        "status": "completed",
+        "conversation_id": "618fc1a2-9efa-51a0-9ae4-8c223ca6e0fb",
+        "git_revision": "74ff14117ee78be211661055e3ffec3ede1d08ab"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793384451580
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-multi-file-r1",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-multi-file-r1/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-multi-file-r1/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-failing-tests-r1-p2": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-failing-tests-r1-p2:0",
+        "status": "completed",
+        "conversation_id": "30adb436-d61c-5c39-a11d-6430ffada23b",
+        "git_revision": "b63be92fe85f27ac4497ce8b0474f3960a6e5ac7"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385082355
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-failing-tests-r1-p2",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r1-p2/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r1-p2/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-noisy-output-r1": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-noisy-output-r1:0",
+        "status": "completed",
+        "conversation_id": "fccee2a1-f482-5cc4-b64c-4ffdd70b3494",
+        "git_revision": "c79ec7b04c84196c12d28d10fd52c85329c71ffd"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385141288
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-noisy-output-r1",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-noisy-output-r1/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-noisy-output-r1/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-stalled-run-r1": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-stalled-run-r1:0",
+        "status": "completed",
+        "conversation_id": "0b7fb9cf-cdab-5edb-8678-1ff7c57dd589",
+        "git_revision": "90ab33d166c2ec4c40c6a126a61ccddbcf841c83"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385200062
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-stalled-run-r1",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r1/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r1/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-discovery-r2": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-discovery-r2:0",
+        "status": "completed",
+        "conversation_id": "fe5ecb14-a101-57c8-9635-3d8516d8d605",
+        "git_revision": "d79e7a41529a4fff5914ef7a345b375ea2d84d1d"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385258874
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-discovery-r2",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r2/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r2/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-small-edit-r2": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-small-edit-r2:0",
+        "status": "completed",
+        "conversation_id": "0d4817bf-46ab-5400-a2d1-0610750dfe5b",
+        "git_revision": "dacb75dac73cbe4a3ef9425b1af49827586fc613"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385317754
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-small-edit-r2",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-small-edit-r2/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-small-edit-r2/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-multi-file-r2": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-multi-file-r2:0",
+        "status": "completed",
+        "conversation_id": "8d8d8146-f9db-5135-93e0-dc01a05455a5",
+        "git_revision": "ddb2972dec8679c8e62d34b0cddfbb7f76830db3"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385376715
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-multi-file-r2",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-multi-file-r2/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-multi-file-r2/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-failing-tests-r2": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-failing-tests-r2:0",
+        "status": "completed",
+        "conversation_id": "4e65895e-5d4f-5c41-b986-bba9c24a18ca",
+        "git_revision": "607c99fabef7104daff6ce2b9a41af278a8a0dfa"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385436142
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-failing-tests-r2",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r2/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r2/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-noisy-output-r2": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-noisy-output-r2:0",
+        "status": "completed",
+        "conversation_id": "bf3ed82c-a1aa-5ff5-bdc9-946fe00344b4",
+        "git_revision": "8e3bd1e25e0923b08b6ce54b042d9aeefc3a84cc"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385495003
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-noisy-output-r2",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-noisy-output-r2/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-noisy-output-r2/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-stalled-run-r2": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-stalled-run-r2:0",
+        "status": "completed",
+        "conversation_id": "a215fe55-d75a-58bc-998a-214974803e41",
+        "git_revision": "d0f321a4ca19da783ec87c86d659c569f5d42851"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385553638
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-stalled-run-r2",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r2/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r2/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-discovery-r3": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-discovery-r3:0",
+        "status": "completed",
+        "conversation_id": "2077810e-c378-56db-ad11-95b9c172864e",
+        "git_revision": "23fd2d7aeff52aacac56e3db4ca30cdc6932ae40"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385612980
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-discovery-r3",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r3/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r3/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-small-edit-r3": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-small-edit-r3:0",
+        "status": "completed",
+        "conversation_id": "a08d2639-5802-52af-bab1-462a8ae5a6d0",
+        "git_revision": "51672b89e0ccb12c1975219fa4b3b2322b9a9f3a"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385672098
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-small-edit-r3",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-small-edit-r3/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-small-edit-r3/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-multi-file-r3": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-multi-file-r3:0",
+        "status": "completed",
+        "conversation_id": "4216d294-3552-5a14-908c-c1c4ec351a8d",
+        "git_revision": "070a6a06a052eb51c58cd2a10ffe476e0c5dc576"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385730942
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-multi-file-r3",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-multi-file-r3/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-multi-file-r3/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-failing-tests-r3": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-failing-tests-r3:0",
+        "status": "completed",
+        "conversation_id": "4728ac36-b7ba-5ba0-a402-256244b3457a",
+        "git_revision": "22515b3385b05f4b256bf131fa2034c020203ae2"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385790035
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-failing-tests-r3",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r3/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r3/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-noisy-output-r3": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-noisy-output-r3:0",
+        "status": "completed",
+        "conversation_id": "1ef265e6-1aee-585e-af38-35155c64242f",
+        "git_revision": "520ac400d6dd4752a776300ec765c3287d802fca"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385849857
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-noisy-output-r3",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-noisy-output-r3/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-noisy-output-r3/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-stalled-run-r3": {
+      "stage": "needs_validation",
+      "build": {
+        "attempt_id": "h9d-20261030-stalled-run-r3:0",
+        "status": "completed",
+        "conversation_id": "538042a5-a48e-5289-a486-8894b7b014a4",
+        "git_revision": "2c88a091e70b2a5fe0971bdd7914e6fa0d74121f"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793385908884
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-stalled-run-r3",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r3/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r3/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    },
+    "h9d-20261030-failing-tests-r1": {
+      "stage": "needs_reconciliation",
+      "build": {
+        "attempt_id": "h9d-20261030-failing-tests-r1:0",
+        "status": "unknown",
+        "conversation_id": "d6eacfc9-8767-54da-a105-78a496c9a1c7",
+        "error": "Attempt could not be safely dispatched or reconciled"
+      },
+      "claim": {
+        "worker_id": "spine",
+        "lease_until_ms": 1793384510402
+      },
+      "receipt": null,
+      "attempts": 0,
+      "recovery": {
+        "request": {
+          "unitId": "h9d-20261030-failing-tests-r1",
+          "target": "http://127.0.0.1:1",
+          "scenarios": "baseline-external-development-checks",
+          "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r1/workspace",
+          "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-failing-tests-r1/task.txt"
+        },
+        "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+        "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+      }
+    }
+  },
+  "paired_and_paid_canary_attempts": [
+    [
+      "c9d1-20261030-discovery-r1:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-discovery-r2:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-discovery-r3:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-failing-tests-r1:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-failing-tests-r2:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-failing-tests-r3:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-multi-file-r1:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-multi-file-r2:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-multi-file-r3:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-noisy-output-r1:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-noisy-output-r2:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-noisy-output-r3:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-small-edit-r1:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-small-edit-r2:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-small-edit-r3:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-stalled-run-r1:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-stalled-run-r2:0",
+      "completed"
+    ],
+    [
+      "c9d1-20261030-stalled-run-r3:0",
+      "completed"
+    ],
+    [
+      "c9d1-canary-20261030:0",
+      "completed"
+    ]
+  ],
+  "all_19_real_attempts_completed": true,
+  "original_task_service_binding_restored": true,
+  "operator_active_marker_absent": true,
+  "paid_canary_containers_still_stopped": true,
+  "phase_9d_3_started": false
+}

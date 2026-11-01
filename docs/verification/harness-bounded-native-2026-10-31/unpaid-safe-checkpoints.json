@@ -1,0 +1,10 @@
+{
+  "schema": "factory.retained-checkpoint-evidence/v1",
+  "files": 1,
+  "bytes": 1565,
+  "sha256": "564c55650fcb3280bfc0d3938e2dc036ec6d8add2522b9cbc02a5380dd9fa71a",
+  "base_state_files": 1,
+  "event_files": 0,
+  "no_follow": true,
+  "read_after_namespace_stop": true
+}

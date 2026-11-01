@@ -1,0 +1,191 @@
+{
+  "status": "complete",
+  "verdict": "Not ready",
+  "verdict_reason": "Fix confirmed P1 #1 and prove the productive-burst negative control before the scoped canary; the frozen snapshot can intervene and fence despite fresh diagnostic evidence.",
+  "scope": {
+    "base": "60c4296",
+    "branch": "codex/phase9d-native-batching",
+    "head_sha": "60c4296df17260de68235948eba0cb407e3b40c9",
+    "pr_url": null,
+    "files_changed": 16,
+    "reviewed_source": "/tmp/compound-engineering-501/ce-code-review/stall-v1-final/snapshot",
+    "working_tree_delta": true
+  },
+  "intent": "Implement opt-in stall-v1 over the existing bounded allocation: hash completed SDK action/error/output pairs and bounded tracked/staged/untracked progress, issue one durable fixed diagnostic with run=false, then fence the original namespace on continued loops or uncertain delivery. Preserve attempt identity, request reservations, unknown completion semantics and default profile; never create a second conversation, resume automatically, refund or replay effects.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "security",
+    "testing",
+    "maintainability",
+    "agent-native",
+    "performance",
+    "reliability",
+    "adversarial"
+  ],
+  "findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/worker/stall_observation.py:40 -- latest={'_source_id':_digest(event.get('id')),'seq':seq,'at_seconds':elapsed,'complete':True,",
+        "stapled-factory/worker/stall_observation.py:49 returns only latest, discarding earlier completed reads in the same new event batch.",
+        "stapled-factory/worker/stall_runtime.py:177-185 fetches the complete bounded event history and passes it to latest_sample; run_session forwards just that sample to observe.",
+        "Read-only reproduction against the reviewed tree: poll0 contains failed false command; each following poll appends a unique successful cat diagnostic-N.txt output then another identical failed false. Workspace digest remains unchanged, elapsed times are0,2,4,6. observe returns observe,observe,observe,intervene despite new successful diagnostic evidence between every failure.",
+        "The SDK observation IDs in the reproduction are unique, so the source-ID replay guard does not suppress these samples. Repeating the pattern for three further polls satisfies the post-intervention stop count."
+      ],
+      "file": "stapled-factory/worker/stall_observation.py",
+      "first_evidence": "stapled-factory/worker/stall_observation.py:40 -- latest={'_source_id':_digest(event.get('id')),'seq':seq,'at_seconds':elapsed,'complete':True,",
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "line": 40,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial"
+      ],
+      "severity": "P1",
+      "suggested_fix": "Carry a durable cursor for all inspected SDK observations and account for every newly completed result before classifying a repeated failure. If current workspace state cannot be attributed to skipped historical results, conservatively clear the detection window whenever those skipped results include a successful investigation or changed diagnostic evidence instead of treating sampled failures as consecutive. Add an integration regression with error/poll, then unique successful diagnostic plus same error/poll repeated at least four times; it must neither intervene nor fence.",
+      "title": "Sampling hides new diagnostics and fences productive work",
+      "why_it_matters": "Each poll discards all completed observations except the latest one. If a successful read yields new diagnostic evidence and is followed by the same failing command before the next poll, the detector sees only identical errors. Four such polls incorrectly issue the diagnostic; three more can fence a productive investigation and leave partial effects requiring reconciliation. This violates the conservative productive-read/new-evidence requirement even though all events are present in the fetched history.",
+      "validation_status": "confirmed",
+      "validation_reason": "In the frozen 60c4296-based reviewed snapshot, distinct successful diagnostic reads followed by the same failed command between successive polls are reachable through StallAdapter._sample, but latest_sample discards each read and run_session forwards only identical failures; read-only reproductions produced intervention at poll4 and stop at poll7 despite fresh diagnostic evidence before every repeat, while live incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "actionable_findings": [
+    {
+      "#": 1,
+      "autofix_class": "manual",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/worker/stall_observation.py:40 -- latest={'_source_id':_digest(event.get('id')),'seq':seq,'at_seconds':elapsed,'complete':True,",
+        "stapled-factory/worker/stall_observation.py:49 returns only latest, discarding earlier completed reads in the same new event batch.",
+        "stapled-factory/worker/stall_runtime.py:177-185 fetches the complete bounded event history and passes it to latest_sample; run_session forwards just that sample to observe.",
+        "Read-only reproduction against the reviewed tree: poll0 contains failed false command; each following poll appends a unique successful cat diagnostic-N.txt output then another identical failed false. Workspace digest remains unchanged, elapsed times are0,2,4,6. observe returns observe,observe,observe,intervene despite new successful diagnostic evidence between every failure.",
+        "The SDK observation IDs in the reproduction are unique, so the source-ID replay guard does not suppress these samples. Repeating the pattern for three further polls satisfies the post-intervention stop count."
+      ],
+      "file": "stapled-factory/worker/stall_observation.py",
+      "first_evidence": "stapled-factory/worker/stall_observation.py:40 -- latest={'_source_id':_digest(event.get('id')),'seq':seq,'at_seconds':elapsed,'complete':True,",
+      "independent_reviewers": [
+        "adversarial"
+      ],
+      "line": 40,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "adversarial"
+      ],
+      "severity": "P1",
+      "suggested_fix": "Carry a durable cursor for all inspected SDK observations and account for every newly completed result before classifying a repeated failure. If current workspace state cannot be attributed to skipped historical results, conservatively clear the detection window whenever those skipped results include a successful investigation or changed diagnostic evidence instead of treating sampled failures as consecutive. Add an integration regression with error/poll, then unique successful diagnostic plus same error/poll repeated at least four times; it must neither intervene nor fence.",
+      "title": "Sampling hides new diagnostics and fences productive work",
+      "why_it_matters": "Each poll discards all completed observations except the latest one. If a successful read yields new diagnostic evidence and is followed by the same failing command before the next poll, the detector sees only identical errors. Four such polls incorrectly issue the diagnostic; three more can fence a productive investigation and leave partial effects requiring reconciliation. This violates the conservative productive-read/new-evidence requirement even though all events are present in the fetched history.",
+      "validation_status": "confirmed",
+      "validation_reason": "In the frozen 60c4296-based reviewed snapshot, distinct successful diagnostic reads followed by the same failed command between successive polls are reachable through StallAdapter._sample, but latest_sample discards each read and run_session forwards only identical failures; read-only reproductions produced intervention at poll4 and stop at poll7 despite fresh diagnostic evidence before every repeat, while live incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "requirements_completeness": {
+    "plan": "/Users/bo/code/software-factory-stapled/docs/planning/stapled-factory/phase-9d-plan.md",
+    "source": "explicit",
+    "scope": "Phase9d4 source/offline implementation only; live canary remains caller-owned next gate.",
+    "requirements": [
+      {
+        "requirement": "9d.4: normalized tool/error signatures plus bounded tracked/staged/untracked workspace progress, ignoring volatile logs/secrets.",
+        "status": "met",
+        "evidence": "bounded workspace fingerprint, private Git child, hashed action/error observations and profile tests"
+      },
+      {
+        "requirement": "9d.4: repeated hashes alone are not failure; new diagnostic evidence, productive reads and long-running tests must not falsely trigger; cover oscillation.",
+        "status": "partially addressed",
+        "evidence": "Pure detector negative controls exist, but source sampler discards productive between-poll diagnostics; finding #1."
+      },
+      {
+        "requirement": "9d.4: one bounded intervention, then original-lifecycle fencing with reconciliation status; no success/restart/refund.",
+        "status": "met in reviewed code; live delivery/cancellation remains separate verification",
+        "evidence": "durable diagnostic intent, same-conversation runfalse message, original deadline cancellation, unknown status and preserved reservation integration tests"
+      },
+      {
+        "requirement": "9d.4: versioned actual-supported common auto capability profile; no family guesses/shared-router changes.",
+        "status": "met",
+        "evidence": "auto-common-v1 manifest, supported explicit field allowlist, no family guess or shared router change"
+      }
+    ],
+    "implementation_units": [
+      {
+        "unit": "9d.4 offline implementation and regression cases; scoped canary is caller-owned next gate",
+        "status": "partially addressed",
+        "evidence": "Fix #1 before the planned scoped canary."
+      }
+    ],
+    "unrequested_behavior_rules": []
+  },
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "Latest-result sampling can miss rapid failure bursts or edit oscillations entirely between polls; offline detector coverage does not establish exhaustive live-event coverage.",
+    "Workspace hashes are bounded observations, not atomic filesystem snapshots; incomplete reads intentionally suppress classification.",
+    "Worker-reported observations remain an untrusted heuristic. The independent sandbox, egress and original allocation deadline remain the security boundary.",
+    "Current container lifecycle is checked at coordinator entry and cancellation; each long-observer iteration validates the original ledger/deadline record."
+  ],
+  "testing_gaps": [
+    "Actual pinned AgentServer queuing and active-loop consumption of the fixed run=false diagnostic remains a scoped-canary assertion; offline integration uses a faithful fake transport.",
+    "Add a deterministic stop-fails-then-recovers regression proving persisted fencing_uncertain, no diagnostic resend, original-fence-only retry, and unknown intervention status until fencing succeeds."
+  ],
+  "coverage": {
+    "depth": "full",
+    "notes": [
+      "Frozen canonical working-tree bytes including explicitly offered untracked code; private staged snapshot only used for deterministic scope counting, canonical index untouched.",
+      "Full floor:706 executable non-test changed lines,1224 changed lines,16files.",
+      "All eight selected lenses completed independently; seven structured JSON and agent-native markdown.",
+      "97 scoped tests passed after two behavior-preserving simplifications; exact full CI and live canary remain caller-owned.",
+      "No applicable standards/review policy or declared packs.",
+      "Use the frozen private snapshot for any validation because caller may apply fixes after this review; snapshot path is /tmp/compound-engineering-501/ce-code-review/stall-v1-final/snapshot.",
+      "One exact burst-history P1 reproducer saved at /tmp/compound-engineering-501/ce-code-review/stall-v1-final/burst-reproducer.py.",
+      "adversarial lens: in-process fallback (cross-model peer not run: caller prohibited extra model calls).",
+      "One primary P1 is retained from adversarial review, with exact snapshot reproduction. No semantic duplicates, settlement conflicts or policy transformations.",
+      "Source and line inspected in frozen snapshot; canonical source may change only through caller followup.",
+      "Independent validator batch confirmed #1 on the frozen snapshot; live incidence was not measured. Shortcut-skipped: 0.",
+      "Stage 5c skipped: agent report-only. No project edits, commits, remote actions or model calls occurred in finishing.",
+      "Verdict and finding apply to the frozen pre-fix snapshot only; caller changes in the canonical checkout were not assessed in this round.",
+      "No new unrequested behavior rule found in reverse plan check; Phase 9d.5 and live canary execution are outside this source review."
+    ],
+    "suppressed_by_confidence": {},
+    "malformed_findings": 0,
+    "malformed_returns": 0,
+    "first_evidence_backfilled": 0,
+    "quote_gate_demotions": 0,
+    "mode_aware_demotions": 0,
+    "failed_reviewers": [],
+    "timed_out_reviewers": [],
+    "review_policy": {
+      "sources": [],
+      "removed": 0,
+      "regraded": 0,
+      "not_applied": []
+    },
+    "validator": {
+      "outcome": "verdicts",
+      "confirmed": 1,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0,
+      "protected_subject_reclassifications": 0
+    }
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "adversarial lens: in-process fallback (cross-model peer not run: caller prohibited extra model calls)."
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/stall-v1-final",
+  "run_id": "stall-v1-final"
+}

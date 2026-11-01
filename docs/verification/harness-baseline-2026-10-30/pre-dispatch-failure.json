@@ -1,0 +1,13 @@
+{
+  "unit": "h9d-20261030-failing-tests-r1",
+  "reason": "Docker predefined bridge address pools exhausted before allocation binding and credential release",
+  "attempt_status_retained": "reserved",
+  "allocation_id": "ccdf3e07d90c49bbb2784f279378b1aa",
+  "no_allocation_binding": true,
+  "no_owned_container_or_network": true,
+  "gateway_requests_observed": 0,
+  "no_redispatch_or_budget_reset": true,
+  "runtime_sha256": "bad193ed72de8158147fc9a5e494eddfcd827772aa43d8ddfb4262b96c398d49",
+  "desired_service_sha256": "bd55d083307e016785be9418173ecf9c9f100f1374f6bed00c564bf53b5985e3",
+  "previous_service_sha256": "eeb3a536302c8f13e8a1fdb83f65e02697e029f53b7ad8d47de9d1511e650236"
+}

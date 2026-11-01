@@ -6,6 +6,7 @@ protect against a privileged Docker operator or prove an image's provenance.
 import os
 import re
 import stat
+import bounded_profile as bounded
 
 from egress_guard import UnsafeTopology, validate_networkless
 
@@ -40,9 +41,25 @@ def validate_volume(record, name, role, allocation_id):
         raise UnsafeTopology('volume identity mismatch or unsafe driver options')
 
 
+def telemetry_volume_name(proxy_command, allocation_id):
+    """Derive the one supported private telemetry mount from signed command."""
+    if not isinstance(proxy_command, list):
+        raise UnsafeTopology('explicit proxy command required')
+    options = [value for value in proxy_command
+               if isinstance(value, str) and value.startswith('--telemetry-dir')]
+    if not options:
+        return None
+    if options != ['--telemetry-dir'] or proxy_command.count('--telemetry-dir') != 1:
+        raise UnsafeTopology('telemetry directory option missing or ambiguous')
+    index = proxy_command.index('--telemetry-dir')
+    if index + 1 >= len(proxy_command) or proxy_command[index + 1] != '/telemetry':
+        raise UnsafeTopology('telemetry directory must be /telemetry')
+    return 'factory-' + allocation_id + '-telemetry'
+
+
 def validate_identity(worker, proxy, *, worker_image_id, proxy_image_id,
                       worker_command, proxy_command, socket_volume, budget_volume,
-                      proxy_network, workspace_source, volume_records, allocation_id, worker_environment, anchor_volume):
+                      proxy_network, workspace_source, volume_records, allocation_id, worker_environment, anchor_volume, execution_profile=None):
     def require(ok, message):
         if not ok:
             raise UnsafeTopology(message)
@@ -57,7 +74,16 @@ def validate_identity(worker, proxy, *, worker_image_id, proxy_image_id,
     st = os.stat(workspace_source, follow_symlinks=False)
     require(stat.S_ISDIR(st.st_mode) and st.st_uid == os.geteuid(), 'workspace must be an owned directory')
     require(not (st.st_mode & 0o022), 'workspace must not be group or world writable')
-    validate_networkless(worker, proxy, socket_volume, budget_volume, proxy_network, workspace_source, anchor_volume)
+    telemetry = telemetry_volume_name(proxy_command, allocation_id)
+    try:
+        bounded.validate_workspace(workspace_source,execution_profile)
+        bounded.validate_worker(worker,execution_profile,int(worker['Config']['User'].split(':')[0]))
+    except (ValueError,OSError):
+        raise UnsafeTopology('bounded execution storage validation failed') from None
+    structural = worker
+    if bounded.enabled(execution_profile):
+        structural = dict(worker,Mounts=[m for m in worker.get('Mounts',[]) if not (m.get('Type')=='tmpfs' and m.get('Destination')=='/tmp')])
+    validate_networkless(structural, proxy, socket_volume, budget_volume, proxy_network, workspace_source, anchor_volume, telemetry)
     for container, image, command, role in ((worker, worker_image_id, worker_command, 'worker'),
                                              (proxy, proxy_image_id, proxy_command, 'proxy')):
         validate_resources(container, role)
@@ -69,10 +95,13 @@ def validate_identity(worker, proxy, *, worker_image_id, proxy_image_id,
         require((cfg.get('Labels') or {}).get('factory.role') == role, role + ' role mismatch')
     require(worker['Config']['User'] == proxy['Config']['User'], 'socket requires matching numeric users')
     require(isinstance(worker_environment, list), 'explicit worker environment required')
-    require((worker['Config'].get('Env') or []) == worker_environment, 'worker environment mismatch')
+    require(bounded.environment_matches(worker['Config'].get('Env') or [], bounded.effective_environment(worker_environment,execution_profile), execution_profile), 'worker environment mismatch')
     for env in worker_environment:
         name = env.partition('=')[0].upper()
         require(not any(s in name for s in ('KEY', 'TOKEN', 'SECRET', 'PASSWORD', 'CREDENTIAL')), 'credential-like worker environment forbidden')
-    require(set(volume_records) == {socket_volume, budget_volume, anchor_volume}, 'volume records mismatch')
-    for name, role in ((socket_volume, 'socket'), (budget_volume, 'budget'), (anchor_volume, 'anchor')):
+    volume_roles = [(socket_volume, 'socket'), (budget_volume, 'budget'), (anchor_volume, 'anchor')]
+    if telemetry:
+        volume_roles.append((telemetry, 'telemetry'))
+    require(set(volume_records) == {name for name, _ in volume_roles}, 'volume records mismatch')
+    for name, role in volume_roles:
         validate_volume(volume_records[name], name, role, allocation_id)

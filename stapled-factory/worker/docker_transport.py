@@ -7,6 +7,7 @@ import json
 import re
 import subprocess
 import uuid
+from urllib.parse import urlsplit, parse_qs
 
 _CONTAINER_ID = re.compile(r'[0-9a-f]{64}\Z')
 _CLIENT = r'''
@@ -48,13 +49,26 @@ class DockerTransport:
         if method == 'POST' and path == '/api/conversations':
             if not isinstance(payload, dict):
                 raise ValueError('POST payload must be an object')
-        elif method == 'GET' and path.startswith('/api/conversations/') and payload is None:
-            identifier = path.removeprefix('/api/conversations/')
+        elif path.startswith('/api/conversations/'):
+            parsed=urlsplit(path)
+            parts=parsed.path.removeprefix('/api/conversations/').split('/')
             try:
-                if str(uuid.UUID(identifier)) != identifier:
-                    raise ValueError()
-            except (ValueError, AttributeError):
-                raise ValueError('Invalid conversation ID') from None
+                if str(uuid.UUID(parts[0]))!=parts[0] or parsed.fragment:raise ValueError()
+            except (ValueError,AttributeError):raise ValueError('Invalid conversation ID') from None
+            if method=='GET' and len(parts)==1 and not parsed.query and payload is None:
+                pass
+            elif method=='GET' and parts[1:]==['events','search'] and payload is None:
+                query=parse_qs(parsed.query,strict_parsing=True,max_num_fields=3)
+                if (set(query)-{'limit','sort_order','page_id'} or query.get('limit')!=['100']
+                        or query.get('sort_order')!=['TIMESTAMP']
+                        or any(len(v)!=1 or not v[0] or len(v[0])>1024 for v in query.values())):
+                    raise ValueError('Unsupported event query')
+            elif method=='POST' and parts[1:]==['events'] and not parsed.query:
+                from stall_runtime import DIAGNOSTIC
+                if (not isinstance(payload,dict) or payload.get('run') is not False or payload!=
+                        {'role':'user','content':[{'type':'text','text':DIAGNOSTIC}],'run':False}):
+                    raise ValueError('Unsupported diagnostic message')
+            else:raise ValueError('Unsupported request')
         else:
             raise ValueError('Unsupported request')
         envelope = json.dumps({'method': method, 'path': path, 'payload': payload, 'key': self.session_key})

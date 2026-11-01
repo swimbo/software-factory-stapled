@@ -1,0 +1,22 @@
+{
+  "schema": "factory.post-evaluation-regression-cases/v1",
+  "private_wall_scenarios_used": false,
+  "current_heldout_set_retired_for_future_qualification": true,
+  "cases": [
+    {
+      "case": "Asynchronous needs_reconciliation with live original SDK",
+      "expected": "Continue existing GET-only observation until verified terminal result or original deadline; never redispatch or infer failure from reconciliation stage.",
+      "proof": "test_evaluation_recovery.py::test_reconciliation_is_not_terminal_while_original_sdk_is_running; red-before-fix and independent reproduction."
+    },
+    {
+      "case": "A genuine failed import followed by shell exit-status printing",
+      "expected": "Outer shell status0 does not prove the import did not fail. Match actual executed command and paired error output to the written task; do not invent a nonzero-shell requirement.",
+      "proof": "supplemental-diagnostic-compliance.json confirms all four original diagnostic actions; frozen strict scores preserved."
+    },
+    {
+      "case": "Required JSON fields plus permitted diagnostic fields",
+      "expected": "Accept required fields and types when task wording does not forbid additional keys.",
+      "proof": "output-contract-audit.json identifies two frozen-oracle false negatives; contract-reconciliation.json appends corrections without rerunning work."
+    }
+  ]
+}

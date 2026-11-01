@@ -1,0 +1,25 @@
+{
+  "schema": "factory.external-deadline-probe/v1",
+  "real_systemd_timer_fired": true,
+  "seconds": 2,
+  "original_worker_and_proxy_stopped": true,
+  "escaped_session_contained_by_namespace": true,
+  "counter_after_partial_mutation": 1,
+  "attempt_status": "reserved",
+  "fence_rows": {
+    "intents": [
+      [
+        "deadline-probe:0"
+      ]
+    ],
+    "confirmations": [
+      [
+        "deadline-probe:0"
+      ]
+    ]
+  },
+  "no_deadline_rearm": true,
+  "ledgers_and_workspace_retained": true,
+  "model_requests": 0,
+  "live_factory_state_used": false
+}

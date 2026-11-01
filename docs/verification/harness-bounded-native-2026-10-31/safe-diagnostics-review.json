@@ -1,0 +1,77 @@
+{
+  "status": "complete",
+  "verdict": "Ready to merge",
+  "scope": {
+    "base": "db96ddd",
+    "branch": "codex/phase9d-native-batching",
+    "head_sha": "eea52b0c32827555495fceb11568dfaf1fb342b8",
+    "pr_url": null,
+    "files_changed": 3
+  },
+  "intent": "Classify private Docker failures into fixed allowlisted static codes, preserve through cleanup, and append only registered codes to existing unknown-error result. Never emit stderr/args/keys/model content or alter no-redispatch/reservations; diagnostic class is not zero-call/admission evidence.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "security",
+    "testing",
+    "reliability",
+    "adversarial"
+  ],
+  "findings": [],
+  "actionable_findings": [],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "requirements_completeness": null,
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "Static diagnostic codes classify failure text only; they do not prove zero calls, resource ownership, safe replay, budget-reset eligibility or admission authorization."
+  ],
+  "testing_gaps": [
+    "Nonblocking classifier coverage gap: permission/resource codes, TimeoutExpired with byte stderr, and original-code preservation when cleanup raises ProvisionError are not asserted."
+  ],
+  "coverage": {
+    "depth": "full",
+    "notes": [
+      "Exact reviewed source eea52b0 vsdb96ddd;3files63changedlines34executablenontest.",
+      "33worker/provision tests independently passed;callerreports38focusedtests and exactCIpending.",
+      "Projectstandards notrun successful emptycriteria search;noREVIEWpolicy orpacks.",
+      "No new primitive;diagnosticsnever authorize retry/budgetreset/ownership/zerocall.",
+      "Allfive local lenses complete;peerfailed beforeegress;jobdirectoriesdeleted.",
+      "adversarial lens: in-process fallback (cross-model peer not run: Claude transport unavailable pre-egress with Internal error; replacement Antigravity lacked installed ACP runtime route).",
+      "Confidence suppression: none; malformed findings:0; malformed returns:0; first_evidence_backfilled:0; quote-gate demotions:0; mode-aware demotions:0.",
+      "No plan discovered; settlement suppression was not evaluated.",
+      "No independently verified cross-model corroboration; no findings require validator; shortcut-skipped:0.",
+      "Validator outcome: empty batch; no retained findings required validation; shortcut-skipped:0.",
+      "Stage5c skipped: agent report-only; no code or index mutations."
+    ],
+    "validator": {
+      "outcome": "empty-batch",
+      "confirmed": 0,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0
+    },
+    "suppressed_by_confidence": {},
+    "mode_aware_demotions": 0,
+    "first_evidence_backfilled": 0,
+    "quote_gate_demotions": 0,
+    "failed_reviewers": [],
+    "timed_out_reviewers": [],
+    "review_policy": {
+      "sources": [],
+      "removed": 0,
+      "regraded": 0,
+      "not_applied": []
+    }
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "adversarial lens: in-process fallback (cross-model peer not run: Claude transport unavailable pre-egress with Internal error; replacement Antigravity lacked installed ACP runtime route)."
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/safe-diagnostics-eea52b0",
+  "run_id": "safe-diagnostics-eea52b0"
+}

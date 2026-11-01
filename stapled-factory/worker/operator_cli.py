@@ -12,6 +12,7 @@ import subprocess
 import time
 from pathlib import Path
 
+import bounded_profile as bounded
 from docker_transport import DockerTransport
 from guarded_store import GuardedAttemptStore
 from openhands_adapter import OpenHandsAdapter
@@ -50,7 +51,7 @@ def _option(command, name):
 def load_config(args):
     path = os.environ.get('FACTORY_RUNTIME_CONFIG', '')
     data = json.loads(_private_file(path))
-    if not isinstance(data, dict) or set(data) - {'deployment_scope', 'image_approval'} != {'attempt_id', 'task_file', 'repo', 'baseline', 'successor_workspace', 'payload', 'provision'}:
+    if not isinstance(data, dict) or set(data) - {'deployment_scope', 'image_approval', 'stall_profile'} != {'attempt_id', 'task_file', 'repo', 'baseline', 'successor_workspace', 'payload', 'provision'}:
         raise ValueError('invalid operator configuration')
     # Content IDs and container isolation do not establish publisher provenance
     # or mediate privileged tool effects. No production override exists here.
@@ -69,6 +70,9 @@ def load_config(args):
         # Trust root comes from operator service environment, never the request.
         verify_approval(_private_file(approval['document']), _private_file(approval['signature']),
                         _private_file(os.environ.get('FACTORY_IMAGE_APPROVAL_KEY', '')), data['provision'])
+    from stall_runtime import validate_profile
+    validate_profile(data,data.get('stall_profile'))
+    bounded.validate_workspace(data['repo'],data['provision'].get('execution_profile'))
     command = data['provision']['proxy_command']
     model = _option(command, '--model')
     if (_option(command, '--attempt-id') != args.attempt_id or
@@ -115,6 +119,8 @@ def run(args):
     config, request = load_config(args)
     provision = config['provision']
     baseline = config['baseline']
+    if bounded.enabled(provision.get('execution_profile')) and (args.successor_preflight_only or args.successor_only or args.successor_reconcile_only):
+        raise ValueError('bounded execution cannot restart an uncertain batch')
     if args.successor_preflight_only:
         _check_baseline(config['successor_workspace'], baseline)
         if not Path(args.attempt_db).is_file() or not Path(args.attempt_anchor).is_file():
@@ -135,8 +141,12 @@ def run(args):
             time.sleep(1)
         else:
             raise RuntimeError('agent server unavailable')
-        return OpenHandsAdapter('http://127.0.0.1:8000', 'dummy',
+        base = OpenHandsAdapter('http://127.0.0.1:8000', 'dummy',
             lambda *_: verify_revision(workspace, baseline), transport=DockerTransport(container, 'dummy'))
+        if config.get('stall_profile') is not None:
+            from stall_runtime import StallAdapter
+            return StallAdapter(base,store,args.attempt_id,os.environ['FACTORY_RUNTIME_CONFIG'],workspace)
+        return base
 
     if successor:
         return execute_bound_successor(store, args.attempt_id, request, provision, adapter,

@@ -1,0 +1,38 @@
+{
+  "schema": "factory.heldout-promotion-decision/v1",
+  "decision": "retain_baseline",
+  "trials": 24,
+  "gateway_requests": 188,
+  "estimated_reserved_usd": 10.7275,
+  "actual_charges_usd": null,
+  "frozen_strict_acceptance": [
+    4,
+    4,
+    4,
+    5
+  ],
+  "as_written_acceptance": [
+    5,
+    5,
+    5,
+    6
+  ],
+  "profile_order": [
+    "baseline",
+    "context-v1",
+    "bounded-native-v1",
+    "stall-v1"
+  ],
+  "full_baseline_primary_metric": null,
+  "reasons": [
+    "First collector canary fenced active original conversation; two wire responses remain incomplete, so full baseline primary metric and full accounting are unknown.",
+    "Authoritative SDK truncation coverage unavailable.",
+    "Combined-versus-baseline routed-model sets differ in three of six pairs.",
+    "Collector epoch changed after first failed sample; one repeat over six tasks cannot establish stable causal performance.",
+    "Original private grader was stricter than task wording; frozen scores retained with independently reviewed read-only reconciliation."
+  ],
+  "profiles_remain_opt_in": true,
+  "defaults_changed": false,
+  "automatic_promotion_merge_or_deploy": false,
+  "original_attempts_resumed_or_redispatched": false
+}

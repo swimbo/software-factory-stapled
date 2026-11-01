@@ -9,10 +9,12 @@ import os
 import re
 import stat
 import subprocess
+import time
 import uuid
+import bounded_profile as bounded
 
 from egress_guard import inspect
-from provision_check import validate_identity, validate_volume, resource_arguments
+from provision_check import validate_identity, validate_volume, resource_arguments, telemetry_volume_name
 from netns_firewall import install_proxy_firewall, verify_proxy_firewall
 
 
@@ -20,17 +22,41 @@ class ProvisionError(RuntimeError):
     pass
 
 
+_DIAGNOSTIC_OPERATIONS=('volume','network','run','create','start','kill','container')
+SAFE_DIAGNOSTIC_CODES=frozenset(
+    ['provision.preflight.failed','docker.network.address_pool_exhausted']+
+    ['docker.'+op+'.'+kind for op in _DIAGNOSTIC_OPERATIONS for kind in ('failed','timeout','permission_denied','resource_unavailable')])
+
+
 def _run(args, *, timeout=30):
     # stderr may include sensitive arguments from Docker, so never expose it.
     try:
         return subprocess.run(['docker', *args], check=True, stdout=subprocess.PIPE,
-                              stderr=subprocess.DEVNULL, text=True, timeout=timeout).stdout.strip()
+                              stderr=subprocess.PIPE, text=True, timeout=timeout).stdout.strip()
     except (OSError, subprocess.SubprocessError) as exc:
-        raise ProvisionError('Docker operation failed: ' + args[0]) from exc
+        error=ProvisionError('Docker operation failed: ' + args[0])
+        operation=args[0] if args[0] in _DIAGNOSTIC_OPERATIONS else None
+        text=(getattr(exc,'stderr',None) or '')
+        if not isinstance(text,str):text=''
+        kind='timeout' if isinstance(exc,subprocess.TimeoutExpired) else 'failed'
+        if 'permission denied' in text.lower() or 'operation not permitted' in text.lower():kind='permission_denied'
+        if 'resource temporarily unavailable' in text.lower():kind='resource_unavailable'
+        error.diagnostic_code='docker.'+operation+'.'+kind if operation else None
+        if operation=='network' and 'all predefined address pools have been fully subnetted' in text:
+            error.diagnostic_code='docker.network.address_pool_exhausted'
+        raise error from exc
 
 
 def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_command,
-              workspace, uid, worker_environment, gateway_key, allocation_id=None, before_credential=None, firewall=None):
+              workspace, uid, worker_environment, gateway_key, allocation_id=None, before_credential=None, firewall=None, execution_profile=None):
+    try:
+        bounded.validate_workspace(workspace,execution_profile)
+        if bounded.enabled(execution_profile) and (before_credential is None or firewall is None):
+            raise ValueError('bounded execution requires the durable deadline coordinator')
+    except (ValueError,OSError):
+        raise ProvisionError('bounded workspace or deadline preflight unavailable') from None
+    # Validate telemetry opt-in before any Docker observation or mutation.
+    telemetry_volume_name(proxy_command, '')
     image_details = {}
     for image in (worker_image, proxy_image, helper_image):
         if not re.fullmatch(r'sha256:[0-9a-f]{64}', image):
@@ -75,11 +101,16 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
         raise ProvisionError('invalid reserved allocation ID')
     prefix = 'factory-' + alloc
     sock, budget, anchor, network, worker, proxy = (prefix + '-' + x for x in ('socket', 'budget', 'anchor', 'network', 'worker', 'proxy'))
+    telemetry = telemetry_volume_name(proxy_command, alloc)
+    volume_roles = [(sock, 'socket'), (budget, 'budget'), (anchor, 'anchor')]
+    if telemetry:
+        volume_roles.append((telemetry, 'telemetry'))
+    telemetry_mount = ['--mount', 'type=volume,src=' + telemetry + ',dst=/telemetry'] if telemetry else []
     created = []
     process = None
     labels = ['--label', 'factory.allocation=' + alloc]
     try:
-        for name, role in ((sock, 'socket'), (budget, 'budget'), (anchor, 'anchor')):
+        for name, role in volume_roles:
             _run(['volume', 'create', *labels, '--label', 'factory.role=' + role, name])
             # Docker volume create is idempotent. Never mount or chown an
             # unexpected pre-existing or bind-backed volume.
@@ -92,31 +123,46 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
               '--security-opt', 'no-new-privileges', '--user', '0:0',
               '--mount', 'type=volume,src=' + sock + ',dst=/gateway',
               '--mount', 'type=volume,src=' + budget + ',dst=/budget',
-              '--mount', 'type=volume,src=' + anchor + ',dst=/anchor',
-              '--entrypoint', '/bin/chown', helper_image, str(uid) + ':' + str(uid), '/gateway', '/budget', '/anchor'])
+              '--mount', 'type=volume,src=' + anchor + ',dst=/anchor', *telemetry_mount,
+              '--entrypoint', '/bin/chown', helper_image, str(uid) + ':' + str(uid), '/gateway', '/budget', '/anchor',
+              *(['/telemetry'] if telemetry else [])])
+        if telemetry:
+            _run(['run', '--rm', *resource_arguments('helper'), '--network', 'none', '--cap-drop', 'ALL',
+                  '--security-opt', 'no-new-privileges', '--user', f'{uid}:{uid}', *telemetry_mount,
+                  '--entrypoint', '/bin/chmod', helper_image, '0700', '/telemetry'])
         common = ['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--user', f'{uid}:{uid}']
         _run(['create', '-i', '--name', proxy, *labels, '--label', 'factory.role=proxy', *common, *resource_arguments('proxy'),
               '--network', network, '--mount', 'type=volume,src=' + sock + ',dst=/gateway',
               '--mount', 'type=volume,src=' + budget + ',dst=/budget',
-              '--mount', 'type=volume,src=' + anchor + ',dst=/anchor',
+              '--mount', 'type=volume,src=' + anchor + ',dst=/anchor', *telemetry_mount,
               '--entrypoint', proxy_command[0], proxy_image, *proxy_command[1:]])
         created.append(('container', proxy))
         # docker start -ai keeps stdin connected; key is never in argv or env.
         process = subprocess.Popen(['docker', 'start', '-ai', proxy], stdin=subprocess.PIPE,
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        _run(['create', '--name', worker, *labels, '--label', 'factory.role=worker', *common, *resource_arguments('worker'),
+        startup_deadline = time.monotonic() + 5
+        while True:
+            if process.poll() is not None:
+                raise ProvisionError('proxy controller exited during startup')
+            state = inspect('container', proxy).get('State') or {}
+            if state.get('Running') is True:
+                break
+            if state.get('Restarting') is True or time.monotonic() >= startup_deadline:
+                raise ProvisionError('proxy did not start within the bounded wait')
+            time.sleep(0.1)
+        _run(['create', '--name', worker, *labels, '--label', 'factory.role=worker', *common, *resource_arguments('worker'), *bounded.worker_arguments(execution_profile,uid),
               '--network', 'none', '--mount', 'type=volume,src=' + sock + ',dst=/gateway,readonly',
               '--mount', 'type=bind,src=' + workspace + ',dst=/workspace',
               '--entrypoint', worker_command[0], worker_image, *worker_command[1:]])
         created.append(('container', worker))
         _run(['start', worker])
         w, p = inspect('container', worker), inspect('container', proxy)
-        records = {name: inspect('volume', name) for name in (sock, budget, anchor)}
+        records = {name: inspect('volume', name) for name, _ in volume_roles}
         validate_identity(w, p, worker_image_id=worker_image, proxy_image_id=proxy_image,
                           worker_command=worker_command, proxy_command=proxy_command,
                           socket_volume=sock, budget_volume=budget, proxy_network=inspect('network', network)['Id'],
                           workspace_source=workspace, volume_records=records, allocation_id=alloc,
-                          worker_environment=worker_environment, anchor_volume=anchor)
+                          worker_environment=worker_environment, anchor_volume=anchor, execution_profile=execution_profile)
         network_record = inspect('network', network)
         if firewall is not None:
             install_proxy_firewall(p['Id'], alloc, network_record['Id'], firewall['helper_image'], firewall['gateway_ip'])
@@ -140,13 +186,15 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
         if process is not None:
             process.terminate()
         for kind, name in reversed(created):
-            if kind == 'volume' and name in (budget, anchor):
+            if kind == 'volume' and name in (budget, anchor, telemetry):
                 continue
             try:
                 _run([kind, 'rm', *(['-f'] if kind == 'container' else []), name])
             except ProvisionError:
                 pass
-        raise ProvisionError('provisioning failed (' + failure_type + '); budget and anchor volumes retained if created') from None
+        error=ProvisionError('provisioning failed (' + failure_type + '); budget and anchor volumes retained if created; telemetry retained if created')
+        error.diagnostic_code=getattr(exc,'diagnostic_code','provision.preflight.failed')
+        raise error from None
 
 
 def _check_baseline(workspace, baseline):
@@ -190,6 +238,7 @@ def provision_once(store, attempt_id, request_hash, conversation_id, *, workspac
         raise ProvisionError('allocation ID must come from the guarded store')
     if not isinstance(workspace_baseline, str) or not re.fullmatch(r'[0-9a-f]{40}([0-9a-f]{24})?', workspace_baseline):
         raise ProvisionError('verified workspace baseline required')
+    bounded.validate_workspace(configuration.get('workspace'),configuration.get('execution_profile'))
     _check_baseline(configuration.get('workspace'), workspace_baseline)
     specification = {**{k: v for k, v in configuration.items() if k != 'gateway_key'}, 'workspace_baseline': workspace_baseline}
     try:
@@ -213,7 +262,13 @@ def provision_once(store, attempt_id, request_hash, conversation_id, *, workspac
                                for name, record in volumes.items()}}
         if configuration.get('firewall') is not None:
             binding['proxy_lifecycle'] = _running_lifecycle(proxy)
+        if bounded.enabled(configuration.get('execution_profile')):
+            binding['bounded_workspace']=bounded.validate_workspace(configuration['workspace'],configuration['execution_profile'])
         store.bind_allocation(attempt_id, request_hash, conversation_id, digest, allocation_id, binding)
+        if bounded.enabled(configuration.get('execution_profile')):
+            from deadline_watchdog import arm_deadline, validate_deadline
+            arm_deadline(store,attempt_id,request_hash,conversation_id,digest,allocation_id,binding,configuration['worker_image'],configuration['proxy_image'])
+            validate_deadline(store,attempt_id,request_hash,conversation_id,digest,allocation_id,binding)
     return provision(**configuration, allocation_id=allocation_id, before_credential=bind)
 
 
@@ -232,7 +287,9 @@ def inspect_bound_allocation(store, attempt_id, request_hash, conversation_id, *
         prefix = 'factory-' + allocation_id
         sock, budget, anchor, network, worker, proxy = (prefix + '-' + x for x in ('socket', 'budget', 'anchor', 'network', 'worker', 'proxy'))
         w, p, n = inspect('container', worker), inspect('container', proxy), inspect('network', network)
-        volumes = {name: inspect('volume', name) for name in (sock, budget, anchor)}
+        telemetry = telemetry_volume_name(configuration['proxy_command'], allocation_id)
+        volume_names = (sock, budget, anchor) + ((telemetry,) if telemetry else ())
+        volumes = {name: inspect('volume', name) for name in volume_names}
         actual = {'worker_id': w.get('Id'), 'proxy_id': p.get('Id'), 'network_id': n.get('Id'),
                   'worker_lifecycle': _running_lifecycle(w),
                   'workspace_baseline': workspace_baseline,
@@ -240,16 +297,21 @@ def inspect_bound_allocation(store, attempt_id, request_hash, conversation_id, *
                               for name, record in volumes.items()}}
         if configuration.get('firewall') is not None:
             actual['proxy_lifecycle'] = _running_lifecycle(p)
+        if bounded.enabled(configuration.get('execution_profile')):
+            actual['bounded_workspace']=bounded.validate_workspace(configuration['workspace'],configuration['execution_profile'])
         if actual != binding:
             raise ProvisionError('bound Docker resources changed')
         validate_identity(w, p, worker_image_id=configuration['worker_image'], proxy_image_id=configuration['proxy_image'],
                           worker_command=configuration['worker_command'], proxy_command=configuration['proxy_command'],
                           socket_volume=sock, budget_volume=budget, anchor_volume=anchor, proxy_network=n['Id'],
                           workspace_source=configuration['workspace'], volume_records=volumes, allocation_id=allocation_id,
-                          worker_environment=configuration['worker_environment'])
+                          worker_environment=configuration['worker_environment'], execution_profile=configuration.get('execution_profile'))
         if configuration.get('firewall') is not None:
             firewall = configuration['firewall']
             verify_proxy_firewall(p['Id'], allocation_id, n['Id'], firewall['helper_image'], firewall['gateway_ip'])
+        if bounded.enabled(configuration.get('execution_profile')):
+            from deadline_watchdog import validate_deadline
+            validate_deadline(store,attempt_id,request_hash,conversation_id,digest,allocation_id,binding)
         return {'allocation_id': allocation_id, 'worker_id': binding['worker_id'], 'proxy_id': binding['proxy_id']}
     except Exception as exc:
         raise ProvisionError('bound allocation unavailable or changed') from exc

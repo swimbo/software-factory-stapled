@@ -1,0 +1,86 @@
+{
+  "schema": "factory.native-limits-probe/v1",
+  "model_requests": 0,
+  "workspace_capacity": {
+    "device": 202,
+    "inode": 1,
+    "mount_id": "2193",
+    "filesystem": "tmpfs",
+    "capacity_bytes": 67108864
+  },
+  "production_bind_mount_profile_activated": false,
+  "native_timeout_is_not_termination": {
+    "returned_exit_code": -1,
+    "effect_after_timeout": true
+  },
+  "native_model_output_bytes": 30000,
+  "disk_exhaustion_contained": true,
+  "fork_exhaustion_contained": true,
+  "native_cooperative_interrupt": true,
+  "capture_sdk_cancellation_before_and_during": true,
+  "capture_output_flood_contained": true,
+  "gateway_budget_socket_and_checker_absent": true,
+  "boundary": {
+    "Memory": 2147483648,
+    "MemorySwap": 2147483648,
+    "NanoCpus": 2000000000,
+    "PidsLimit": 64,
+    "ReadonlyRootfs": true,
+    "Tmpfs": {
+      "/tmp": "rw,exec,nosuid,nodev,size=536870912,uid=1000,gid=1000,mode=0700",
+      "/workspace": "rw,nosuid,nodev,size=67108864,uid=1000,gid=1000,mode=0700"
+    },
+    "NetworkMode": "none"
+  },
+  "worker_image": "sha256:d1d11b40384c2eb25d5d9d38a069abed9801a0a290c64101a24cc200a8a26e30",
+  "source_sha256": [
+    {
+      "path": "probes/native_batching_sdk.py",
+      "sha256": "26e7017e368097322e97a48e351e860f194587d2d027740b6f7cada898719888"
+    },
+    {
+      "path": "probes/native_limits_sdk.py",
+      "sha256": "58f8d56e303cde2bffeada0de29f45068b4d4f7c3a228151a8651f7c56f4a77a"
+    },
+    {
+      "path": "baseline/batching.py",
+      "sha256": "37819f16c3aad5be1f0666cc1b2cdf54519287771310f679ac6c801b119624e2"
+    },
+    {
+      "path": "baseline/tasks.json",
+      "sha256": "0bb3d7b7516c6453295f287215184c73fcbc0e2f4e731c3740fcc4df7e6c46f1"
+    },
+    {
+      "path": "baseline/check.py",
+      "sha256": "371b94a04ecbefa07004a8b9de9c77418836aae2929692cecc38f3e7322829a4"
+    },
+    {
+      "path": "baseline/seed/catalog.py",
+      "sha256": "7b8c242c0c334b99f62c4f7bb6ff21e03a342cdcc5dc4570ec0a15b2f835cbaa"
+    },
+    {
+      "path": "baseline/seed/check_totals.py",
+      "sha256": "13c747f0a5c9fb669bea3b1002be01b8915f52cf126b8cc3367544d2dd132f2e"
+    },
+    {
+      "path": "baseline/seed/noisy.py",
+      "sha256": "330efe93fb71ebed125da3c41f45643449adf023182cafaada6641a7ecc5ded4"
+    },
+    {
+      "path": "baseline/seed/app.py",
+      "sha256": "c059d7c36c429d898df21eea2f50aec2f75e445ae1f95bc73928bba7bda41a01"
+    },
+    {
+      "path": "bounded_profile.py",
+      "sha256": "6ca8b3281e897f16cdb6b169fa2c665a9262b7593af81db6c90dfb882b2877ac"
+    },
+    {
+      "path": "factory_capture_tool.py",
+      "sha256": "bfcbb00fcfc03782f24f5d761d8f7d0bd313fcb6360b2ce726d88540199a1ae6"
+    },
+    {
+      "path": "output_artifacts.py",
+      "sha256": "98efa356da38a822471791629754768d200b9306f7b14c4b94f03d88cdb72a96"
+    }
+  ]
+}

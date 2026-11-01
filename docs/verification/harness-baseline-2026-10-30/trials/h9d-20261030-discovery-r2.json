@@ -1,0 +1,127 @@
+{
+  "unit": "h9d-20261030-discovery-r2",
+  "task_id": "discovery",
+  "repeat": 2,
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "task_sha256": "497d7c209c1603fbcb8bb9e97936a1a0bcba8f9846be74b0329784c50b09bcbf",
+  "allowed_paths": [
+    "discovery.json"
+  ],
+  "runtime_sha256": "fa78230b059c207b7dc2d21b34a01296ec203e9a2c31d665aa72ad7251660b32",
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "h9d-20261030-discovery-r2:0",
+      "status": "completed",
+      "conversation_id": "fe5ecb14-a101-57c8-9635-3d8516d8d605",
+      "git_revision": "d79e7a41529a4fff5914ef7a345b375ea2d84d1d"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793385258874
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "h9d-20261030-discovery-r2",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "baseline-external-development-checks",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r2/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-discovery-r2/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "revision": "d79e7a41529a4fff5914ef7a345b375ea2d84d1d",
+  "changed": [
+    "discovery.json"
+  ],
+  "accepted": true,
+  "task_wall_elapsed_s": 44.068,
+  "budget": {
+    "budgets": [
+      [
+        "h9d-20261030-discovery-r2:0",
+        "auto",
+        12,
+        5,
+        "1b5b3910287a118839799e958a611af7031eddc688e9329349d70a33feef806c"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "h9d-20261030-discovery-r2:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-v2-best-effort",
+        1793405114,
+        344440
+      ]
+    ]
+  },
+  "telemetry": {
+    "schema": "factory.harness-telemetry/v1",
+    "requests_observed": 5,
+    "requests_without_end": 0,
+    "actual_cost_usd": null,
+    "cached_input_share": null,
+    "actual_routed_model": null,
+    "retries": null,
+    "complete_responses": 5,
+    "observed_input_tokens": 1993,
+    "input_tokens_coverage": 5,
+    "input_tokens": 1993,
+    "observed_output_tokens": 971,
+    "output_tokens_coverage": 5,
+    "output_tokens": 971,
+    "observed_cache_read_input_tokens": 46976,
+    "cache_read_input_tokens_coverage": 5,
+    "cache_read_input_tokens": 46976,
+    "observed_cache_creation_input_tokens": 0,
+    "cache_creation_input_tokens_coverage": 5,
+    "cache_creation_input_tokens": 0,
+    "estimated_reserved_microdollars": 344440,
+    "log_sha256": "83cea993f688fdd0c752e50b807e1f32412be06042a8f353726236603ab74ae4"
+  },
+  "trace": {
+    "event_count": 17,
+    "event_kinds": {
+      "SystemPromptEvent": 1,
+      "MessageEvent": 2,
+      "other": 8,
+      "ActionEvent": 3,
+      "ObservationEvent": 3
+    },
+    "tool_actions": {
+      "terminal": 3
+    },
+    "observation_serialized_bytes": 5917,
+    "dependency_diagnostic_commands": 0,
+    "install_commands": 0,
+    "command_sha256": [
+      "a72773b161a8b9f52c14a90e4b67cef03fec5ec67d5014e0cff6a852fe859c12",
+      "e00958143c969feb1f8903bfb566cf17d422c065cb8dc0f2403820a423a04efa",
+      "3c3a5c5a6e9b39be5b3ad880e7bd6a43bfadfe9a610aaee0690b152233227d91"
+    ],
+    "first_event_timestamp": "2026-10-30T18:24:27.239450",
+    "last_event_timestamp": "2026-10-30T18:24:36.635956",
+    "complete": true
+  },
+  "candidate_archive_sha256": "2d81025e6e43c9e08829c3703302be6d29a03df5ea0a1fc04a8f2060dceb9601",
+  "candidate_check": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "reservation_count_matches_telemetry": true,
+  "worker_telemetry_and_budget_paths_denied": true,
+  "resources_stopped": true,
+  "requires_abandonment": false,
+  "worker": "25f2411cce579be35cd3d6a0660ee6e81791ce69b0d1ec6c1f54edd4954f2c55",
+  "proxy": "192045cbc333daec44223beffd8cff7f31ad6218c16776f4ac6a5d4211d272f8",
+  "actual_charges": null,
+  "phase_9d_2_started": false,
+  "binding_restored": true
+}

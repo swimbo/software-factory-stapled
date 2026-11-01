@@ -1,0 +1,7 @@
+{
+  "schema": "factory.ipam-capacity-probe/v1",
+  "network_create_succeeded": true,
+  "model_requests": 0,
+  "stderr": "",
+  "own_empty_probe_network_removed": true
+}

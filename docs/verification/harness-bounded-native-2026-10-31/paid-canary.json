@@ -1,0 +1,115 @@
+{
+  "schema": "factory.context-canary/v1",
+  "unit": "b9d3-canary-20261031-p2",
+  "accepted": true,
+  "requests": 8,
+  "estimated_reserved_usd": 0.425619,
+  "actual_charges_usd": null,
+  "capture_and_paginated_read_executed": true,
+  "retained_artifact_checks": [
+    {
+      "artifact_id": "25f1df8b70ae4f8f82587a06376dad04",
+      "digest": "692b5f80c5dab80ce36c918c35db847db7a5dcdb8e873b7a529a0cab0acb25db",
+      "total_bytes": 5019,
+      "capture_complete": true
+    }
+  ],
+  "normal_dispatch_and_exact_revision_check": true,
+  "binding_restored": true,
+  "resources_stopped": true,
+  "gateway_logs": [
+    {
+      "id": "b0c366ae-ffa0-47b9-a0f7-ea33fb4ba11a",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 414,
+      "completion_tokens": 214,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "23f15060-0b5f-4e4a-ac23-2ff367dbee16",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 6321,
+      "completion_tokens": 138,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "06ce020b-1982-4103-89fb-a2583673cd37",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7109,
+      "completion_tokens": 132,
+      "cached_read_tokens": 6192
+    },
+    {
+      "id": "774a3f1b-969c-4f0f-b50e-b764177339c6",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7509,
+      "completion_tokens": 116,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "4b43e880-77a3-4071-9181-cadaa4476915",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7689,
+      "completion_tokens": 127,
+      "cached_read_tokens": 7380
+    },
+    {
+      "id": "7135a4b1-021f-4118-9758-4f59cba56ea9",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7889,
+      "completion_tokens": 204,
+      "cached_read_tokens": 6980
+    },
+    {
+      "id": "249e8a13-9ec5-421c-ad1f-2326b0ccd92f",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8116,
+      "completion_tokens": 137,
+      "cached_read_tokens": 7760
+    },
+    {
+      "id": "5705713c-d77f-402c-9c03-68097b0eb260",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8349,
+      "completion_tokens": 207,
+      "cached_read_tokens": 7986
+    }
+  ],
+  "phase_9d_3_started": true,
+  "phase_9d_4_started": false,
+  "checkpoint_evidence": {
+    "schema": "factory.retained-checkpoint-evidence/v1",
+    "files": 31,
+    "bytes": 58042,
+    "sha256": "f223240b1a6a24fb4a359594d88069c036ba6ca95796a3b684356205730f12e1",
+    "base_state_files": 1,
+    "event_files": 28,
+    "no_follow": true,
+    "read_after_namespace_stop": true,
+    "verified": true
+  }
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "factory.canary-marker-observability/v1",
+  "unit": "b9d3-canary-20261031-p2",
+  "proof": [
+    {
+      "artifact_sha256": "692b5f80c5dab80ce36c918c35db847db7a5dcdb8e873b7a529a0cab0acb25db",
+      "read_offset": 4096,
+      "final_marker_visible_in_requested_page": true
+    }
+  ],
+  "new_model_requests": 0
+}

@@ -1,0 +1,23 @@
+{
+  "verified": true,
+  "unit": "h9d-unpaid-canary-20261030",
+  "release": "974aece75d62644b35b5f4e51928bb61cce140e2",
+  "bound_original_allocation": true,
+  "private_permissions": {
+    "directory_mode": "0700",
+    "file_mode": "0600",
+    "owner_uid": 1000
+  },
+  "networkless_worker_negatives_passed": true,
+  "worker_telemetry_budget_anchor_paths_absent": true,
+  "proxy_firewall_revalidated": true,
+  "stopped_volume_accounting_verified": true,
+  "model_requests": 0,
+  "resources_stopped": true,
+  "images": {
+    "worker_image": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77",
+    "proxy_image": "sha256:fea034647968423021eb9f4cea2cc44debd1c14fb4626cf9ef6d5db4248a005d",
+    "helper_image": "sha256:73570499e4f9272b8e96a1115a13f9c4d186a32cf3968621f5ae602e55083d19"
+  },
+  "telemetry_volume": "factory-7c685cf5bb8a499daf85249655b42d85-telemetry"
+}

@@ -1,0 +1,14 @@
+{
+  "revision": "850259ae877e0cb171310e95d11719d9882e879e",
+  "services_healthy": true,
+  "admin_health": 200,
+  "unauthenticated_ingress": 401,
+  "unsigned_endpoint_discovery": 401,
+  "all_factory_listeners_loopback": true,
+  "process_working_directories": {
+    "factory-endpoint": "/home/bo/.local/share/stapled-factory-control/releases/850259ae877e0cb171310e95d11719d9882e879e/stapled-factory/spine",
+    "factory-ingress": "/home/bo/.local/share/stapled-factory-control/releases/850259ae877e0cb171310e95d11719d9882e879e/stapled-factory/spine"
+  },
+  "verification_scope": "context-v1 release health and authentication boundaries; paired trials tracked separately",
+  "shared_services_restarted": false
+}

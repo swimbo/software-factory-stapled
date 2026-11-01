@@ -1,0 +1,38 @@
+{
+  "schema": "factory.context-comparison-preregistration/v1",
+  "authorization": "Go ahead and deploy context-v1, run the canary and 18 paired candidate trials, then compare the results against the baseline before starting Phase 9d.3.",
+  "profile": "context-v1",
+  "code_revision": "850259ae877e0cb171310e95d11719d9882e879e",
+  "baseline_release": "974aece75d62644b35b5f4e51928bb61cce140e2",
+  "baseline_contract_accepts": 18,
+  "paired_trials": 18,
+  "additional_paid_canary": 1,
+  "primary_metric": "total_prompt_tokens_including_cache_per_contract_v2_accepted_task",
+  "secondary_metrics": [
+    "requests_per_accepted_task",
+    "uncached_input_tokens",
+    "cache_reported_read_share_with_coverage",
+    "median_workflow_latency",
+    "median_agent_event_span",
+    "best_effort_reservations"
+  ],
+  "gate": {
+    "accepted_candidates_minimum": 18,
+    "primary_improvement_minimum": 0.1,
+    "median_workflow_latency_increase_maximum": 0.1,
+    "same_seed_task_text_order_limits_router": true,
+    "same_actual_model_stratum_required": true,
+    "isolation_and_accounting_checks_required": true
+  },
+  "estimated_target_usd_per_attempt": 2,
+  "requests_per_attempt_max": 12,
+  "max_output_tokens": 1024,
+  "actual_charge_cap": false,
+  "trial_retries_or_budget_resets": false,
+  "phase_9d_3_started": false,
+  "limitations": [
+    "Nonconcurrent historical paired baseline; warm/cache/order and infrastructure effects",
+    "Three repeats per six development tasks, not heldout production evaluation",
+    "Combined context-v1 profile, not separate mechanism attribution; whole 9d.5 gate is not complete"
+  ]
+}

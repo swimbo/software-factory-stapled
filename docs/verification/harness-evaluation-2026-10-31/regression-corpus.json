@@ -1,0 +1,12 @@
+{
+  "schema": "factory.sanitized-development-regressions/v1",
+  "private_wall_examples_used": false,
+  "cases": [
+    {"failure": "Asynchronously missing final gateway row", "regression": "Incomplete accounting blocks promotion; observation may reconcile the same canonical session without rerunning work", "test": "test_harness_evaluation.py unknown coverage and incomplete-set cases"},
+    {"failure": "Diagnostic delivery mistaken for agent adaptation", "regression": "Independent clean revision and frozen output check required; diagnostic metadata alone cannot accept a candidate", "test": "test_evaluation_trials.py delivery-status and original-failure collection"},
+    {"failure": "Productive diagnostics between observer polls hidden by latest-error sampling", "regression": "Intervening progress breaks repetition history", "test": "test_stall_runtime.py::test_productive_diagnostics_between_polls_break_the_error_window"},
+    {"failure": "SDK loop finishes before intervention delivery", "regression": "Inactive loop is never resumed, original allocation contained", "test": "test_stall_runtime.py::test_inactive_loop_after_delivery_is_fenced_without_new_run_or_message"},
+    {"failure": "Matching request counts conceal mismatched gateway tokens/reservations", "regression": "Accounting also requires exact token/cache/reservation totals", "test": "test_evaluation_trials.py gateway and reservation mismatch cases"},
+    {"failure": "Candidate import exits oracle process successfully before assertions", "regression": "Separate candidate child must return parseable expected values; exit0 alone fails", "test": "private isolated oracle-controls.json negative-exit case"}
+  ]
+}

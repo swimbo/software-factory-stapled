@@ -1,4 +1,4 @@
-"""Minimal OpenHands 1.58 conversation HTTP client; no automatic retries."""
+"""Minimal OpenHands 1.58.2 conversation HTTP client; no automatic retries."""
 import json
 import ipaddress
 import re
@@ -6,6 +6,7 @@ from urllib.parse import urlsplit
 import urllib.error
 import urllib.request
 import uuid
+from harness_telemetry import digest
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -14,7 +15,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class OpenHandsAdapter:
-    def __init__(self, server_url, session_key, verify_revision, timeout=10, transport=None):
+    def __init__(self, server_url, session_key, verify_revision, timeout=10, transport=None, telemetry=None):
         if not session_key:
             raise ValueError("Session key required")
         parsed = urlsplit(server_url)
@@ -32,6 +33,7 @@ class OpenHandsAdapter:
         self.session_key = session_key
         self.verify_revision = verify_revision
         self.timeout = timeout
+        self.telemetry = telemetry
         self.transport = transport
         self.opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), _NoRedirect())
 
@@ -67,6 +69,16 @@ class OpenHandsAdapter:
     def _classify(self, conversation_id, info):
         # Finished alone is not proof of a successful or committed build.
         status = info.get('execution_status')
+        if self.telemetry is not None:
+            # AgentServer metrics default absent usage fields to zero; observe
+            # lifecycle only here. Wire usage comes from the confined proxy.
+            try:
+                self.telemetry.emit({'kind': 'conversation_observed',
+                    'request_id': digest(conversation_id),
+                    'observation': status if status in (
+                        'idle', 'running', 'paused', 'finished', 'error', 'stuck') else 'unknown'})
+            except Exception:
+                pass  # No effect on revision verification or replay semantics.
         # An error or stuck state can follow a crash with unknown tool effects.
         # Neither state proves that a build had no side effects.
         if status != 'finished':

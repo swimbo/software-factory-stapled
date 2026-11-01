@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "control": "heldout-seed",
+      "task_id": "expiry",
+      "accepted": false
+    },
+    {
+      "control": "heldout-seed",
+      "task_id": "quoted-csv",
+      "accepted": false
+    },
+    {
+      "control": "heldout-seed",
+      "task_id": "parcels",
+      "accepted": false
+    },
+    {
+      "control": "heldout-seed",
+      "task_id": "service-map",
+      "accepted": false
+    },
+    {
+      "control": "heldout-seed",
+      "task_id": "sensor",
+      "accepted": false
+    },
+    {
+      "control": "heldout-seed",
+      "task_id": "unavailable",
+      "accepted": false
+    },
+    {
+      "control": "known-correct",
+      "task_id": "expiry",
+      "accepted": true
+    },
+    {
+      "control": "known-correct",
+      "task_id": "quoted-csv",
+      "accepted": true
+    },
+    {
+      "control": "known-correct",
+      "task_id": "parcels",
+      "accepted": true
+    },
+    {
+      "control": "known-correct",
+      "task_id": "service-map",
+      "accepted": true
+    },
+    {
+      "control": "known-correct",
+      "task_id": "sensor",
+      "accepted": true
+    },
+    {
+      "control": "known-correct",
+      "task_id": "unavailable",
+      "accepted": true
+    },
+    {
+      "control": "negative-exit",
+      "task_id": "expiry",
+      "accepted": false
+    }
+  ],
+  "inference_calls": 0
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "factory.owned-diagnostic-network-release/v1",
+  "released": [
+    {
+      "unit": "b9d3-unpaid-canary-20261031-p2",
+      "allocation": "4b1074a24fe14f6388bb2078641cb44a",
+      "empty_original_network_removed": true,
+      "containers_and_volumes_and_workspace_and_reservation_retained": true
+    },
+    {
+      "unit": "b9d3-diagnostic-20261031",
+      "allocation": "aba3c256d81340108a83f721f6dd9738",
+      "empty_original_network_removed": true,
+      "containers_and_volumes_and_workspace_and_reservation_retained": true
+    },
+    {
+      "unit": "b9d3-normal-probe-20261031",
+      "allocation": "906a5edc74654e23ab5765f032cb025a",
+      "empty_original_network_removed": true,
+      "containers_and_volumes_and_workspace_and_reservation_retained": true
+    },
+    {
+      "unit": "b9d3-proxy-race-green-20261031",
+      "allocation": "1535a3847ab14268b7604432063f17c6",
+      "empty_original_network_removed": true,
+      "containers_and_volumes_and_workspace_and_reservation_retained": true
+    }
+  ],
+  "unrelated_networks_touched": false,
+  "budget_resets": 0
+}

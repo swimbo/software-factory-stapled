@@ -1,0 +1,21 @@
+{
+  "reviewer": "reliability",
+  "base_sha": "a9c214892ab338296b361d69144dc90595d51388",
+  "head_sha": "3c07b8145836f5a9f28620bea7c10c41e80c9efe",
+  "scope": "Committed delta a9c2148..3c07b81: deadline_watchdog.py and test_deadline_watchdog.py",
+  "outcome": "P1 resolved; no new actionable reliability findings in the delta",
+  "evidence": [
+    "deadline_watchdog.py:225-229 validates both original container identities and stops the worker with proxy stop in finally before _bound at line 231.",
+    "Quarantined or blocked ledger access can no longer delay namespace stops; durable fencing failures still raise the explicit incomplete/uncertain error at line 237.",
+    "Concurrent completion between status read and fence lookup may still produce an incomplete-fencing error, but both original containers are already stopped; completed ledger results are not overwritten.",
+    "New tests cover actual anchor quarantine and assert both containers are stopped before the first _bound access."
+  ],
+  "validation": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -m pytest -q -p no:cacheprovider stapled-factory/worker/tests/test_deadline_watchdog.py",
+    "result": "14 passed in 0.11s",
+    "boundary": "Local mocked Docker/systemd tests; no external calls or hosted activation verification"
+  },
+  "findings": [],
+  "residual_risks": [],
+  "testing_gaps": []
+}

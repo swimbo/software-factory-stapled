@@ -58,7 +58,7 @@ try:
     cmd('volume','create',v); created.append(('volume',v))
     cmd('run','--rm','--network','none','--user','0:0','-v',v+':/gateway','python:3.11-slim','chown','10001:10001','/gateway')
     cmd('run','-d','--name',p,'--label','factory.probe=agent-gateway','--network','none','--user','10001:10001','--cap-drop','ALL','--security-opt','no-new-privileges','-v',v+':/gateway','python:3.11-slim','sleep','300'); created.append(('container',p))
-    for file in ('egress_proxy.py','guarded_store.py'):
+    for file in ('egress_proxy.py', 'harness_telemetry.py','guarded_store.py'):
         cmd('cp',str(ROOT/file),p+':/tmp/'+file)
     cmd('exec',p,'mkdir','/tmp/anchor')
     cmd('exec','-i',p,'python','-c','import sys;open("/tmp/probe.py","w").write(sys.stdin.read())',input=PROXY)

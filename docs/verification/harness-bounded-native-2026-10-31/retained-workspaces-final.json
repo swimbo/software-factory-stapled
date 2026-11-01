@@ -1,0 +1,131 @@
+{
+  "all_18_mounts_retained": true,
+  "workspaces": [
+    {
+      "unit": "b9d3-20261031-discovery-r1",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3173",
+      "device": 1793,
+      "inode": 8194
+    },
+    {
+      "unit": "b9d3-20261031-small-edit-r1",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3206",
+      "device": 1793,
+      "inode": 8195
+    },
+    {
+      "unit": "b9d3-20261031-multi-file-r1",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3239",
+      "device": 1793,
+      "inode": 8196
+    },
+    {
+      "unit": "b9d3-20261031-failing-tests-r1",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3272",
+      "device": 1793,
+      "inode": 8197
+    },
+    {
+      "unit": "b9d3-20261031-noisy-output-r1-p3",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3035",
+      "device": 1793,
+      "inode": 8219
+    },
+    {
+      "unit": "b9d3-20261031-stalled-run-r1-p2",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3033",
+      "device": 1793,
+      "inode": 8220
+    },
+    {
+      "unit": "b9d3-20261031-discovery-r2-p2",
+      "capacity_bytes": 1020702720,
+      "mount_id": "1882",
+      "device": 1793,
+      "inode": 8223
+    },
+    {
+      "unit": "b9d3-20261031-small-edit-r2",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3404",
+      "device": 1793,
+      "inode": 8201
+    },
+    {
+      "unit": "b9d3-20261031-multi-file-r2",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3437",
+      "device": 1793,
+      "inode": 8202
+    },
+    {
+      "unit": "b9d3-20261031-failing-tests-r2",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3470",
+      "device": 1793,
+      "inode": 8203
+    },
+    {
+      "unit": "b9d3-20261031-noisy-output-r2",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3503",
+      "device": 1793,
+      "inode": 8204
+    },
+    {
+      "unit": "b9d3-20261031-stalled-run-r2",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3536",
+      "device": 1793,
+      "inode": 8205
+    },
+    {
+      "unit": "b9d3-20261031-discovery-r3",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3569",
+      "device": 1793,
+      "inode": 8206
+    },
+    {
+      "unit": "b9d3-20261031-small-edit-r3",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3602",
+      "device": 1793,
+      "inode": 8207
+    },
+    {
+      "unit": "b9d3-20261031-multi-file-r3",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3635",
+      "device": 1793,
+      "inode": 8208
+    },
+    {
+      "unit": "b9d3-20261031-failing-tests-r3",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3668",
+      "device": 1793,
+      "inode": 8209
+    },
+    {
+      "unit": "b9d3-20261031-noisy-output-r3",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3701",
+      "device": 1793,
+      "inode": 8210
+    },
+    {
+      "unit": "b9d3-20261031-stalled-run-r3",
+      "capacity_bytes": 1020702720,
+      "mount_id": "3734",
+      "device": 1793,
+      "inode": 8211
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "schema": "factory.bounded-native-preregistration/v1",
+  "authorization": "k, continue \u2014 deploy bounded profile, canary, eighteen paired candidate trials; compare before Phase9d.4",
+  "profile": "context-v1 + bounded-native-v1",
+  "code_revision": "645cb597b45a21a89580f0d9b2ebb6a45c4f533e",
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "paired_trials": 18,
+  "additional_paid_canary": 1,
+  "unpaid_retained_canary_required": true,
+  "primary_metric": "total_prompt_tokens_including_cache_per_contract_v2_accepted_task",
+  "safety_gate": {
+    "acceptance": 18,
+    "retained_checkpoints": true,
+    "original_namespace_deadline": true,
+    "isolation_accounting_parity": true,
+    "no_blind_retry_or_reset": true
+  },
+  "comparison": "historical frozen original baseline and context-v1; unchanged task text,seed,order,router,request and output limits",
+  "gate_against_original_baseline": {
+    "prompt_reduction_minimum": 0.1,
+    "median_workflow_latency_increase_maximum": 0.1
+  },
+  "context_v1_comparison": "report acceptance,requests,prompt,cache,latency and lane distributions; no additional token improvement presupposed",
+  "estimated_target_usd_per_attempt": 2,
+  "requests_per_attempt_max": 12,
+  "max_output_tokens": 1024,
+  "actual_charge_cap": false,
+  "trial_retries_or_budget_resets": false,
+  "phase_9d_4_started": false
+}

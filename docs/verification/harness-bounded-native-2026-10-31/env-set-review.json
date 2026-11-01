@@ -1,0 +1,58 @@
+{
+  "status": "complete",
+  "verdict": "Ready to merge",
+  "scope": {
+    "base": "eea52b0c32827555495fceb11568dfaf1fb342b8",
+    "branch": "codex/phase9d-native-batching",
+    "head_sha": "eea52b0c32827555495fceb11568dfaf1fb342b8",
+    "working_tree_delta": true,
+    "diff_sha256": "6aae67837255205606f136ad35af6c43e53df3248eb76ffc6d4fd6844aa94571",
+    "pr_url": null,
+    "files_changed": 3,
+    "excluded_untracked": [
+      "docs/verification/harness-bounded-native-2026-10-31/"
+    ]
+  },
+  "intent": "Compare bounded-profile Docker environment entries by exact unique names and values independently of order. Reject duplicates, changed values, missing or extra entries; preserve default profile strict ordered comparison.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "adversarial"
+  ],
+  "findings": [],
+  "actionable_findings": [],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "requirements_completeness": {
+    "scope": "Bounded-profile environment identity comparison correction only",
+    "requirements": [
+      {
+        "id": "exact-env-set",
+        "status": "met",
+        "evidence": "Both actual and expected lists require strings containing assignment and unique names; sorted exact strings must match. Baseline profile retains direct equality."
+      }
+    ]
+  },
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [],
+  "testing_gaps": [],
+  "coverage": {
+    "depth": "focused",
+    "notes": [
+      "12 executable non-test changed lines;24total changed lines;3tracked files. Untracked preliminary verification docs excluded.",
+      "Correctness plus independent local adversarial review complete with no findings; no validator or other reviewer agents dispatched.",
+      "76 bounded/profile/provision tests independently passed; git diff --check passed. Caller reports full515Python+12subtests green.",
+      "Read actual environment-order-characterization.json:8isolated never-started Docker containers,8sameunique exactvalues,2differentordering,0modelrequests,exact-ID cleanup.",
+      "Successful empty criteria/policy search; no declared packs. Learnings, agent-native gaps and deployment notes not separately assessed.",
+      "This receipt covers saved working-tree diff bytes; commit/deployment/live acceptance remain caller verification steps."
+    ]
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "adversarial lens: in-process fallback (cross-model peer not run: Claude transport unavailable pre-egress with Internal error; replacement Antigravity lacked installed ACP runtime route)."
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/env-set-eea52b0",
+  "run_id": "env-set-eea52b0"
+}

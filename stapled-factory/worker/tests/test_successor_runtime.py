@@ -82,3 +82,43 @@ def test_workspace_rejects_ignored_files_before_successor(tmp_path):
     (new / 'local-state' / 'state').write_text('leftover')
     with pytest.raises(runtime.ProvisionError, match='dirty'):
         runtime._workspace(str(new), str(old), baseline)
+
+
+def test_source_reuses_and_revalidates_original_private_telemetry_volume(monkeypatch, tmp_path):
+    import copy
+    from test_provision_check import telemetry_fixture
+    w,p,k,telemetry = telemetry_fixture(tmp_path)
+    allocation=k['allocation_id'];prefix='factory-'+allocation
+    names={k['socket_volume']:prefix+'-socket',k['budget_volume']:prefix+'-budget',k['anchor_volume']:prefix+'-anchor',telemetry:telemetry}
+    for container in (w,p):
+        for mount in container['Mounts']:
+            if mount.get('Name') in names:mount['Name']=names[mount['Name']]
+    volumes={names[name]:dict(record,Name=names[name]) for name,record in k['volume_records'].items()}
+    w['Id']='1'*64;p['Id']='2'*64
+    w['State'].update(Running=False,Restarting=False,StartedAt='original')
+    w['HostConfig']['RestartPolicy']={'Name':'no'}
+    p['State'].update(Running=True,Pid=42,StartedAt='proxy-original')
+    command=['proxy','--attempt-id','attempt','--gateway-ip','100.92.236.42',
+             '--budget-db','/budget/b.db','--budget-anchor','/anchor/b.json','--telemetry-dir','/telemetry']
+    p['Config']['Entrypoint']=['proxy'];p['Config']['Cmd']=command[1:]
+    config={'workspace':str(tmp_path),'worker_image':w['Image'],'proxy_image':p['Image'],
+            'worker_command':k['worker_command'],'proxy_command':command,'worker_environment':[],
+            'firewall':{'helper_image':'sha256:'+'3'*64,'gateway_ip':'100.92.236.42'}}
+    fields=('Name','CreatedAt','Driver','Scope','Labels','Options','Mountpoint')
+    binding={'worker_id':w['Id'],'proxy_id':p['Id'],'network_id':k['proxy_network'],
+             'workspace_baseline':'a'*40,'worker_lifecycle':{'StartedAt':'original'},
+             'proxy_lifecycle':{'Pid':42,'StartedAt':'proxy-original'},
+             'volumes':{name:{field:record.get(field) for field in fields} for name,record in volumes.items()}}
+    class Store:
+        def lookup_allocation(self,*args):return allocation,copy.deepcopy(binding)
+    def inspect(kind,name):
+        if kind=='container':return w if name==w['Id'] else p
+        if kind=='network':return {'Id':k['proxy_network']}
+        return volumes[name]
+    monkeypatch.setattr(runtime,'inspect',inspect)
+    monkeypatch.setattr(runtime,'verify_proxy_firewall',lambda *args:None)
+    result=runtime._source(Store(),'attempt','request','conversation',config,'a'*40)
+    assert telemetry in result[4]
+    volumes[telemetry]['CreatedAt']='replacement'
+    with pytest.raises(runtime.ProvisionError,match='allocation changed'):
+        runtime._source(Store(),'attempt','request','conversation',config,'a'*40)

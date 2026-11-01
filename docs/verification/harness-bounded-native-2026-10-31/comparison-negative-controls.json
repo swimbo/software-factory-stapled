@@ -1,0 +1,6 @@
+{
+  "full_coverage_positive_control": true,
+  "missing_usage_field_rejected": 4,
+  "partial_coverage_rejected": 4,
+  "model_requests": 0
+}

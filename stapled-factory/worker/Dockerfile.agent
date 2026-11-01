@@ -3,6 +3,7 @@ ARG WORKER_UID=1000
 USER root
 RUN useradd -u "$WORKER_UID" -d /tmp/factory-home -s /bin/sh factoryworker \
     && mkdir -p /tmp/factory-home && chown "$WORKER_UID:$WORKER_UID" /tmp/factory-home
-COPY egress_bridge.py agent_entrypoint.py /opt/factory/
+COPY egress_bridge.py agent_entrypoint.py factory_capture_tool.py output_artifacts.py /opt/factory/
 ENV HOME=/tmp/factory-home
+ENV OH_EXTRA_PYTHON_PATH=/opt/factory
 WORKDIR /tmp

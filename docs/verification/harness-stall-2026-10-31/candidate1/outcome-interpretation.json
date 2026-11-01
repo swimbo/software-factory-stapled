@@ -1,0 +1,12 @@
+{
+  "schema": "factory.stall-canary-outcome/v1",
+  "unit": "s9d4-canary-20261031-01",
+  "accepted": false,
+  "reason": "One diagnostic was stored, but active-loop consumption/adaptation was not established. The loop was observed idle and the original allocation was explicitly fenced at the canary observation limit. No SDK resume or redispatch.",
+  "requests": 6,
+  "estimated_reserved_usd": 0.278221,
+  "actual_charges_usd": null,
+  "raw_continued_loop_fenced_field_means_cleanup_only": true,
+  "automatic_continued_loop_fencing_demonstrated_live": false,
+  "exact_terminal_transition_cause_unasserted": true
+}

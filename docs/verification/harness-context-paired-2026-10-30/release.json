@@ -1,0 +1,8 @@
+{
+  "revision": "850259ae877e0cb171310e95d11719d9882e879e",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/850259ae877e0cb171310e95d11719d9882e879e",
+  "setup": "/home/bo/.local/share/stapled-factory-control/baseline-setup/context-v1-20261030",
+  "files": 998,
+  "manifest_sha256": "bd69e4d24c48b0a3f2b1dc5203b1e1907ff452b66735ef12e6015c8a99f444d3",
+  "prebuilt_node_runtime_identical_to": "974aece75d62644b35b5f4e51928bb61cce140e2"
+}

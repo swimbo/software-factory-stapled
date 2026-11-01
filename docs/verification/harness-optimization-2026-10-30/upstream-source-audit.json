@@ -1,0 +1,19 @@
+{
+  "revision": "d0d9d81324210414462fb676b377e0563a08a0cb",
+  "sdk_version": "1.58.2",
+  "agent_server_version": "1.58.2",
+  "method": "Read exact-revision official source archive over verified HTTPS; no package execution or deployment inspection.",
+  "files": {
+    "openhands-sdk/pyproject.toml": "d0f7574244f57ff80e4b4c50302bc64987a9f5a6fbeba7c8702e11e3a6840f4e",
+    "openhands-agent-server/pyproject.toml": "719519518654c574c3012a6545d87e2982650c616ad27755c69a28d46712e1b2",
+    "openhands-sdk/openhands/sdk/agent/agent.py": "8773d6e759bced7ca8791b665ae7b457487629b41f812c428f7f7da9713ae1a5",
+    "openhands-sdk/openhands/sdk/settings/model.py": "b33c2439685e16d7afff3bf337b1371dab7a7b7f6fcfb51bfd738d8510950dfe",
+    "openhands-sdk/openhands/sdk/context/prompts/presets.py": "0ad581412b42b1b63a3312f9db953b8b7b1bff3ba6b80e4b5e4b247bde75e86c",
+    "openhands-sdk/openhands/sdk/llm/llm.py": "2e977d0f0f0a7d650173da7b3efc16efde11bf4e470b72324b6283abe363343e",
+    "openhands-sdk/openhands/sdk/llm/utils/metrics.py": "860b5153385c9085b2567ee7174aea5dc4daa105ba9fe76eeb9a5bc01df6be6d",
+    "openhands-sdk/openhands/sdk/conversation/stuck_detector.py": "3bf25f2d722404398e4744ae188f575f628463732b3606a8da6049fb8ff0039e",
+    "openhands-agent-server/openhands/agent_server/models.py": "b3e00425aee0f1de128af18d820dd074d7da8e66278fe63380a9e8249baf7424",
+    "openhands-tools/openhands/tools/preset/default.py": "514fc343d371cc21287dc2a5fcc19e2bf173514618a25d3601c3b7adc93a1a1f",
+    "openhands-tools/openhands/tools/terminal/definition.py": "a978161b8512762607288fe1e3459dfd9b9d3ed79f46b6495cda9d5d2da6e3a3"
+  }
+}

@@ -40,3 +40,44 @@ def test_attempt_reuse_with_different_request_does_not_dispatch(tmp_path):
 def test_production_dispatch_is_blocked():
     assert run_task(SimpleNamespace())['status'] == 'blocked'
 
+
+
+def test_docker_failure_code_survives_cleanup_without_stderr_or_credential_leak(tmp_path,monkeypatch):
+    import subprocess
+    import provision_runtime as runtime
+    from test_provision_runtime import _inspect_volume
+    secret='private-fixture-never-log'
+    def command(args,**kwargs):
+        if args[:3]==['docker','network','create']:
+            raise subprocess.CalledProcessError(1,args,stderr='all predefined address pools have been fully subnetted '+secret)
+        return SimpleNamespace(stdout='')
+    monkeypatch.setattr(runtime,'inspect',_inspect_volume)
+    monkeypatch.setattr(runtime.subprocess,'run',command)
+    image='sha256:'+'1'*64
+    def dispatch(*args):
+        return runtime.provision(worker_image=image,proxy_image=image,helper_image=image,
+            worker_command=['worker'],proxy_command=['proxy'],workspace=str(tmp_path),uid=1000,
+            worker_environment=[],gateway_key=secret.encode())
+    result=execute_attempt(AttemptStore(tmp_path/'attempts.db'),'safe:0',{'task':'x'},dispatch,lambda *_:None)
+    assert result['status']=='unknown' and 'docker.network.address_pool_exhausted' in result['error']
+    import json
+    assert secret not in json.dumps(result)
+
+
+def test_unregistered_exception_diagnostic_cannot_expose_arbitrary_text(tmp_path):
+    def dispatch(*args):
+        error=RuntimeError('private-fixture-never-log');error.diagnostic_code='private-fixture-never-log';raise error
+    result=execute_attempt(AttemptStore(tmp_path/'attempts.db'),'safe:0',{},dispatch,lambda *_:None)
+    assert result['status']=='unknown' and 'private-fixture' not in result['error']
+
+
+def test_stall_fencing_is_unknown_with_original_identity_and_no_result_publication(tmp_path):
+    from stall_runtime import StallIntervention
+    calls=[]
+    def dispatch(*_):calls.append('original');raise StallIntervention('stopped')
+    store=AttemptStore(tmp_path/'attempts.db')
+    result=execute_attempt(store,'stall:0',{'task':'x'},dispatch,lambda *_:None)
+    assert result['status']=='unknown' and result['intervention_status']=='stopped' and result['git_revision']==''
+    replay=execute_attempt(store,'stall:0',{'task':'x'},dispatch,lambda *_:None)
+    assert replay['status']=='unknown' and calls==['original']
+    assert replay['conversation_id']==result['conversation_id']

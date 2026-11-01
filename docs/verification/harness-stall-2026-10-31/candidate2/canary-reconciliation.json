@@ -1,0 +1,157 @@
+{
+  "schema": "factory.stall-canary-reconciliation/v1",
+  "unit": "s9d4-canary-20261031-02",
+  "accepted": true,
+  "original_collector_accepted": false,
+  "original_collector_result_sha256": "de461fed0c0c9a2fbcac78cc4415deb6e25680fc600d0e10db450f864a3d4305",
+  "reason": "Canonical gateway observation was initially incomplete; later read-only reconciliation found the final row. No model/tool/controller execution was repeated.",
+  "initial_gateway_rows": 11,
+  "final_gateway_rows": 12,
+  "new_gateway_row_ids": [
+    "9f4a2e41-1c89-4e5e-be1c-53c0e62083c1"
+  ],
+  "gateway": [
+    {
+      "id": "c13e5305-c560-44ec-92a7-582bfb3c0b80",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 499,
+      "completion_tokens": 189,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "29223138-a606-435f-8fc8-816fe790d3e8",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 6401,
+      "completion_tokens": 118,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "534e8db4-72ea-47b0-9c28-c17acba099ed",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 6678,
+      "completion_tokens": 139,
+      "cached_read_tokens": 6400
+    },
+    {
+      "id": "9d9babe6-91d8-4d4d-844a-e5d98fb6a646",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 6879,
+      "completion_tokens": 140,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "c0c14260-5b3e-419f-bed1-14e1701a644e",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7081,
+      "completion_tokens": 130,
+      "cached_read_tokens": 6784
+    },
+    {
+      "id": "e67d49f1-0a76-462a-86f0-404e4927ecf5",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7273,
+      "completion_tokens": 130,
+      "cached_read_tokens": 7168
+    },
+    {
+      "id": "b77b0478-a675-4d3c-b2ab-c96b7c20cfa3",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7518,
+      "completion_tokens": 520,
+      "cached_read_tokens": 7296
+    },
+    {
+      "id": "6ee43bd6-e978-49fa-9671-c03c52800972",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8089,
+      "completion_tokens": 169,
+      "cached_read_tokens": 7936
+    },
+    {
+      "id": "18b4a406-2ad8-4f80-9b7d-12085374c0d9",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8327,
+      "completion_tokens": 96,
+      "cached_read_tokens": 8192
+    },
+    {
+      "id": "4919773c-3024-493d-9c52-f0d6d8bd60c2",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8535,
+      "completion_tokens": 115,
+      "cached_read_tokens": 8320
+    },
+    {
+      "id": "dd29c6e2-c0f1-4ca6-8a52-238191681d18",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8756,
+      "completion_tokens": 138,
+      "cached_read_tokens": 8576
+    },
+    {
+      "id": "9f4a2e41-1c89-4e5e-be1c-53c0e62083c1",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8992,
+      "completion_tokens": 93,
+      "cached_read_tokens": 8832
+    }
+  ],
+  "requests": 12,
+  "prompt_tokens_including_cache": 85028,
+  "output_tokens": 1977,
+  "request_token_cache_and_reservation_parity": true,
+  "one_diagnostic_and_verified_adaptation": true,
+  "original_attempt_completed": true,
+  "original_namespaces_stopped": true,
+  "retained_sdk_checkpoint_proof": {
+    "schema": "factory.retained-checkpoint-evidence/v1",
+    "files": 46,
+    "bytes": 71115,
+    "sha256": "d22137a99f1d032a0ebbbae3aa7ac7b6ed9c4c3971a2e228bf1cc7aff37ae20f",
+    "base_state_files": 1,
+    "event_files": 42,
+    "no_follow": true,
+    "verified": true,
+    "read_after_namespace_stop": true
+  },
+  "prior_service_binding_restored": true,
+  "sdk_resume_or_paid_rerun": false,
+  "estimated_reserved_usd": 0.640921,
+  "actual_charges_usd": null
+}

@@ -1,0 +1,83 @@
+{
+  "scope": "Phase 9d.1 local baseline audit and opt-in telemetry only",
+  "behavior_changed": true,
+  "proof_before_implementation": {
+    "command": "python3 -m pytest stapled-factory/worker/tests/test_harness_telemetry.py -q",
+    "result": "collection failed: harness_telemetry did not exist"
+  },
+  "checks": [
+    {
+      "command": "python3 -m pytest worker/tests security/tests wall/tests wall/isolation spine/python_tests deployment/nuc -q",
+      "cwd": "stapled-factory",
+      "result": "passed",
+      "tests": 429,
+      "subtests": 12
+    },
+    {
+      "command": "gitleaks dir stapled-factory/worker --redact --no-banner",
+      "result": "passed; no leaks found"
+    },
+    {
+      "command": "git diff --cached --check",
+      "result": "passed"
+    },
+    {
+      "command": "python3 -m compileall -q stapled-factory/worker/harness_baseline.py stapled-factory/worker/harness_telemetry.py stapled-factory/worker/probes",
+      "result": "passed"
+    },
+    {
+      "command": "python3 stapled-factory/worker/harness_baseline.py snapshot --output docs/verification/harness-optimization-2026-10-30/baseline-manifest.json",
+      "result": "passed; six tasks, zero model runs,178 source files in final snapshot"
+    },
+    {
+      "command": "python3 -m pytest stapled-factory/worker/tests/test_harness_telemetry.py stapled-factory/worker/tests/test_harness_telemetry_failures.py stapled-factory/worker/tests/test_harness_baseline.py stapled-factory/worker/tests/test_egress_proxy.py stapled-factory/worker/tests/test_openhands_adapter.py -q",
+      "result": "passed",
+      "tests": 54
+    }
+  ],
+  "additional_check_limit": {
+    "command": "python3 -m pytest -q",
+    "result": "427passed,9failed,3subtestspassed",
+    "cause": "existing app module collision between example and wall fixture",
+    "baseline_reproduction": "Unchanged HEAD archive, examples/version-endpoint/test_version.py plus wall/tests/test_target_json_body.py: identical9failed,6passed,1subtestpassed",
+    "isolated_wall_json_body": "4passed,10subtestspassed"
+  },
+  "live_model_requests": 0,
+  "runtime_deployed": false,
+  "phase_9d_complete": false,
+  "remaining": [
+    "private proxy mount and signed runtime integration",
+    "18authorized live baseline model trials",
+    "9d.2\u20139d.5 optimizations and paired evaluation"
+  ],
+  "excluded_concurrent_work": [
+    "README.md",
+    "docs/planning/stapled-factory/phased-plan.md",
+    "docs/planning/stapled-factory/progress.md",
+    "docs/planning/stapled-factory/phase-9d-plan.md"
+  ],
+  "review": {
+    "status": "complete",
+    "run_id": "phase9d-350040438d",
+    "artifact_path": "/tmp/compound-engineering-501/ce-code-review/phase9d-350040438d",
+    "reviewed_state": "staged pre-fix implementation",
+    "reviewers": [
+      "correctness",
+      "testing",
+      "maintainability",
+      "security",
+      "reliability",
+      "adversarial"
+    ],
+    "confirmed_findings": 1,
+    "applied_findings": [
+      1
+    ],
+    "residual_findings": 0,
+    "fix": "Require explicit final output-token usage; preserve initial counts only as partial observations.",
+    "fix_proof": "Missing final usage test failed before fix and passed after; sink failure and upstream interruption integration cases pass.",
+    "external_model_calls": 0,
+    "review.json_sha256": "0c4e689edc213d5b3f3bbce65e60729bbd7ff123b21377c10b310a2b1eb393c2",
+    "full.diff_sha256": "4148ea9d3ecfc587be3b966d8fadc5ccfe4aa46fc95ea84c59075305130da233"
+  }
+}

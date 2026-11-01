@@ -1,0 +1,13 @@
+{
+  "local_config_id": "sha256:53af2b513c1f7449965884f07572d40fa3741232a7174019201cb114a4e1d4fe",
+  "nuc_image_id": "sha256:fea034647968423021eb9f4cea2cc44debd1c14fb4626cf9ef6d5db4248a005d",
+  "rootfs_layers_match": true,
+  "unchanged_base_layer_prefix": true,
+  "layers": [
+    "sha256:f4f8b983b714f130e2cff99176baa26352db6a55d3622e10ada40f2b4720a4eb",
+    "sha256:30397027ad83521a240789f494c872644416a4e3a3c44f2efb5bdc4eb457e20f",
+    "sha256:28b2c2519a708607986b8f9cc0fdd3c481df4c3f4d6730db76bdbce692e8d868",
+    "sha256:fc765e52b6a7a069d79e6fc708336d622c2cd040a37bae484c64b7edf9f7b5a5",
+    "sha256:5a06a6e74582650dd068807c8b548a0762b0b17a2953ddaaf893401b6b8a5e34"
+  ]
+}

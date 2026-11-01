@@ -1,0 +1,5 @@
+{
+  "private_build_tree_scan_findings": 15,
+  "verified_findings": "Only SHA256 source-file hashes in signed release-manifest filename keys; no credential values. Exact signed manifest retained unchanged.",
+  "public_evidence_scan_scope": "New dated evidence folder; excludes build tree/node_modules/archive artifacts and private raw action traces; approval/source bindings retained."
+}

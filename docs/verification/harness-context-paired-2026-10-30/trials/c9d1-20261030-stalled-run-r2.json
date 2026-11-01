@@ -1,0 +1,136 @@
+{
+  "unit": "c9d1-20261030-stalled-run-r2",
+  "task_id": "stalled-run",
+  "repeat": 2,
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+  "allowed_paths": [
+    "blocker.json"
+  ],
+  "runtime_sha256": "0a3eb22e1040fce80b074f3be030d077f041edbdb55bceeaa0211735d9da0da3",
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "c9d1-20261030-stalled-run-r2:0",
+      "status": "completed",
+      "conversation_id": "94eb995e-d2cb-5e14-8924-08088bcddc57",
+      "git_revision": "c8359edc6228524acbe9a40c95ad88317328cf79"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793410190334
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "c9d1-20261030-stalled-run-r2",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "baseline-external-development-checks",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/c9d1-20261030-stalled-run-r2/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/c9d1-20261030-stalled-run-r2/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "revision": "c8359edc6228524acbe9a40c95ad88317328cf79",
+  "changed": [
+    "blocker.json"
+  ],
+  "accepted": true,
+  "task_wall_elapsed_s": 45.559,
+  "budget": {
+    "budgets": [
+      [
+        "c9d1-20261030-stalled-run-r2:0",
+        "auto",
+        12,
+        5,
+        "809f9732aa9024699ec6f6cf3d4ac612121d5f9bcb635f9a313b391444713aaa"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "c9d1-20261030-stalled-run-r2:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-v2-best-effort",
+        1793423050,
+        225249
+      ]
+    ]
+  },
+  "telemetry": {
+    "schema": "factory.harness-telemetry/v1",
+    "requests_observed": 5,
+    "requests_without_end": 0,
+    "actual_cost_usd": null,
+    "cached_input_share": null,
+    "actual_routed_model": null,
+    "retries": null,
+    "complete_responses": 5,
+    "observed_input_tokens": 1586,
+    "input_tokens_coverage": 5,
+    "input_tokens": 1586,
+    "observed_output_tokens": 873,
+    "output_tokens_coverage": 5,
+    "output_tokens": 873,
+    "observed_cache_read_input_tokens": 25812,
+    "cache_read_input_tokens_coverage": 5,
+    "cache_read_input_tokens": 25812,
+    "observed_cache_creation_input_tokens": 0,
+    "cache_creation_input_tokens_coverage": 5,
+    "cache_creation_input_tokens": 0,
+    "estimated_reserved_microdollars": 225249,
+    "log_sha256": "2bbd6115fe18064f90df547dc93b082a74d30a644c4582959a820e9fa0f10d20"
+  },
+  "trace": {
+    "event_count": 17,
+    "event_kinds": {
+      "SystemPromptEvent": 1,
+      "MessageEvent": 2,
+      "other": 8,
+      "ActionEvent": 3,
+      "ObservationEvent": 3
+    },
+    "tool_actions": {
+      "terminal": 2,
+      "file_editor": 1
+    },
+    "module_not_found_observed": true,
+    "observation_serialized_bytes": 2310,
+    "dependency_diagnostic_commands": 1,
+    "install_commands": 0,
+    "command_sha256": [
+      "573074e161c57e10493319e3e0e2cd549855ca0d7b3a68602ab4b911f58b838b",
+      "fa8847b0c33183273f5945508b31c3208a9e4ece58ca47233a05628d8dba3799",
+      "bcf196160e638dfe51fafcf7f9ec0c9833c3d02397c984c954b04ad98a42e2af"
+    ],
+    "first_event_timestamp": "2026-10-31T01:20:00.219268",
+    "last_event_timestamp": "2026-10-31T01:20:06.969225",
+    "complete": true,
+    "diagnostic_audit_version": "baseline-contract-v2",
+    "actions_sha256": "03a6017b4ee7e04848727426e1941978f1c40a71baa6499773abeee8f9f672cb",
+    "output_artifacts_exported_before_stop": 0,
+    "output_artifacts_sha256": {}
+  },
+  "candidate_archive_sha256": "765d5a63121f151ecda5c56a7e4916a7053d8ea5b4a11f4fbf80a9bb7eec405c",
+  "candidate_check": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "reservation_count_matches_telemetry": true,
+  "worker_telemetry_and_budget_paths_denied": true,
+  "resources_stopped": true,
+  "requires_abandonment": false,
+  "worker": "941d0b0701b9865f5cae8abbc5a359e3f99d657f24841282ae12b744aabd3b35",
+  "proxy": "6d443abd978cae8b3d7263bd2f9ffb098d9a64d89142bd8b54f0fc22a1227db0",
+  "actual_charges": null,
+  "phase_9d_2_started": true,
+  "binding_restored": true,
+  "context_profile": "context-v1",
+  "phase_9d_3_started": false,
+  "acceptance_version": "contract-corrected-v2"
+}

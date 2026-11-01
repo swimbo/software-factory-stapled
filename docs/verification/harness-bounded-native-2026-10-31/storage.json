@@ -1,0 +1,29 @@
+{
+  "schema": "factory.bounded-storage/v1",
+  "base": "/home/bo/.local/share/stapled-factory-control/bounded-storage/bounded-native-v1-20261031",
+  "image": "/home/bo/.local/share/stapled-factory-control/bounded-storage/bounded-native-v1-20261031/workspace.ext4",
+  "image_inode": 20717769,
+  "image_device": 66306,
+  "image_bytes": 1073741824,
+  "pool": "/home/bo/.local/share/stapled-factory-control/bounded-storage/bounded-native-v1-20261031/pool",
+  "mount": {
+    "target": "/home/bo/.local/share/stapled-factory-control/bounded-storage/bounded-native-v1-20261031/pool",
+    "source": "/dev/loop1",
+    "fstype": "ext4",
+    "options": "rw,nosuid,nodev,relatime"
+  },
+  "loop": {
+    "name": "/dev/loop1",
+    "sizelimit": 0,
+    "offset": 0,
+    "autoclear": true,
+    "ro": false,
+    "back-file": "/home/bo/.local/share/stapled-factory-control/bounded-storage/bounded-native-v1-20261031/workspace.ext4",
+    "dio": false,
+    "log-sec": 512
+  },
+  "existing_devices_formatted": false,
+  "shared_mounts_modified": false,
+  "retained": true,
+  "reboot_auto_remount_configured": false
+}

@@ -34,7 +34,7 @@ base = docker('image', 'inspect', 'python:3.11-slim', '--format', '{{.Id}}')
 base_env = ['PATH=/usr/local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin']
 scratch = tempfile.TemporaryDirectory(prefix='factory-egress-probe-')
 directory = Path(scratch.name)
-for name in ('egress_proxy.py', 'guarded_store.py', 'pinned_https.py', 'budget_authority.py'):
+for name in ('egress_proxy.py', 'harness_telemetry.py', 'guarded_store.py', 'pinned_https.py', 'budget_authority.py'):
     (directory/name).write_bytes((Path(ROOT)/name).read_bytes())
 suffix = uuid.uuid4().hex
 tag = 'factory-egress-probe-' + suffix
@@ -47,7 +47,7 @@ try:
     firewall_image = docker('image', 'inspect', firewall_tag, '--format', '{{.Id}}')
     builder = docker('create', '--network', 'none', base, 'true')
     try:
-        for name in ('egress_proxy.py', 'guarded_store.py', 'pinned_https.py', 'budget_authority.py'):
+        for name in ('egress_proxy.py', 'harness_telemetry.py', 'guarded_store.py', 'pinned_https.py', 'budget_authority.py'):
             docker('cp', str(directory/name), builder+':/tmp/'+name)
         exporter = subprocess.Popen(['docker','export',builder], stdout=subprocess.PIPE)
         importer = subprocess.run(['docker','import','--change','ENV '+base_env[0],'-',worker_tag], stdin=exporter.stdout, capture_output=True, check=True)

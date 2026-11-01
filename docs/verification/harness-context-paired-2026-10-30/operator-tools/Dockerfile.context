@@ -1,0 +1,3 @@
+FROM factory-context-parent-20261030
+COPY factory_capture_tool.py output_artifacts.py /opt/factory/
+ENV OH_EXTRA_PYTHON_PATH=/opt/factory

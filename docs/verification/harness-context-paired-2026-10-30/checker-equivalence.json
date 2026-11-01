@@ -1,0 +1,6 @@
+{
+  "baseline_v2_sha256": "5bf12b249399a6b8af03a025eb384cccf5c450d34df64dfc358872a6d3d20e21",
+  "candidate_checker_sha256": "371b94a04ecbefa07004a8b9de9c77418836aae2929692cecc38f3e7322829a4",
+  "only_difference": "Module docstring header; executable AST identical",
+  "executable_ast_sha256": "123a10c284cee5b50d194424bcaddcaa19ca2a2dce307cda7efc8643a87b206c"
+}

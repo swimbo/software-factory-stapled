@@ -1,0 +1,9 @@
+{
+  "schema": "factory.workspace-preservation/v1",
+  "unrelated_files_verified_unchanged": 40,
+  "original_index_sha256": "ffe1e2231f6fba61b9599e368faf46a9e0c413a3110b70310b93f093f53b0fbd",
+  "original_index_unchanged": true,
+  "original_branch_preserved": true,
+  "owned_paths_copied": 19,
+  "prior_baseline_evidence_unchanged": true
+}

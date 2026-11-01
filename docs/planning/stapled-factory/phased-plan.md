@@ -58,6 +58,7 @@
 | 7–8 | UX/UI (minimal) | `ux-plan.md`, `ui-plan.md` | complete |
 | 9 | Implementation — wall MVP | wall evaluator code | complete (local gates; expanded integration tracked in progress.md) |
 | 9b | Inception engine | goal-cascade decomposition | pending |
+| 9d | Harness efficiency and bounded execution | `phase-9d-plan.md`, baseline/comparison evidence, gated canary | scoped implementation/evaluation complete; retain baseline, broader promotion not qualified |
 | 10 | E2E test generation | `e2e-tests.md` | pending |
 | 11 | Testing & verification | `progress.md` | pending |
 | 12 | Delivery | dogfood run | pending |
@@ -74,3 +75,7 @@
 
 The holdout evaluator (Phase 9) is built **before** anything else that touches production, per the
 report §10.2. Its acceptance criteria live in `phase-9-plan.md`.
+
+## Phase 9d — Harness efficiency and bounded execution
+
+See [the implementation phase](phase-9d-plan.md) for context/cache auditing, bounded batched execution, stall detection, provider capability profiles and offline evaluation. Adapt the Droid report to the existing OpenHands/Restate/Bifrost architecture; preserve current isolation and approval boundaries. Vendor benchmark claims remain unverified. Scoped implementation and evaluation are recorded in progress.md; the final decision retains the baseline. This plan does not grant further rollout authorization.

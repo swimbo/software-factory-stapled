@@ -1,0 +1,79 @@
+{
+  "schema": "factory.context-sdk-probe/v1",
+  "baseline": {
+    "static_system": {
+      "sha256": "8a06a18a0ce9891f62c6fb942df08d25a1caf8417212ac17a2a5c3f00207c953",
+      "bytes": 16164
+    },
+    "tools": {
+      "sha256": "d54b98be9f7db1cc77740426d0a88a9edcc79e608292f0051c107517006a7a5f",
+      "bytes": 28059
+    },
+    "tool_names": [
+      "terminal",
+      "file_editor",
+      "task_tracker",
+      "browser_navigate",
+      "browser_click",
+      "browser_get_state",
+      "browser_get_content",
+      "browser_type",
+      "browser_scroll",
+      "browser_go_back",
+      "browser_list_tabs",
+      "browser_switch_tab",
+      "browser_close_tab",
+      "browser_get_storage",
+      "browser_set_storage",
+      "browser_start_recording",
+      "browser_stop_recording",
+      "finish",
+      "think",
+      "switch_llm"
+    ]
+  },
+  "candidate": {
+    "static_system": {
+      "sha256": "30c677664b87f7fca491049e4f10023fe4c34bf413157fe467fae62121c7a23d",
+      "bytes": 7762
+    },
+    "tools": {
+      "sha256": "6d134d9c9012e57e2b2643fa51958e4623abfab394dc96255c54953cb04fd9f9",
+      "bytes": 17511
+    },
+    "tool_names": [
+      "terminal",
+      "file_editor",
+      "task_tracker",
+      "factory_capture",
+      "finish",
+      "think"
+    ]
+  },
+  "repeated_stable": true,
+  "profile": "9d7afec3e61276969b2cbe6f21ec7711455f9f81aeae81299d2de0a98339cbf0",
+  "model_requests": 0,
+  "server_request_schema_validated": true,
+  "artifact_capture_and_pagination": true,
+  "cross_task_read_denied": true,
+  "malicious_output_stays_tool_data": true,
+  "registered_secret_and_partial_tail_masked": true,
+  "source_sha256": {
+    "context_profile.py": "1bb5dc82814ce9d864788205a5af488d7c488d35b82fc3fc745e59b95da82df0",
+    "factory_capture_tool.py": "f8d1b8d2b7d18b95ae453541d918a275b99ab365136d8d70eef028e8b6a8a003",
+    "output_artifacts.py": "c203dfbd534f43b418b8e027ee63e64200a41a6cf488b4a09387ab411367df26",
+    "probes/context_profile_sdk.py": "bc737a6fcc6c8a9d2f318a8e805c56d8b2757d1c27f247291cf72e74db66bfa9"
+  },
+  "worker_image": "sha256:026fbb4d6f9e1a6eae146e25a107ea003a067d9a214201e5b8de75b0af3c9f77",
+  "sdk_version": "1.58.2",
+  "container_boundary": {
+    "network": "none",
+    "root_readonly": true,
+    "capabilities": "ALL dropped",
+    "no_new_privileges": true,
+    "uid": 1000,
+    "pids_limit": 256,
+    "memory": "2g",
+    "credential_mounted": false
+  }
+}

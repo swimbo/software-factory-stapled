@@ -1,0 +1,38 @@
+{
+  "schema": "factory.sdk-native-stuck-contract/v1",
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "method": "Actual packaged LocalConversation and openhands.sdk.conversation.stuck_detector.StuckDetector Python bytecode reflection in fresh bounded network-none probe",
+  "events_since_last_user_message": {
+    "bounded_active_branch_window": true,
+    "last_message_predicate": "isinstance(event, MessageEvent) and event.source == 'user'",
+    "slice": "events[last_user_message_index + 1:]",
+    "no_previous_user_message": "whole bounded scan window"
+  },
+  "user_diagnostic_effect": {
+    "post_events_user_message_breaks_native_history_window": true,
+    "native_thresholds_modified": false,
+    "native_controls_disabled": false,
+    "actual_active_canary_execution_not_observed_in_this_audit": true
+  },
+  "native_check": {
+    "action_error_nudge_checked_first": true,
+    "nudge_source": "environment",
+    "nudge_llm_role": "user",
+    "nudge_does_not_satisfy_source_user_window_reset": true,
+    "is_stuck_true_sets_status": "STUCK",
+    "action_error_streak_counts_AgentErrorEvent_not_all_nonzero_exit_codes": true,
+    "same_action_observation_check_compares_both_action_and_observation_equality": true,
+    "threshold_default_values_not_asserted": true
+  },
+  "limits": [
+    "This static audit establishes the window reset, not the cause of the first canary end state or success of a later live candidate.",
+    "No changes to provider routing, SDK thresholds or request budgets."
+  ],
+  "log_sha256": "f5ec7a013a9fa4f950b7fe6a404ab3d2c2de5ef17c36cc3f844ea465a74faa6f",
+  "log_bytes": 61686,
+  "model_requests": 0,
+  "http_conversations_created": 0,
+  "live_canary_read_or_modified": false,
+  "gateway_credentials": false,
+  "probe_auto_removed": true
+}

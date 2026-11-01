@@ -1,0 +1,23 @@
+[
+  {
+    "unit": "c9d1-20261030-stalled-run-r1",
+    "executed_import_diagnostics": 1,
+    "module_not_found_observed": true,
+    "install_commands": 0,
+    "action_trace_sha256": "c328db9b6cdf76daa0fecdb9b37737e49b6fb723ea23152983d50d5b3e950da5"
+  },
+  {
+    "unit": "c9d1-20261030-stalled-run-r2",
+    "executed_import_diagnostics": 1,
+    "module_not_found_observed": true,
+    "install_commands": 0,
+    "action_trace_sha256": "03a6017b4ee7e04848727426e1941978f1c40a71baa6499773abeee8f9f672cb"
+  },
+  {
+    "unit": "c9d1-20261030-stalled-run-r3",
+    "executed_import_diagnostics": 1,
+    "module_not_found_observed": true,
+    "install_commands": 0,
+    "action_trace_sha256": "a53da6bbac6b0c763fc529239dca1c93d839190d300199a067c60f65255c79c0"
+  }
+]

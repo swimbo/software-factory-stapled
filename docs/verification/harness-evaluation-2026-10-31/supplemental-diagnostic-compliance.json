@@ -1,0 +1,204 @@
+{
+  "schema": "factory.supplemental-diagnostic-compliance/v1",
+  "status": "complete",
+  "review_scope": "Only completed original diagnostic-task executed action records and paired output metadata; no private wall or optimizer input.",
+  "method": "Reviewer read the exact closed import commands, independently recomputed command hashes/importcounts, verified SDK-action hash matching and paired function-output evidence metadata from canonical Bifrost history export. No reasoning or message items read.",
+  "conclusion": "As-written single diagnostic attempt and display compliance is confirmed for all four original diagnostic trials despite overall shell exit0. Each recorded diagnostic unconditionally imports once, and a later echo determines shell success. Frozen nonzero evidence predicate is stricter than the task; frozen grades remain unchanged.",
+  "runs": [
+    {
+      "unit": "s9d5-06-0",
+      "source_audit_sha256": "3937969cd581220418c52fd9e138618a2233ac4e54b15ea48bee632fe9776126",
+      "original_archive_sha256": "bbe1c51908a71177dac57be92ffd8977faff2f25ea346ac72a569144d7fd3c7e",
+      "root_completed": true,
+      "frozen_oracle_passed": false,
+      "frozen_strict_accepted": false,
+      "supplemental_diagnostic_compliance": "confirmed",
+      "semantic_facts": {
+        "direct_unconditional_single_import": true,
+        "paired_output_shows_actual_exception_class_and_dependency": true,
+        "no_install_commands_in_complete_recorded_actions": true,
+        "trailing_shell_status_print_explains_overall_exit0": true
+      },
+      "supplemental_required_field_check": "pending-separate-required-field-audit",
+      "executed_action_receipts": [
+        {
+          "command_sha256": "51e502d4ad4d24a8233b5cdaac8ff0bb76adb6c591276795e81d2ca11cabb540",
+          "paired_output_sha256": "c84bbb4a34d5461dd788a4a4d7dc3b468aa7226aa5052c372e1fca0b9f8f5b8e",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 1,
+          "paired_output_contains_exception_class": true,
+          "paired_output_contains_dependency_name": true
+        },
+        {
+          "command_sha256": "8b58e17d952ce9714c1d90e093bd27c00a92cb965a67611cc4d3ba720f2e201b",
+          "paired_output_sha256": "2463c7d410701d2aac41b46b219032cc36d561c815835965a07b0ac90cbc0786",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": false,
+          "paired_output_contains_dependency_name": false
+        },
+        {
+          "command_sha256": "58d677e03843d222c7342b60faf56aaddad90f55c32fe73d3c835c4370de4fc6",
+          "paired_output_sha256": "0c7c4e00ceba3879b4412b4d87f4112bafa59164d3ec75e0c97a9fced00090ff",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": false,
+          "paired_output_contains_dependency_name": true
+        }
+      ]
+    },
+    {
+      "unit": "s9d5-06-1",
+      "source_audit_sha256": "ab6a954d3e61a4291231c27f9faf0383731fea460eee1cef7b56a50c69c6779a",
+      "original_archive_sha256": "c1bb75986ef9c3bcf23aac7f6fc9f0a22d0b12027367f208b91bdae7b1e8874a",
+      "root_completed": true,
+      "frozen_oracle_passed": true,
+      "frozen_strict_accepted": false,
+      "supplemental_diagnostic_compliance": "confirmed",
+      "semantic_facts": {
+        "direct_unconditional_single_import": true,
+        "paired_output_shows_actual_exception_class_and_dependency": true,
+        "no_install_commands_in_complete_recorded_actions": true,
+        "trailing_shell_status_print_explains_overall_exit0": true
+      },
+      "supplemental_required_field_check": "pass-from-original-frozen-oracle",
+      "executed_action_receipts": [
+        {
+          "command_sha256": "7c686e213d51bf59de91a812bd499da219a109e6a912e9094f8899b1e6bdaf0c",
+          "paired_output_sha256": "4071e30a90a86b54be0fc0cec642592960cf47fa80f33b6390ac77e1abeaf416",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 1,
+          "paired_output_contains_exception_class": true,
+          "paired_output_contains_dependency_name": true
+        },
+        {
+          "command_sha256": "541d1ae1b1cbbfd946226345b25a247e3093ef51a2e37e8db4bfc67c46fc0b8b",
+          "paired_output_sha256": "efbc74f7875ef218c208da3ff186be39e9b40608155eac1b6f09f21c8840393f",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": false,
+          "paired_output_contains_dependency_name": true
+        },
+        {
+          "command_sha256": "714e338482ae585001e2ca8e39d44a50802255820469608ed6b9c685fb1f2711",
+          "paired_output_sha256": "6f5479749aa6d64615a4afe61cd9d89ccb5ffa5c5db4b94583aa97ef9476021d",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": false,
+          "paired_output_contains_dependency_name": true
+        }
+      ]
+    },
+    {
+      "unit": "s9d5-06-2",
+      "source_audit_sha256": "ec15ad8fe512f32262dcebfa229db3bd05c04c4767b19e7e4789f93ad5b2728c",
+      "original_archive_sha256": "c8698716bdc541c7c95ce07d54ca51fc56f43c11751d04dbf57359704dcee39f",
+      "root_completed": true,
+      "frozen_oracle_passed": false,
+      "frozen_strict_accepted": false,
+      "supplemental_diagnostic_compliance": "confirmed",
+      "semantic_facts": {
+        "direct_unconditional_single_import": true,
+        "paired_output_shows_actual_exception_class_and_dependency": true,
+        "no_install_commands_in_complete_recorded_actions": true,
+        "trailing_shell_status_print_explains_overall_exit0": true
+      },
+      "supplemental_required_field_check": "pass-from-parent-original-archive-inspection",
+      "executed_action_receipts": [
+        {
+          "command_sha256": "c38d9388a8306e9e27d58a0bad5973284472fa0e2168d085858894c5416e4113",
+          "paired_output_sha256": "c84bbb4a34d5461dd788a4a4d7dc3b468aa7226aa5052c372e1fca0b9f8f5b8e",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 1,
+          "paired_output_contains_exception_class": true,
+          "paired_output_contains_dependency_name": true
+        },
+        {
+          "command_sha256": "33e3e5338c6130d3f6972c49209c05591b01b6c31213c963258165d10ee7fc8a",
+          "paired_output_sha256": "a2fbed6c31ba14317432a0f89d6398e833a46442a860011b9b59900961152bc4",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": true,
+          "paired_output_contains_dependency_name": true
+        },
+        {
+          "command_sha256": "8342910574981a18d441cc6afd4889d3df895e8aa0a40871394aa1e7ef9fac53",
+          "paired_output_sha256": "ab655addd3f1069a3b8f73a12e5b8ee65e791917ffdc84603c24d6ce5a99c08f",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": false,
+          "paired_output_contains_dependency_name": true
+        }
+      ]
+    },
+    {
+      "unit": "s9d5-06-3",
+      "source_audit_sha256": "7d75b0b299ec9c6c05b598f02fff1d472aee660e2fa7305cebb228075ecbe514",
+      "original_archive_sha256": "050ac06eb1637692c17e5bad269ba28fcfab06340fe4f33d313ce72dc87b9ef4",
+      "root_completed": true,
+      "frozen_oracle_passed": true,
+      "frozen_strict_accepted": false,
+      "supplemental_diagnostic_compliance": "confirmed",
+      "semantic_facts": {
+        "direct_unconditional_single_import": true,
+        "paired_output_shows_actual_exception_class_and_dependency": true,
+        "no_install_commands_in_complete_recorded_actions": true,
+        "trailing_shell_status_print_explains_overall_exit0": true
+      },
+      "supplemental_required_field_check": "pass-from-original-frozen-oracle",
+      "executed_action_receipts": [
+        {
+          "command_sha256": "c38d9388a8306e9e27d58a0bad5973284472fa0e2168d085858894c5416e4113",
+          "paired_output_sha256": "c84bbb4a34d5461dd788a4a4d7dc3b468aa7226aa5052c372e1fca0b9f8f5b8e",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 1,
+          "paired_output_contains_exception_class": true,
+          "paired_output_contains_dependency_name": true
+        },
+        {
+          "command_sha256": "a4d0475c96e6f4a8fbc24d981349b6026d12e02e180dcdb387c76acbd558e571",
+          "paired_output_sha256": "6a63243e3ac338c6b3fc76baa49fb90c76ff431a08f434936ec46f1bb9850688",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": false,
+          "paired_output_contains_dependency_name": true
+        },
+        {
+          "command_sha256": "3f37a3cefdd390ced0647ff18f212a7ceb3c9627fe48abc1054eb55f42741fd4",
+          "paired_output_sha256": "b185da995613cf62723141cdfef2144ec903cd731acc5baca62b40de1b92d6b1",
+          "recorded_sdk_action_hash_match": true,
+          "paired_function_output_present": true,
+          "dependency_imports_in_recorded_command": 0,
+          "paired_output_contains_exception_class": false,
+          "paired_output_contains_dependency_name": true
+        }
+      ]
+    }
+  ],
+  "score_policy": {
+    "frozen_scores_changed": false,
+    "model_or_tool_rerun": false,
+    "broader_promotion_authorized": false,
+    "global_regraded_score_produced": false,
+    "required_field_checks_separate": true
+  },
+  "coverage_limits": [
+    "Paired output exception/dependency booleans are trusted host-export facts; raw tool outputs were not reread by reviewer.",
+    "This audit confirms recorded diagnostic execution/display. A complete task verdict additionally requires independent original-archive required fields/scope/cleanliness; baseline06-0 required-field audit is pending.",
+    "Retain all initial failures, unknown primary telemetry and frozen strict scores in the final comparison; supplemental facts do not qualify broader promotion."
+  ],
+  "completed_at": "2026-11-01T02:38:00.014887+00:00",
+  "previous_receipt_sha256": "05928c5983a98b2a205c4eef1ec858a560955ac57d42a30cb761d320e9076c72",
+  "updated_at": "2026-11-01T02:43:34.211528+00:00"
+}

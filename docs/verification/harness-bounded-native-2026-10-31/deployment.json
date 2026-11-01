@@ -1,0 +1,13 @@
+{
+  "guarded_store_and_anchor_unchanged": true,
+  "revision": "049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+  "frozen_files_verified": 1105,
+  "manifest_sha256": "9fa09bdbd3af227d1aef74bca188a20e1fca38ea09ea598977cf2503ad39cd38",
+  "services_updated": [
+    "factory-endpoint",
+    "factory-ingress"
+  ],
+  "retained_states_unchanged": true,
+  "rollback_directory": "/home/bo/.local/share/stapled-factory-control/rollouts/049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+  "shared_services_restarted": false
+}

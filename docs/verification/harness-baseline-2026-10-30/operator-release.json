@@ -1,0 +1,13 @@
+{
+  "operator_authorization": "Go ahead and deploy the telemetry, then run the 18 baseline trials before starting Phase 9d.2.",
+  "executor": "Codex executing explicit deployment and18trial authorization; not an independent human reviewer",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/974aece75d62644b35b5f4e51928bb61cce140e2",
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "signed_inputs": 107,
+  "approval_sha256": "52c75000e4537db0a2e56e8bb65ec87c2c9e256173fd16f8a92cdb3b0239e1db",
+  "trial_count": 18,
+  "estimated_admission_target_per_trial_usd": 2,
+  "actual_charge_cap": false,
+  "phase_9d_2_started": false,
+  "independent_volume_and_runner_review": "completed; concrete findings fixed; unpaid live isolation canary passed"
+}

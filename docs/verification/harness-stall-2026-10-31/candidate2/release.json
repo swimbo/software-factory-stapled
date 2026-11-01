@@ -1,0 +1,8 @@
+{
+  "revision": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "setup": "/home/bo/.local/share/stapled-factory-control/baseline-setup/stall-v1-candidate2-20261031",
+  "files": 1209,
+  "manifest_sha256": "5e3c4b7a54e61b513297f806532616c91885715b8530a8cc50769076eae2756d",
+  "prebuilt_node_runtime_identical_to": "974aece75d62644b35b5f4e51928bb61cce140e2"
+}

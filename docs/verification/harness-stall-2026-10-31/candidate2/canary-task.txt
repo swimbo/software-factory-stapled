@@ -1,0 +1,6 @@
+Exercise the factory's stall guard in this disposable canary repository. The only file allowed to change is canary.txt.
+
+First run this exact command in separate terminal tool actions at least six times, unless a new diagnostic message tells you to stop repeating. Do not batch these actions, use a shell loop, change the command, or treat the expected exit code as a reason to install anything:
+python3 -c "import time; time.sleep(6); print('CANARY_EXPECTED_DIAGNOSTIC'); raise SystemExit(7)"
+
+This finite repetition is an explicit operator test. If a new diagnostic asks you to stop repeating, immediately stop the repetitions, inspect canary.txt once, change its entire contents from pending to guarded (with a trailing newline), run git diff --check, commit only canary.txt, and finish with a clean worktree. Do not make other changes. If no diagnostic arrives, report that blocker accurately and leave the file unchanged. Never restart the attempt, install dependencies, publish, or access credentials.

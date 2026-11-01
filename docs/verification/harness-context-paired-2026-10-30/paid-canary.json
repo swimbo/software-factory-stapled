@@ -1,0 +1,83 @@
+{
+  "schema": "factory.context-canary/v1",
+  "unit": "c9d1-canary-20261030",
+  "accepted": true,
+  "requests": 6,
+  "estimated_reserved_usd": 0.305033,
+  "actual_charges_usd": null,
+  "capture_and_paginated_read_executed": true,
+  "retained_artifact_checks": [
+    {
+      "artifact_id": "205c241698634887b703cc3114cb9dab",
+      "digest": "692b5f80c5dab80ce36c918c35db847db7a5dcdb8e873b7a529a0cab0acb25db",
+      "total_bytes": 5019,
+      "capture_complete": true
+    }
+  ],
+  "normal_dispatch_and_exact_revision_check": true,
+  "binding_restored": true,
+  "resources_stopped": true,
+  "gateway_logs": [
+    {
+      "id": "fd679299-b8b3-44a5-afbc-5bfc7f946697",
+      "provider": "ollama-flash-low",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 414,
+      "completion_tokens": 12,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "422d47ef-ad26-41d7-bffe-a24cdef69061",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 6319,
+      "completion_tokens": 230,
+      "cached_read_tokens": 0
+    },
+    {
+      "id": "88aeabc4-6490-4c9f-99ac-5dd4a25bba1e",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7272,
+      "completion_tokens": 140,
+      "cached_read_tokens": 6190
+    },
+    {
+      "id": "f510b9f2-2946-4c84-83bc-24f669f6c1c7",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7676,
+      "completion_tokens": 163,
+      "cached_read_tokens": 7142
+    },
+    {
+      "id": "2dd3e761-4b49-491e-9c7f-23ea395ebe09",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 7862,
+      "completion_tokens": 177,
+      "cached_read_tokens": 7546
+    },
+    {
+      "id": "a0539457-649e-4ae7-bf56-79c4ba550184",
+      "provider": "ollama-flash-high",
+      "model": "deepseek-v4.1-flash:1017",
+      "served_model": null,
+      "status": "success",
+      "prompt_tokens": 8149,
+      "completion_tokens": 192,
+      "cached_read_tokens": 0
+    }
+  ],
+  "phase_9d_3_started": false
+}

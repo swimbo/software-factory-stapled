@@ -1,0 +1,23 @@
+{
+  "schema": "factory.workspace-preservation/v1",
+  "preexisting_index_sha256": "ffe1e2231f6fba61b9599e368faf46a9e0c413a3110b70310b93f093f53b0fbd",
+  "final_index_sha256": "ffe1e2231f6fba61b9599e368faf46a9e0c413a3110b70310b93f093f53b0fbd",
+  "preexisting_index_unchanged": true,
+  "owned_source_files_synced": {
+    "stapled-factory/deployment/nuc/evaluation_trials.py": "3e590f0bf1ce5635ebfe22ce4b425662245a233e8e6b4db894ebf99f47a56dc5",
+    "stapled-factory/deployment/nuc/test_evaluation_recovery.py": "d7bd8e6c074ba949f49752ec2fcffb4639240ba9387a942f0932b9e89c953a3b",
+    "stapled-factory/deployment/nuc/test_evaluation_trials.py": "a71ba42ac5b50f7cb620907f24c2d990540d6b1a26ecd17fdc2de32fad416855",
+    "stapled-factory/deployment/nuc/test_evaluation_unbound.py": "f5b046f1a327691f99c1d577ccccabc4fca6aff904e33a29d3c2ed8c9aee5b31",
+    "stapled-factory/worker/EVALUATION.md": "0f69a52d2592a82060ff1276718734c476464e60a9741220b1ce2d5ec186cb15",
+    "stapled-factory/worker/evaluation_diagnostics.py": "36d80c85a31996b231cb43607fe79b18c66138634bb6de37322b0158f9851050",
+    "stapled-factory/worker/evaluation_events.py": "4919410cdb3ffe850ef8adf665f4f4b9a350cc29ac40ad91e33f6f5e4d586971",
+    "stapled-factory/worker/harness_evaluation.py": "49501c08b497417f56f861eabda79e8cd3cc88d4d0b75278c4f1a9a5ce5288f8",
+    "stapled-factory/worker/tests/test_evaluation_diagnostics.py": "8c09acee3b8f1ec59e49a4f11c22eac3dd77e05ca2818d413e519a49e6a42efc",
+    "stapled-factory/worker/tests/test_evaluation_events.py": "30a304c609ff8453544b0a3ca5a0f645078e87bdcd82140381b9376f2892fa7e",
+    "stapled-factory/worker/tests/test_harness_evaluation.py": "f7fcc0ffc8563bf935cd0e193443302977fab5711de78fc0535159949e5d32bf"
+  },
+  "original_progress_append_only": true,
+  "preexisting_plan_body_not_modified": true,
+  "unrelated_files_not_staged_or_committed": true,
+  "reviewed_operator_code_revision": "7c5c5069ac7397a03a37bfdef1befa1d26c480f7"
+}

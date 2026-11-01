@@ -1,0 +1,53 @@
+{
+  "schema": "factory.review-finding-followup/v1",
+  "review_run": "stall-v1-final",
+  "original_review_preserved": true,
+  "finding": 1,
+  "original_severity": "P1",
+  "status": "resolved",
+  "remaining_actionable_findings": [],
+  "reviewed_at": "2026-10-31T21:06:32.965899+00:00",
+  "source_hashes": {
+    "stapled-factory/worker/stall_observation.py": "9675e7ae109adcd6c1e922c09ca67d058ab1ca76cfd71a2393161e887d8cc343",
+    "stapled-factory/worker/stall_runtime.py": "14cc21c67183cddb234746287168b63fdd7854f1ba3124ca9d494db6546f6427",
+    "stapled-factory/worker/tests/test_stall_observation.py": "1629d06e1a08c1887434df945221790918f8b59189c8d8a8139d979e3cfb729a",
+    "stapled-factory/worker/tests/test_stall_runtime.py": "c019b1f0ac98527a041c970d5814c25e54e850a2ac05315d168d227b4b4df6f2"
+  },
+  "fix": "All unseen observation IDs are consumed durably. An intermediate different action/error/evidence or unknown observation marks progress and clears prior detection history, while preserving the one-shot intervention sequence and delivery phase. Only the latest completed result receives the current workspace hash; historical workspace states are not invented.",
+  "verification": {
+    "scoped_command": "python3 -m pytest stapled-factory/worker/tests/test_stall_runtime.py stapled-factory/worker/tests/test_stall_observation.py stapled-factory/worker/tests/test_stall_detection.py -q",
+    "passed": 44,
+    "independent_discriminating_reproducer": "/tmp/compound-engineering-501/ce-code-review/stall-v1-final/burst-followup-check.py",
+    "original_frozen_productive_burst": {
+      "diagnostics_sent": 1,
+      "fence_calls": 0,
+      "seen_observations": 5,
+      "result": "completed after five polls; false diagnostic demonstrated"
+    },
+    "fixed_productive_burst": {
+      "diagnostics_sent": 0,
+      "fence_calls": 0,
+      "seen_observations": 9,
+      "result": "completed"
+    },
+    "fixed_progress_after_first_intervention_then_repeated_errors": {
+      "diagnostics_sent": 1,
+      "fence_calls": 1,
+      "ticks": 8,
+      "seen_observations": 9,
+      "intervention_sequence_retained": 4,
+      "result": "unknown/stopped"
+    },
+    "failed_fence_then_restart": "test_failed_fence_retains_uncertainty_and_restart_never_resends_diagnostic passed; one diagnostic, original fencing retried twice, final stopped status"
+  },
+  "coverage": [
+    "Read current two implementation files and associated tests; no project edits.",
+    "Pure detector repeated-error/oscillation and negative controls, actual guarded-ledger integration fixture, replay/crash/delivery and fence-recovery tests all passed.",
+    "No SSH, Docker, external models or hosted actions were executed.",
+    "Full exact-revision CI and scoped live canary remain caller-owned activation gates."
+  ],
+  "residual_risks": [
+    "Conservative latest-workspace sampling can miss rapid loops entirely between polls; the fix prevents discarded productive evidence from becoming false consecutive failures.",
+    "Workspace fingerprints are bounded observations, not atomic snapshots."
+  ]
+}

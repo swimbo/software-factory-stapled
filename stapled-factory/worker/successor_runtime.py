@@ -13,7 +13,7 @@ import stat
 
 from egress_guard import inspect
 from netns_firewall import verify_proxy_firewall
-from provision_check import validate_identity
+from provision_check import validate_identity, telemetry_volume_name
 from provision_runtime import ProvisionError, _check_baseline, _run, _running_lifecycle
 
 
@@ -48,6 +48,8 @@ def _arg(command, flag, expected):
 
 
 def _source(store, attempt_id, request_hash, conversation_id, configuration, baseline):
+    if configuration.get('execution_profile') is not None:
+        raise ProvisionError('bounded execution does not replay uncertain batches through successors')
     firewall = configuration.get('firewall')
     if not isinstance(firewall, dict) or set(firewall) != {'gateway_ip', 'helper_image'}:
         raise ProvisionError('gateway firewall required')
@@ -70,7 +72,9 @@ def _source(store, attempt_id, request_hash, conversation_id, configuration, bas
     prefix = 'factory-' + allocation
     sock, budget, anchor, network = (prefix + '-' + x for x in ('socket', 'budget', 'anchor', 'network'))
     old, proxy, net = inspect('container', binding['worker_id']), inspect('container', binding['proxy_id']), inspect('network', network)
-    volumes = {name: inspect('volume', name) for name in (sock, budget, anchor)}
+    telemetry = telemetry_volume_name(command, allocation)
+    volume_names = (sock, budget, anchor) + ((telemetry,) if telemetry else ())
+    volumes = {name: inspect('volume', name) for name in volume_names}
     stored_volumes = {name: {key: record.get(key) for key in ('Name', 'CreatedAt', 'Driver', 'Scope', 'Labels', 'Options', 'Mountpoint')} for name, record in volumes.items()}
     state = old.get('State') or {}
     if (old.get('Id') != binding['worker_id'] or state.get('Running') is not False or state.get('Restarting') is not False

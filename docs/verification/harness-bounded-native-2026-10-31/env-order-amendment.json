@@ -1,0 +1,28 @@
+{
+  "model_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "initial_host_release": "645cb597b45a21a89580f0d9b2ebb6a45c4f533e",
+  "completed_units_before_admission_fix": [
+    "b9d3-20261031-discovery-r1",
+    "b9d3-20261031-small-edit-r1",
+    "b9d3-20261031-multi-file-r1",
+    "b9d3-20261031-failing-tests-r1",
+    "b9d3-20261031-noisy-output-r1-p3",
+    "b9d3-20261031-stalled-run-r1-p2"
+  ],
+  "completed_host_epochs": {
+    "645cb59": [
+      "b9d3-20261031-discovery-r1",
+      "b9d3-20261031-small-edit-r1",
+      "b9d3-20261031-multi-file-r1",
+      "b9d3-20261031-failing-tests-r1"
+    ],
+    "db96ddd": [
+      "b9d3-20261031-noisy-output-r1-p3"
+    ]
+  },
+  "remaining_host_release": "049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+  "admission_change": "compare unique exact environment values independent of Docker override ordering; model image/context/task/router/limits unchanged",
+  "original_failed_slot": "b9d3-20261031-discovery-r2",
+  "original_model_requests": 0,
+  "original_reservation_and_uncertain_workunit_retained": true
+}

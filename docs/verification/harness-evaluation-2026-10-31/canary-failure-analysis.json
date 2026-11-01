@@ -1,0 +1,33 @@
+{
+  "schema": "factory.evaluation-collector-canary-failure/v1",
+  "unit": "s9d5-01-0",
+  "accepted": false,
+  "collector_source": "52e64d60dce50a1f43ae803d3544958d50ff3552",
+  "corrected_collector_source": "7c5c5069ac7397a03a37bfdef1befa1d26c480f7",
+  "runtime_source_unchanged": "3b1c3bbd89c553d6419d004d3256c0de07b625d9",
+  "cause": "Collector treated ordinary asynchronous needs_reconciliation as terminal and explicitly fenced active original conversation before existing GET-only recovery could finish.",
+  "timeline": {
+    "dispatch_unix": 1793499005.3503294,
+    "sdk_create_response_utc": "2026-11-01T02:10:14.939Z",
+    "collection_finish_unix": 1793499015.1733298,
+    "gateway_response_completion_utc": [
+      "2026-11-01T02:10:23Z",
+      "2026-11-01T02:10:25Z"
+    ]
+  },
+  "original_stopped_and_fenced": true,
+  "root_reserved_unknown_retained": true,
+  "wire_requests_started": 2,
+  "wire_request_ended_records": 0,
+  "canonical_gateway_success_rows": 2,
+  "canonical_gateway_prompt_tokens": 11630,
+  "canonical_gateway_output_tokens": 119,
+  "complete_wire_input_output_usage": null,
+  "estimated_reserved_usd": 0.09399,
+  "actual_charges_usd": null,
+  "resumed_or_redispatched": false,
+  "replacement_unit_created": false,
+  "failed_sample_included_in_24": true,
+  "proof": "New entrypoint regression observed failing under original break tuple, then passed after one-line correction; independent restoration of old behavior reproduced failure.",
+  "effect_on_decision": "Unknown baseline wire usage and collector epoch change prevent full unqualified promotion comparison; retain baseline."
+}

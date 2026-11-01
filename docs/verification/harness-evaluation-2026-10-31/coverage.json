@@ -1,0 +1,58 @@
+{
+  "baseline": {
+    "trials": 6,
+    "independent_accounting_complete": 5,
+    "input_usage_covered_trials": 5,
+    "complete_wire_responses": 41,
+    "requests": 43,
+    "original_oracle_passed": 4,
+    "sdk_trace_complete": 6,
+    "host_diagnostic_messages": 0,
+    "truncation_coverage": "unknown",
+    "actual_charge_coverage": "unknown",
+    "reported_cache_read_input_tokens_observed": 429056,
+    "cache_coverage_note": "Observed reported counts only; missing coverage never treated as a verified zero."
+  },
+  "context-v1": {
+    "trials": 6,
+    "independent_accounting_complete": 6,
+    "input_usage_covered_trials": 6,
+    "complete_wire_responses": 49,
+    "requests": 49,
+    "original_oracle_passed": 5,
+    "sdk_trace_complete": 6,
+    "host_diagnostic_messages": 0,
+    "truncation_coverage": "unknown",
+    "actual_charge_coverage": "unknown",
+    "reported_cache_read_input_tokens_observed": 322944,
+    "cache_coverage_note": "Observed reported counts only; missing coverage never treated as a verified zero."
+  },
+  "bounded-native-v1": {
+    "trials": 6,
+    "independent_accounting_complete": 6,
+    "input_usage_covered_trials": 6,
+    "complete_wire_responses": 48,
+    "requests": 48,
+    "original_oracle_passed": 4,
+    "sdk_trace_complete": 6,
+    "host_diagnostic_messages": 0,
+    "truncation_coverage": "unknown",
+    "actual_charge_coverage": "unknown",
+    "reported_cache_read_input_tokens_observed": 317696,
+    "cache_coverage_note": "Observed reported counts only; missing coverage never treated as a verified zero."
+  },
+  "stall-v1": {
+    "trials": 6,
+    "independent_accounting_complete": 6,
+    "input_usage_covered_trials": 6,
+    "complete_wire_responses": 48,
+    "requests": 48,
+    "original_oracle_passed": 6,
+    "sdk_trace_complete": 6,
+    "host_diagnostic_messages": 0,
+    "truncation_coverage": "unknown",
+    "actual_charge_coverage": "unknown",
+    "reported_cache_read_input_tokens_observed": 304640,
+    "cache_coverage_note": "Observed reported counts only; missing coverage never treated as a verified zero."
+  }
+}

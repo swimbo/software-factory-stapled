@@ -1,0 +1,63 @@
+{
+  "unit": "c9d1-unpaid-canary-20261030",
+  "normal_server_create_run_false": "HTTP succeeded and conversation idle",
+  "isolation_negatives_passed": true,
+  "zero_request_expectation": false,
+  "explanation": "AgentServer title generation can request the LLM even when initial_message.run=false; dummy gateway authentication rejected every request. No real gateway credential was released.",
+  "observed_dummy_requests": 2,
+  "upstream_statuses": [
+    401,
+    401
+  ],
+  "accounting": {
+    "ledger": {
+      "budgets": [
+        [
+          "c9d1-unpaid-canary-20261030:0",
+          "auto",
+          12,
+          2,
+          "8eee604c89713bcfd5534397a974b43fa32b2e2683bcaf7a691e29efc2baece5"
+        ]
+      ],
+      "monetary_budgets": [
+        [
+          "c9d1-unpaid-canary-20261030:0",
+          2000000,
+          1398176,
+          "request-size-pro-2026-10-28-v2-best-effort",
+          1793412323,
+          64938
+        ]
+      ]
+    },
+    "telemetry": {
+      "schema": "factory.harness-telemetry/v1",
+      "requests_observed": 2,
+      "requests_without_end": 0,
+      "actual_cost_usd": null,
+      "cached_input_share": null,
+      "actual_routed_model": null,
+      "retries": null,
+      "complete_responses": 0,
+      "observed_input_tokens": null,
+      "input_tokens_coverage": 0,
+      "input_tokens": null,
+      "observed_output_tokens": null,
+      "output_tokens_coverage": 0,
+      "output_tokens": null,
+      "observed_cache_read_input_tokens": null,
+      "cache_read_input_tokens_coverage": 0,
+      "cache_read_input_tokens": null,
+      "observed_cache_creation_input_tokens": null,
+      "cache_creation_input_tokens_coverage": 0,
+      "cache_creation_input_tokens": null,
+      "estimated_reserved_microdollars": 64938,
+      "log_sha256": "6baad57c7f462b91d190f684e5cf6720a164cf9f3e6a72a1430d89742e35b696"
+    }
+  },
+  "resources_stopped": true,
+  "own_empty_network_released": true,
+  "reserved_budget_preserved": true,
+  "bound_volumes_retained": true
+}

@@ -1,0 +1,10 @@
+{
+  "same_frozen_release": true,
+  "same_seed_baseline": true,
+  "same_task_text": true,
+  "old_unit_retained": "h9d-20261030-failing-tests-r1",
+  "new_unit": "h9d-20261030-failing-tests-r1-p2",
+  "actual_model_trials_authorized": 18,
+  "signed_inputs": 112,
+  "approval_sha256": "962d548d4a8a2639b08d9d872b9a811faddd3e17762550bbd9250a39785930e1"
+}

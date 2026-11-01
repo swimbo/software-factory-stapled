@@ -84,7 +84,7 @@ def validate(worker, proxy, isolated, uplink, workspace_source=None):
     require(pid in (uplink.get('Containers') or {}), 'proxy missing from uplink')
 
 
-def validate_networkless(worker, proxy, socket_volume, budget_volume, proxy_network, workspace_source=None, anchor_volume=None):
+def validate_networkless(worker, proxy, socket_volume, budget_volume, proxy_network, workspace_source=None, anchor_volume=None, telemetry_volume=None):
     """Inspect topology only; this does not establish image or proxy identity."""
     def require(condition, message):
         if not condition:
@@ -129,6 +129,10 @@ def validate_networkless(worker, proxy, socket_volume, budget_volume, proxy_netw
         require(anchor_volume not in (socket_volume, budget_volume), 'anchor volume must be distinct')
         require(sum(named(m, anchor_volume, '/anchor', False) for m in pm) == 1, 'missing anchor mount')
         pm = [m for m in pm if not named(m, anchor_volume, '/anchor', False)]
+    if telemetry_volume:
+        require(telemetry_volume not in (socket_volume, budget_volume, anchor_volume), 'telemetry volume must be distinct')
+        require(sum(named(m, telemetry_volume, '/telemetry', False) for m in pm) == 1, 'missing private telemetry mount')
+        pm = [m for m in pm if not named(m, telemetry_volume, '/telemetry', False)]
     require(len(pm) == 2 and sum(named(m, socket_volume, '/gateway', False) for m in pm) == 1 and
             sum(named(m, budget_volume, '/budget', False) for m in pm) == 1, 'unexpected proxy mounts')
 
@@ -151,6 +155,7 @@ def main():
     parser.add_argument('--socket-volume')
     parser.add_argument('--budget-volume')
     parser.add_argument('--anchor-volume')
+    parser.add_argument('--telemetry-volume')
     parser.add_argument('--workspace-source', help='explicit trusted workspace bind source; mounted at /workspace')
     args = parser.parse_args()
     if args.mode == 'networkless' and not (args.socket_volume and args.budget_volume and args.anchor_volume):
@@ -162,7 +167,7 @@ def main():
         uplink = inspect('network', args.uplink_network)
         if args.mode == 'networkless':
             validate_networkless(worker, proxy, args.socket_volume, args.budget_volume,
-                                 uplink['Id'], args.workspace_source, args.anchor_volume)
+                                 uplink['Id'], args.workspace_source, args.anchor_volume, args.telemetry_volume)
         else:
             validate(worker, proxy, inspect('network', args.internal_network), uplink, args.workspace_source)
     except (UnsafeTopology, subprocess.SubprocessError, OSError, ValueError, KeyError) as error:

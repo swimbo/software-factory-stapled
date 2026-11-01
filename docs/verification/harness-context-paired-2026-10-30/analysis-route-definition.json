@@ -1,0 +1,7 @@
+{
+  "recorded_at_utc": "2026-10-31T01:14:19.483950+00:00",
+  "timing": "Before candidate gateway metadata collection and final metric computation; no trial execution configuration changes",
+  "model_stratum": "gateway model plus served_model, using model when served_model absent",
+  "provider_lane": "provider plus model and served_model; baseline already has Flash high/low lanes with the same model identifier",
+  "comparison_policy": "Prespecified actual-model matching gate is unchanged. Report provider lanes separately and disclose any lane distribution change; do not infer identical inference settings or model weight attestations from shared model tags."
+}

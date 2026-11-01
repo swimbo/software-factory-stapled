@@ -1,0 +1,14 @@
+{
+  "method": "independent local delegated-agent review; no external model route or human-review claim",
+  "deployment_findings_fixed": [
+    "Disable ambiguous proxy CLI abbreviations.",
+    "Freeze exact clean candidate revision after stopping worker.",
+    "Persist observations before cleanup and final accounting after both processes stop.",
+    "Name and explicitly clean timed-out checker containers."
+  ],
+  "acceptance_audit": "Required-field subset check honors original task; all three stalled traces show one actual import and genuine ModuleNotFoundError; quoted JSON data was not execution.",
+  "frozen_score_preserved": "17/18",
+  "offline_contract_regrade": "18/18",
+  "model_reruns": 0,
+  "review_scope_limit": "Diagnostic parser audits these recorded samples; it is not a general shell-execution security proof."
+}

@@ -1,0 +1,42 @@
+{
+  "revision": "d0d9d81324210414462fb676b377e0563a08a0cb",
+  "method": "Exact official archive source inspection; pinned binary extension probe separately recorded",
+  "upstream_files": [
+    {
+      "path": "openhands-sdk/openhands/sdk/settings/model.py",
+      "sha256": "b33c2439685e16d7afff3bf337b1371dab7a7b7f6fcfb51bfd738d8510950dfe"
+    },
+    {
+      "path": "openhands-sdk/openhands/sdk/agent/agent.py",
+      "sha256": "8773d6e759bced7ca8791b665ae7b457487629b41f812c428f7f7da9713ae1a5"
+    },
+    {
+      "path": "openhands-sdk/openhands/sdk/context/agent_context.py",
+      "sha256": "c19312295a3be9d4cbaeced1cd808ede8d48632059c7495aa63b52c37a8b6e92"
+    },
+    {
+      "path": "openhands-sdk/openhands/sdk/tool/defaults.py",
+      "sha256": "357f005b575289537b6173568dbb12e457886211f9b2dc65ef6d08d823815f0f"
+    },
+    {
+      "path": "openhands-sdk/openhands/sdk/conversation/secret_registry.py",
+      "sha256": "fb04ef99fc0830748908b89cbc66ec39c44e86b3ab4bb626ed03035964cf1ee6"
+    },
+    {
+      "path": "openhands-agent-server/openhands/agent_server/__main__.py",
+      "sha256": "1663cb43390f410721857939349b9f9ef58c3ac467a46a0ae4caffb9ee597120"
+    },
+    {
+      "path": "openhands-agent-server/openhands/agent_server/conversation_service.py",
+      "sha256": "cc3aa082e3f93783567f8c5eb94c64c1a7ef3fab27dec61839f97a0287e32c36"
+    },
+    {
+      "path": "openhands-tools/openhands/tools/terminal/definition.py",
+      "sha256": "a978161b8512762607288fe1e3459dfd9b9d3ed79f46b6495cda9d5d2da6e3a3"
+    },
+    {
+      "path": "openhands-tools/openhands/tools/terminal/terminal/terminal_session.py",
+      "sha256": "72504a4d34aa571ded0e56ff2c765cc09acab23df789d0fa9237a86ae5d8e1e0"
+    }
+  ]
+}

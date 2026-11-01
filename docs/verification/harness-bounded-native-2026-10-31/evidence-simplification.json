@@ -1,0 +1,20 @@
+{
+  "scope": [
+    "compare.py",
+    "operator/collect_final.py",
+    "operator/final_preserve.py"
+  ],
+  "mode": "pipeline",
+  "required_lenses_completed": [
+    "reuse",
+    "quality",
+    "efficiency",
+    "comments"
+  ],
+  "changes": 0,
+  "skipped_minor_findings": 1,
+  "reason": "unused parsed telemetry list left unchanged during active collection",
+  "syntax_checks_passed": 3,
+  "comparison_controls_retained": 9,
+  "no_remote_actions_or_model_calls": true
+}

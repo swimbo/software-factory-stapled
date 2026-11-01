@@ -1,0 +1,87 @@
+{
+  "schema": "factory.bounded-retained-canary/v1",
+  "unit": "b9d3-unpaid-canary-20261031-p2",
+  "storage": {
+    "unit": "b9d3-unpaid-canary-20261031-p2",
+    "pool_directory": "/home/bo/.local/share/stapled-factory-control/bounded-storage/bounded-native-v1-20261031/pool/b9d3-unpaid-canary-20261031-p2",
+    "workspace": "/home/bo/.local/share/stapled-factory-control/dispatch/b9d3-unpaid-canary-20261031-p2/workspace",
+    "verified": {
+      "device": 1793,
+      "inode": 8193,
+      "mount_id": "2160",
+      "filesystem": "ext4",
+      "capacity_bytes": 1020702720
+    },
+    "retained": true
+  },
+  "sdk": {
+    "sdk_checkpoint_files": {
+      "conversations/d4da13d6c12949fd992cf231615b9d7f/base_state.json": "8a02a35bef643d27f07287c1f1bed0854670610e6922fc6b41ccb239a7e36513"
+    },
+    "conversation_id": "d4da13d6-c129-49fd-992c-f231615b9d7f",
+    "model_requests": 0,
+    "native_terminal": true,
+    "capture_pagination": true,
+    "sdk_cancellation_before_and_during": true,
+    "effective_home": "/workspace/.git/factory-home",
+    "conversations_path": "/workspace/.git/factory-home/conversations",
+    "bash_events_dir": "/workspace/.git/factory-home/bash_events",
+    "persistence_dir": "/workspace/.git/factory-home/.openhands"
+  },
+  "normal_agent_server_health": 200,
+  "external_deadline_seconds": 300,
+  "original_containers_stopped": true,
+  "escaped_session_contained": true,
+  "partial_mutation_count": 1,
+  "sdk_checkpoints_retained_after_stop": true,
+  "model_requests": 0,
+  "accounting": {
+    "ledger": {
+      "budgets": [
+        [
+          "b9d3-unpaid-canary-20261031-p2:0",
+          "auto",
+          12,
+          0,
+          "38d0d12ed4e72c2e59d6c7a3433d627f37f204e673a2054933a5f67e8fc21074"
+        ]
+      ],
+      "monetary_budgets": [
+        [
+          "b9d3-unpaid-canary-20261031-p2:0",
+          2000000,
+          1398176,
+          "request-size-pro-2026-10-28-v2-best-effort",
+          1793450182,
+          0
+        ]
+      ]
+    },
+    "telemetry": {
+      "schema": "factory.harness-telemetry/v1",
+      "requests_observed": 0,
+      "requests_without_end": 0,
+      "actual_cost_usd": null,
+      "cached_input_share": null,
+      "actual_routed_model": null,
+      "retries": null,
+      "complete_responses": 0,
+      "observed_input_tokens": null,
+      "input_tokens_coverage": 0,
+      "input_tokens": null,
+      "observed_output_tokens": null,
+      "output_tokens_coverage": 0,
+      "output_tokens": null,
+      "observed_cache_read_input_tokens": null,
+      "cache_read_input_tokens_coverage": 0,
+      "cache_read_input_tokens": null,
+      "observed_cache_creation_input_tokens": null,
+      "cache_creation_input_tokens_coverage": 0,
+      "cache_creation_input_tokens": null,
+      "estimated_reserved_microdollars": null,
+      "log_sha256": "2a49b84ce4562f237d50ad14034c4eb602dc1a4f34278bffd9967eb7724dbf01"
+    }
+  },
+  "resources_and_evidence_retained": true,
+  "timer_not_rearmed": true
+}

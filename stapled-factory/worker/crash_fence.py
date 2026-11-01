@@ -1,7 +1,9 @@
 """Contain an uncertain attempt without replaying it or discarding evidence.
 
 This is not a recovery/resume mechanism. The caller must independently detect a
-server crash and authorize fencing; a timeout alone is not such evidence. Docker
+server crash and authorize fencing. An explicitly selected bounded execution
+policy may separately authorize deadline/cancellation fencing; a soft terminal
+timeout alone is not evidence of a crash or rolled-back effects. Docker
 administrators and the host are trusted, and the caller must prevent later starts.
 """
 import re

@@ -1,0 +1,7 @@
+{
+  "finding": "collector root packaging mismatch",
+  "status": "resolved",
+  "path": "/Users/bo/.local/share/stapled-factory-release/out/phase9d-telemetry-20261030/source/docs/verification/harness-bounded-native-2026-10-31/operator/collect_final.py",
+  "sha256": "b18065881f74c1e3ec6010bdce987dc3479acc770d697ebc85af3af1ce3ce440",
+  "verification": "AST-only out expression resolves published evidence root, schedule and trials; no SSH executed."
+}

@@ -1,0 +1,39 @@
+{
+  "schema": "factory.context-verification/v1",
+  "code_revision": "850259ae877e0cb171310e95d11719d9882e879e",
+  "local_ci_passed": true,
+  "python_tests": 480,
+  "python_subtests": 12,
+  "node_tests": 25,
+  "sdk_probe_passed": true,
+  "sdk_probe_model_requests": 0,
+  "candidate_paid_trials": 0,
+  "candidate_deployed": false,
+  "baseline_source_and_evidence_unchanged": true,
+  "phase_9d_2_local_implementation": "complete",
+  "phase_9d_3_started": false,
+  "promotion_gate_passed": false,
+  "review": {
+    "status": "complete",
+    "run_id": "context-5641eab90e",
+    "actionable_findings": 0,
+    "different_model_review": "unavailable before egress; seven local lenses"
+  },
+  "rollout_gates_pending": [
+    "candidate image build/provenance and approval",
+    "normal server startup/dispatch canary",
+    "paired paid acceptance, cache, total tokens and latency evaluation"
+  ],
+  "coverage_limits": [
+    "output artifacts expire at container stop or 24h; cleanup on access",
+    "native tools retain upstream output limits",
+    "unknown unregistered secrets may evade pattern masking",
+    "write/fsync failure between artifact data and metadata not injected"
+  ],
+  "proof_first": [
+    "new context/inventory/capture modules missing before implementation",
+    "prepare context_profile option unavailable before implementation",
+    "Bearer/Basic/quoted JSON redaction regressions failed before correction"
+  ],
+  "evidence_secret_scan": "passed on dated evidence; exact-code clean-checkout Gitleaks passed"
+}

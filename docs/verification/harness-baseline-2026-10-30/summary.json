@@ -1,0 +1,205 @@
+{
+  "schema": "factory.baseline-results/v1",
+  "release": "/home/bo/.local/share/stapled-factory-control/releases/974aece75d62644b35b5f4e51928bb61cce140e2",
+  "seed_baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "development_suite_sha256": "0bb3d7b7516c6453295f287215184c73fcbc0e2f4e731c3740fcc4df7e6c46f1",
+  "actual_model_trials": 18,
+  "accepted_development_candidates": 17,
+  "pre_dispatch_infrastructure_failures": [
+    "h9d-20261030-failing-tests-r1"
+  ],
+  "requests": 107,
+  "estimated_reserved_usd": 7.610171,
+  "actual_charges_usd": null,
+  "wire_input_tokens": 79889,
+  "wire_output_tokens": 19714,
+  "wire_cache_read_input_tokens": 1008512,
+  "wire_cache_creation_input_tokens": 0,
+  "requests_per_accepted_task": 6.294117647058823,
+  "wire_input_tokens_per_accepted_task": 4699.35294117647,
+  "median_task_observed_elapsed_s": 44.451,
+  "median_agent_event_span_s": 12.184241,
+  "telemetry_reservation_parity_all_trials": true,
+  "complete_responses": 107,
+  "trace_complete_all_trials": true,
+  "all_bound_resources_stopped": true,
+  "all_service_bindings_restored": true,
+  "by_task": [
+    {
+      "task_id": "discovery",
+      "trials": 3,
+      "accepted": 3,
+      "requests": [
+        6,
+        5,
+        7
+      ],
+      "elapsed_s": [
+        44.429,
+        44.068,
+        44.578
+      ],
+      "wire_input_tokens": [
+        25049,
+        1993,
+        2227
+      ],
+      "cache_read_input_tokens": [
+        36352,
+        46976,
+        72448
+      ]
+    },
+    {
+      "task_id": "small-edit",
+      "trials": 3,
+      "accepted": 3,
+      "requests": [
+        6,
+        6,
+        7
+      ],
+      "elapsed_s": [
+        44.331,
+        44.488,
+        44.109
+      ],
+      "wire_input_tokens": [
+        2440,
+        1775,
+        2223
+      ],
+      "cache_read_input_tokens": [
+        57728,
+        60032,
+        72320
+      ]
+    },
+    {
+      "task_id": "multi-file",
+      "trials": 3,
+      "accepted": 3,
+      "requests": [
+        5,
+        5,
+        7
+      ],
+      "elapsed_s": [
+        44.51,
+        44.989,
+        44.598
+      ],
+      "wire_input_tokens": [
+        2319,
+        1881,
+        2088
+      ],
+      "cache_read_input_tokens": [
+        46464,
+        46848,
+        73216
+      ]
+    },
+    {
+      "task_id": "failing-tests",
+      "trials": 3,
+      "accepted": 3,
+      "requests": [
+        6,
+        6,
+        6
+      ],
+      "elapsed_s": [
+        44.382,
+        44.364,
+        45.411
+      ],
+      "wire_input_tokens": [
+        13127,
+        1698,
+        1449
+      ],
+      "cache_read_input_tokens": [
+        48000,
+        59136,
+        59776
+      ]
+    },
+    {
+      "task_id": "noisy-output",
+      "trials": 3,
+      "accepted": 3,
+      "requests": [
+        6,
+        6,
+        6
+      ],
+      "elapsed_s": [
+        44.451,
+        44.211,
+        44.145
+      ],
+      "wire_input_tokens": [
+        1673,
+        1841,
+        1910
+      ],
+      "cache_read_input_tokens": [
+        59008,
+        58496,
+        58752
+      ]
+    },
+    {
+      "task_id": "stalled-run",
+      "trials": 3,
+      "accepted": 2,
+      "requests": [
+        6,
+        6,
+        5
+      ],
+      "elapsed_s": [
+        44.451,
+        44.836,
+        44.459
+      ],
+      "wire_input_tokens": [
+        12795,
+        1929,
+        1472
+      ],
+      "cache_read_input_tokens": [
+        47360,
+        59264,
+        46336
+      ]
+    }
+  ],
+  "phase_9d_2_started": false,
+  "limitations": [
+    "Development tasks, not production acceptance or a vendor benchmark.",
+    "Three repetitions per task; small sample and warm-cache/order effects.",
+    "Wire input and cached-read fields are separate; any cache share is explicitly gateway-reported, not SDK-inferred or an actual billing claim.",
+    "Observed workflow latency includes provisioning and reconciliation polling.",
+    "One pre-credential network-pool failure was retained and replaced without reusing its identity."
+  ],
+  "gateway_requests": 107,
+  "gateway_models": {
+    "deepseek-v4.1-flash:1017": 107
+  },
+  "gateway_prompt_tokens": 1088401,
+  "gateway_completion_tokens": 19714,
+  "gateway_cached_read_tokens": 1008512,
+  "gateway_reported_cached_read_share": 0.9265996631756127,
+  "gateway_prompt_tokens_per_accepted_task": 64023.58823529412,
+  "gateway_and_wire_prompt_accounting_equal": true,
+  "operator_active_marker_absent": true,
+  "frozen_checker_accepted_development_candidates": 17,
+  "contract_corrected_accepted_development_candidates": 18,
+  "acceptance_comparison_version": "contract-corrected-v2",
+  "model_trials_rerun": 0,
+  "corrected_requests_per_accepted_task": 5.944444444444445,
+  "corrected_wire_input_tokens_per_accepted_task": 4438.277777777777,
+  "corrected_gateway_prompt_tokens_per_accepted_task": 60466.72222222222
+}

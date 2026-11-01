@@ -1,0 +1,263 @@
+{
+  "schema": "factory.native-batching-probe/v1",
+  "model_requests": 0,
+  "cases": [
+    {
+      "task_id": "discovery",
+      "mode": "sequential",
+      "terminal_calls": 8,
+      "observation_utf8_bytes": 1868,
+      "elapsed_s": 1.754940653219819,
+      "git_tree": "f5e6d89a5ba43bb9ee154e6a186f112c4c9a65d6",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "88b77b9e2887f80f3f03d0882a7663090b325c1dc12eb542027761986b6513b2"
+    },
+    {
+      "task_id": "discovery",
+      "mode": "batched",
+      "terminal_calls": 2,
+      "observation_utf8_bytes": 766,
+      "elapsed_s": 0.7507538460195065,
+      "git_tree": "f5e6d89a5ba43bb9ee154e6a186f112c4c9a65d6",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "a2124518be3489f5437cd510a03a1a6ce2490cc2daba2bd241ffe551dcc5ca3c"
+    },
+    {
+      "task_id": "small-edit",
+      "mode": "sequential",
+      "terminal_calls": 8,
+      "observation_utf8_bytes": 1876,
+      "elapsed_s": 1.8204020159319043,
+      "git_tree": "d4999747c19668163fda11f7f68e33aace5d4702",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "c0cd42520b712f1192e73063259acde8f5c398358adc16fd6b257c6ad85ee1ea"
+    },
+    {
+      "task_id": "small-edit",
+      "mode": "batched",
+      "terminal_calls": 2,
+      "observation_utf8_bytes": 768,
+      "elapsed_s": 0.7310613770969212,
+      "git_tree": "d4999747c19668163fda11f7f68e33aace5d4702",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "419ecacf76b3c9b24a38bd798d65839eb1e975a4e468845374c7c5d03c085fb6"
+    },
+    {
+      "task_id": "multi-file",
+      "mode": "sequential",
+      "terminal_calls": 8,
+      "observation_utf8_bytes": 1876,
+      "elapsed_s": 1.7171231699176133,
+      "git_tree": "0c463a1eb7c3e36002ffbc558d7478ec9347e082",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "893040073bc25ad4c014ddfca6acc9cb6607c7b905f13da3b9f0132a28547ace"
+    },
+    {
+      "task_id": "multi-file",
+      "mode": "batched",
+      "terminal_calls": 2,
+      "observation_utf8_bytes": 768,
+      "elapsed_s": 0.7907954850234091,
+      "git_tree": "0c463a1eb7c3e36002ffbc558d7478ec9347e082",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "0ccadfaf37b82ccae426c01a1e9c4787778f9326c2bad607e5be421656103423"
+    },
+    {
+      "task_id": "failing-tests",
+      "mode": "sequential",
+      "terminal_calls": 9,
+      "observation_utf8_bytes": 2225,
+      "elapsed_s": 2.2337526860646904,
+      "git_tree": "e3ea21b325d24df315f1746bb422ec6eafd2f59f",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "b32d6e337c30c2482ec72c071cae482cd1d407ac8c4611fb1d72cbad4daeacea"
+    },
+    {
+      "task_id": "failing-tests",
+      "mode": "batched",
+      "terminal_calls": 2,
+      "observation_utf8_bytes": 914,
+      "elapsed_s": 0.8941767690703273,
+      "git_tree": "e3ea21b325d24df315f1746bb422ec6eafd2f59f",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "38d7f892fcfdee91080efaa8fc0f01fa1c568e682ff73d8357f333d66896829f"
+    },
+    {
+      "task_id": "noisy-output",
+      "mode": "sequential",
+      "terminal_calls": 8,
+      "observation_utf8_bytes": 1909,
+      "elapsed_s": 1.8158696028403938,
+      "git_tree": "ca02b873714e891cf6bcad52a218bc7bcd9edfb6",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "d126e30e872196cd0a681944c0eae9199b1b37439824b357ac086e5ea732f803"
+    },
+    {
+      "task_id": "noisy-output",
+      "mode": "batched",
+      "terminal_calls": 2,
+      "observation_utf8_bytes": 789,
+      "elapsed_s": 0.8000109195709229,
+      "git_tree": "ca02b873714e891cf6bcad52a218bc7bcd9edfb6",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "88415c791e297e3affc5f29d8231192550fd0934cb4c9ab4f1328b891e51c4d6"
+    },
+    {
+      "task_id": "stalled-run",
+      "mode": "sequential",
+      "terminal_calls": 8,
+      "observation_utf8_bytes": 1922,
+      "elapsed_s": 1.8806852693669498,
+      "git_tree": "594c8e8e81ea25d947845da7078e6c0e8ed11ef2",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "35dd0ce6688865d48d3d34af7817412f9d51dcd72cc46cfcbf01a8fc3adb8086"
+    },
+    {
+      "task_id": "stalled-run",
+      "mode": "batched",
+      "terminal_calls": 2,
+      "observation_utf8_bytes": 808,
+      "elapsed_s": 0.7777908616699278,
+      "git_tree": "594c8e8e81ea25d947845da7078e6c0e8ed11ef2",
+      "allowed_paths_only": true,
+      "clean": true,
+      "archive_sha256": "1c257ea28cfca73d2c20213308125c9abb2714ca23db1ef4ba090823958d6204"
+    }
+  ],
+  "boundary": {
+    "Memory": 2147483648,
+    "MemorySwap": 2147483648,
+    "NanoCpus": 2000000000,
+    "PidsLimit": 256,
+    "ReadonlyRootfs": true,
+    "Tmpfs": {
+      "/tmp": "rw,exec,nosuid,nodev,size=536870912,uid=1000,gid=1000,mode=0700",
+      "/workspace": "rw,nosuid,nodev,size=67108864,uid=1000,gid=1000,mode=0700"
+    },
+    "NetworkMode": "none"
+  },
+  "worker_image": "sha256:d1d11b40384c2eb25d5d9d38a069abed9801a0a290c64101a24cc200a8a26e30",
+  "source_sha256": [
+    {
+      "path": "probes/native_batching_sdk.py",
+      "sha256": "26e7017e368097322e97a48e351e860f194587d2d027740b6f7cada898719888"
+    },
+    {
+      "path": "probes/native_limits_sdk.py",
+      "sha256": "58f8d56e303cde2bffeada0de29f45068b4d4f7c3a228151a8651f7c56f4a77a"
+    },
+    {
+      "path": "baseline/batching.py",
+      "sha256": "37819f16c3aad5be1f0666cc1b2cdf54519287771310f679ac6c801b119624e2"
+    },
+    {
+      "path": "baseline/tasks.json",
+      "sha256": "0bb3d7b7516c6453295f287215184c73fcbc0e2f4e731c3740fcc4df7e6c46f1"
+    },
+    {
+      "path": "baseline/check.py",
+      "sha256": "371b94a04ecbefa07004a8b9de9c77418836aae2929692cecc38f3e7322829a4"
+    },
+    {
+      "path": "baseline/seed/catalog.py",
+      "sha256": "7b8c242c0c334b99f62c4f7bb6ff21e03a342cdcc5dc4570ec0a15b2f835cbaa"
+    },
+    {
+      "path": "baseline/seed/check_totals.py",
+      "sha256": "13c747f0a5c9fb669bea3b1002be01b8915f52cf126b8cc3367544d2dd132f2e"
+    },
+    {
+      "path": "baseline/seed/noisy.py",
+      "sha256": "330efe93fb71ebed125da3c41f45643449adf023182cafaada6641a7ecc5ded4"
+    },
+    {
+      "path": "baseline/seed/app.py",
+      "sha256": "c059d7c36c429d898df21eea2f50aec2f75e445ae1f95bc73928bba7bda41a01"
+    },
+    {
+      "path": "bounded_profile.py",
+      "sha256": "de7a6057c363f91aef93f7d1a5272853c5c77fe8544f49a0c4153bd612f7386b"
+    },
+    {
+      "path": "factory_capture_tool.py",
+      "sha256": "bfcbb00fcfc03782f24f5d761d8f7d0bd313fcb6360b2ce726d88540199a1ae6"
+    },
+    {
+      "path": "output_artifacts.py",
+      "sha256": "98efa356da38a822471791629754768d200b9306f7b14c4b94f03d88cdb72a96"
+    }
+  ],
+  "independent_acceptance": [
+    {
+      "task_id": "discovery",
+      "mode": "batched",
+      "passed": true
+    },
+    {
+      "task_id": "discovery",
+      "mode": "sequential",
+      "passed": true
+    },
+    {
+      "task_id": "failing-tests",
+      "mode": "batched",
+      "passed": true
+    },
+    {
+      "task_id": "failing-tests",
+      "mode": "sequential",
+      "passed": true
+    },
+    {
+      "task_id": "multi-file",
+      "mode": "batched",
+      "passed": true
+    },
+    {
+      "task_id": "multi-file",
+      "mode": "sequential",
+      "passed": true
+    },
+    {
+      "task_id": "noisy-output",
+      "mode": "batched",
+      "passed": true
+    },
+    {
+      "task_id": "noisy-output",
+      "mode": "sequential",
+      "passed": true
+    },
+    {
+      "task_id": "small-edit",
+      "mode": "batched",
+      "passed": true
+    },
+    {
+      "task_id": "small-edit",
+      "mode": "sequential",
+      "passed": true
+    },
+    {
+      "task_id": "stalled-run",
+      "mode": "batched",
+      "passed": true
+    },
+    {
+      "task_id": "stalled-run",
+      "mode": "sequential",
+      "passed": true
+    }
+  ]
+}

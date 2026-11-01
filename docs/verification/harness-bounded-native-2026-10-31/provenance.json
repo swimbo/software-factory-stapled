@@ -1,0 +1,32 @@
+{
+  "release_revision": "049e51ab08af024b04ff8bbc2c2d9c25c4e2930f",
+  "source_archive_sha256": "1af4ca335bb981fc03b55d6de0358368605d2113febf01d91a01bea300ba104d",
+  "dockerfile_sha256": "1cbfe611981f1300e17cad32e8f1ce72c786dc8d27367538906bc0c33780cdcd",
+  "worker_modules_match_release_revision": true,
+  "unchanged_from_context_v1": [
+    "stapled-factory/worker/baseline/tasks.json",
+    "stapled-factory/worker/baseline/seed",
+    "stapled-factory/worker/baseline/check.py",
+    "stapled-factory/worker/context_profile.py",
+    "stapled-factory/worker/pricing_policy.py",
+    "stapled-factory/spine"
+  ],
+  "source_ci_exact_revision": true,
+  "worker_image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "accepted_image_parent": "sha256:d1d11b40384c2eb25d5d9d38a069abed9801a0a290c64101a24cc200a8a26e30",
+  "new_dependencies": false,
+  "source_changes": [
+    "2770cee checkpoint directory ENV correction",
+    "645cb59 Docker ENV order correction",
+    "db96ddd bounded proxy startup readiness",
+    "eea52b0 fixed secret-safe failure codes",
+    "049e51a duplicate-free exact environment values independent of Docker order"
+  ],
+  "activation_scope": "opt-in sandbox, no production promotion or default task-profile switch",
+  "host_epochs": {
+    "645cb59": 4,
+    "db96ddd": 1,
+    "eea52b0": 1,
+    "049e51a": 12
+  }
+}

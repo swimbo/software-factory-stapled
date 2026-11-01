@@ -1,0 +1,6 @@
+{
+  "schema": "factory.ipam-capacity-probe/v1",
+  "network_create_succeeded": false,
+  "model_requests": 0,
+  "stderr": "Error response from daemon: all predefined address pools have been fully subnetted"
+}

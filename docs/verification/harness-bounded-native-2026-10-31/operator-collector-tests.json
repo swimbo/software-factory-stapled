@@ -1,0 +1,11 @@
+{
+  "checkpoint_reader_tests": 7,
+  "passed": true,
+  "unsafe_predecessor_characterization": {
+    "passed": 1,
+    "failed": 6
+  },
+  "checkpoint_reader_sha256": "d31a15828466b394ba9b63db96b8953226268bdfb4475eaf747b4ee6c3b066eb",
+  "test_source_sha256": "8f9aba442a461ac384a0cee88a920e717eba85f03c09bc08a7eb0f6db87be36a",
+  "independent_review": "rollout_audit verified all three collector blockers resolved; no model calls from tests"
+}

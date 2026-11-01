@@ -1,0 +1,108 @@
+{
+  "schema": "factory.grade-coverage-note/v1",
+  "status": "complete",
+  "scope": "Read-only interpretation of frozen held-out grading and parent-supplied completed dependency trial metadata; no source or scoring change",
+  "trial": "s9d5-06-1",
+  "source_of_trial_facts": "Parent-provided metadata only; no SSH, raw trial/oracle/private-wall reads",
+  "given_facts": {
+    "candidate_artifact_check_passed": true,
+    "root_completed_clean": true,
+    "ast_diagnostic_count": 1,
+    "install_commands": 0,
+    "trace_complete": true,
+    "strict_paired_dependency_error_observations": 0,
+    "strict_accepted": false
+  },
+  "assessment": {
+    "strict_score": "Unchanged false under preregistered evidence rule; do not forgive or replace sample.",
+    "task_as_written": "Not established as failed. Supplied task requires one import and showing actual ModuleNotFoundError, but does not require the containing process to exit nonzero. A caught genuine missing import can print a traceback and exit0.",
+    "coverage": "Metadata count0 proves absence of evidence satisfying the strict nonzero predicate, not absence of an actual displayed error. Baseline/context raw SDK tmpfs evidence was not retained; as-written compliance remains unverified unless separate original retained evidence exists.",
+    "artifact_score": "Candidate file checks and clean completed attempt are separate positive facts, not full execution-contract acceptance.",
+    "interpretation": "This is a stricter grader coverage limitation and possible false negative, not verified candidate task failure. No posthoc adjusted primary score or rerun."
+  },
+  "source_evidence": {
+    "stapled-factory/worker/evaluation_diagnostics.py:44-61": "diagnostic_error requires ModuleNotFoundError/dependency text and a completed nonzero terminal/capture exit, explicitly rejecting exit0.",
+    "stapled-factory/deployment/nuc/evaluation_trials.py:222-226": "accepted combines candidate oracle with ASTcount1,errorobservations1,installcommands0 and complete trace."
+  },
+  "independent_synthetic_probe": {
+    "trigger": "Single real __import__ of a guaranteed absent synthetic name inside try/except; traceback.print_exc displays actual error, then normal process exit.",
+    "observed_exit": 0,
+    "actual_error_displayed": true,
+    "ast_import_count": 1,
+    "strict_diagnostic_error": false,
+    "inference_calls": 0,
+    "purpose": "Discriminates task instruction from stronger nonzero grading predicate; does not assert actual trial took this path."
+  },
+  "report_recommendation": {
+    "table_columns": [
+      "profile",
+      "artifact checks passed",
+      "strict independently accepted",
+      "execution evidence unverified",
+      "all consumption incl failed/unknown"
+    ],
+    "trial_label": "Artifact passed; strict execution evidence not verified (0 qualifying nonzero observations).",
+    "primary_analysis": "Keep frozen strictaccepted count and all failed consumption. Describe unknown baseline input tokens and scoring coverage limits; broader promotion remains unqualified.",
+    "optional_retained_audit": "After all trials, separately append read-only exact retained-event evidence for bounded profiles without changing frozen scores. Baseline/context missing raw evidence cannot be reconstructed or assumed."
+  },
+  "source_sha256": {
+    "stapled-factory/worker/evaluation_diagnostics.py": "36d80c85a31996b231cb43607fe79b18c66138634bb6de37322b0158f9851050",
+    "stapled-factory/deployment/nuc/evaluation_trials.py": "3e590f0bf1ce5635ebfe22ce4b425662245a233e8e6b4db894ebf99f47a56dc5"
+  },
+  "completed_at": "2026-11-01T02:31:49.602879+00:00",
+  "supplements": [
+    {
+      "recorded_at": "2026-11-01T02:34:33.640871+00:00",
+      "prior_note_sha256": "f0856ba3572e02dd33337612919e70d92b47d8923787dc3f13884454ab2c9cb8",
+      "trial": "s9d5-06-2",
+      "source_of_facts": "Parent-supplied inspection metadata only; reviewer did not read private oracle/candidate or SSH.",
+      "given_facts": {
+        "frozen_oracle_passed": false,
+        "candidate_keys": [
+          "attempts",
+          "dependency",
+          "diagnostic",
+          "error",
+          "status"
+        ],
+        "required_status_matches": true,
+        "required_dependency_matches": true,
+        "additional_keys_prohibited_by_task": false,
+        "ast_import_count": 1,
+        "terminal_exit_counts": {
+          "0": 4,
+          "2": 1
+        },
+        "dependency_error_text_seen_in_exit0_observation": true,
+        "nonzero_observation_error_unrelated": true
+      },
+      "assessment": {
+        "frozen_oracle_score": "Retain original false.",
+        "permitted_extra_fields": "Given the supplied instruction requires fields but does not demand an exact key set, rejecting an otherwise matching JSON object solely for additional keys is a definite mismatch between oracle and task. This is a known false negative in the output checker, conditional on the supplied exact-field inspection.",
+        "supplemental_required_field_result": "Pass for this trial based on parent-supplied original candidate inspection: status and dependency match. Label separately from frozen oracle result.",
+        "overall_as_written_execution": "Still requires independent audit of exact original executed action/observation pairing and import count after campaign completion. Exit0 error text may satisfy the display requirement, but current metadata alone is not a new complete execution verdict.",
+        "promotion": "Unchanged retain-baseline decision; no frozen-score mutation, no rerun, no posthoc global promotion or missing-trace reconstruction."
+      },
+      "recommended_table_columns": [
+        "profile/trial",
+        "frozen strict acceptance",
+        "frozen oracle checks",
+        "supplemental required-field checks",
+        "execution-evidence coverage"
+      ],
+      "row_interpretation": {
+        "frozen_strict_acceptance": "Not accepted under frozen gates",
+        "frozen_oracle_check": "Failed exact-dictionary predicate",
+        "supplemental_required_field_check": "Pass (parent inspected original JSON; extras allowed by task)",
+        "execution_evidence": "Pending independent exact original action audit; retained data exists for this bounded profile"
+      },
+      "report_wording": "The bounded dependency artifact was rejected by an overly strict exact-key oracle despite matching the task-required fields. Frozen scores are preserved; a separate required-field assessment passes. Full execution compliance remains separately qualified, and the retain-baseline decision is unchanged."
+    },
+    {
+      "recorded_at": "2026-11-01T02:38:00.014887+00:00",
+      "prior_note_sha256": "eafa40a319865536eca25c4c45d1366a885ee031b26f57acfc3c6c37639f65eb",
+      "receipt": "supplemental-diagnostic-compliance.json",
+      "assessment": "Recovered original executed-action evidence resolves prior as-written diagnostic uncertainty for06-0/06-1/06-2. Frozen strict scores remain unchanged. Output field/scope checks remain separate; baseline06-0 required-field check pending."
+    }
+  ]
+}

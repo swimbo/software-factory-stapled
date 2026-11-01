@@ -62,3 +62,47 @@ def test_unbounded_or_changed_resources_rejected(tmp_path, role, field, bad):
     (w if role == 'worker' else p)['HostConfig'][field] = bad
     with pytest.raises(UnsafeTopology, match='resource limits'):
         validate_identity(w, p, **k)
+
+
+def telemetry_fixture(tmp_path):
+    worker, proxy, kw = fixture(tmp_path)
+    name = 'factory-' + kw['allocation_id'] + '-telemetry'
+    kw['proxy_command'] += ['--telemetry-dir', '/telemetry']
+    proxy['Config']['Cmd'] += ['--telemetry-dir', '/telemetry']
+    proxy['Mounts'].append({'Type':'volume', 'Name':name, 'Destination':'/telemetry', 'RW':True})
+    kw['volume_records'][name] = {'Name':name, 'Driver':'local', 'Scope':'local', 'Options':None,
+        'Labels':{'factory.allocation':kw['allocation_id'], 'factory.role':'telemetry'}}
+    return worker, proxy, kw, name
+
+
+def test_telemetry_opt_in_accepts_only_private_matching_volume(tmp_path):
+    w,p,k,_ = telemetry_fixture(tmp_path)
+    validate_identity(w,p,**k)
+
+
+@pytest.mark.parametrize('mutation', [
+    lambda w,p,k,n: w['Mounts'].append(dict(p['Mounts'][-1])),
+    lambda w,p,k,n: p['Mounts'][-1].update(RW=False),
+    lambda w,p,k,n: p['Mounts'][-1].update(Destination='/workspace'),
+    lambda w,p,k,n: p['Mounts'][-1].update(Name=k['budget_volume']),
+    lambda w,p,k,n: p['Mounts'].append(dict(p['Mounts'][-1])),
+    lambda w,p,k,n: k['volume_records'][n]['Labels'].update(**{'factory.role':'socket'}),
+    lambda w,p,k,n: k['volume_records'][n].update(Options={'o':'bind','device':'/host'}),
+    lambda w,p,k,n: k['volume_records'].pop(n),
+])
+def test_telemetry_isolation_or_identity_change_rejected(tmp_path, mutation):
+    w,p,k,name = telemetry_fixture(tmp_path)
+    mutation(w,p,k,name)
+    with pytest.raises(UnsafeTopology):validate_identity(w,p,**k)
+
+
+@pytest.mark.parametrize('extra', [
+    ['--telemetry-dir'], ['--telemetry-dir','/budget'],
+    ['--telemetry-dir','/telemetry','--telemetry-dir','/telemetry'],
+    ['--telemetry-dir=/telemetry'],
+])
+def test_invalid_telemetry_opt_in_rejected(tmp_path, extra):
+    w,p,k = fixture(tmp_path)
+    k['proxy_command'] += extra
+    p['Config']['Cmd'] += extra
+    with pytest.raises(UnsafeTopology, match='telemetry'):validate_identity(w,p,**k)

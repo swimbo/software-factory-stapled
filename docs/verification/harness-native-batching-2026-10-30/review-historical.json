@@ -1,0 +1,193 @@
+{
+  "status": "complete",
+  "verdict": "Not ready",
+  "verdict_reason": "Historical a9c2148 has confirmed P1 #1: ledger failure can bypass the required external lifetime bound. A separate follow-up verifies its resolution at3c07b81; this receipt preserves the original reviewed scope.",
+  "scope": {
+    "base": "9debfd0",
+    "branch": "codex/phase9d-native-batching",
+    "head_sha": "a9c214892ab338296b361d69144dc90595d51388",
+    "pr_url": null,
+    "files_changed": 22
+  },
+  "intent": "Reuse pinned OpenHands native terminal batching on six frozen tasks before adding any new execution primitive. Add opt-in bounded storage/resources, cancellation, and an external allocation deadline without blind replay or releasing credentials before containment. Deployment and paid-model canary remain deferred.",
+  "intent_confidence": "explicit",
+  "reviewers": [
+    "correctness",
+    "testing",
+    "maintainability",
+    "security",
+    "performance",
+    "reliability",
+    "adversarial",
+    "agent-native"
+  ],
+  "findings": [
+    {
+      "#": 1,
+      "autofix_class": "gated_auto",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/worker/deadline_watchdog.py:223 --     status=_bound(store,record)",
+        "stapled-factory/worker/deadline_watchdog.py:226-235 -- The try/finally begins only after _bound and only guarantees _stop(record,'proxy').",
+        "stapled-factory/worker/guarded_store.py:91-93 -- A database/anchor generation mismatch raises StoreQuarantined before yielding the transaction.",
+        "stapled-factory/worker/guarded_store.py:99-101 -- COMMIT happens before _write_anchor, so a coordinator crash in between creates this quarantined state.",
+        "stapled-factory/worker/guarded_store.py:57 --             fcntl.flock(fd, fcntl.LOCK_EX)",
+        "docs/planning/stapled-factory/phase-9d-plan.md:42 -- Acceptance requires timeout/fork/output attacks to terminate within configured limits."
+      ],
+      "file": "stapled-factory/worker/deadline_watchdog.py",
+      "first_evidence": "stapled-factory/worker/deadline_watchdog.py:223 --     status=_bound(store,record)",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 223,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P1",
+      "suggested_fix": "After validating the private deadline record and both original container identities/lifecycles, arrange independent best-effort stops for worker and proxy even if ledger lookup or durable fencing fails. Bound ledger-lock acquisition so it cannot indefinitely delay these stops; preserve the ledger and report incomplete fencing without permitting completion/replay. Add tests for a quarantined anchor and unavailable/held ledger lock at expiry, asserting both original containers stop and evidence remains retained.",
+      "title": "Stop original containers when deadline ledger validation fails",
+      "why_it_matters": "The external deadline can leave both original containers running indefinitely when the attempt ledger becomes quarantined or unavailable. expire() reads the guarded ledger before entering its cleanup block; a coordinator crash between the database commit and anchor update makes _bound() raise, so the one-shot timer never reaches either kill. The immutable private deadline record already carries the original container identities and lifecycles; containment must remain possible independently of ledger availability, while reporting durable fencing as incomplete.",
+      "validation_status": "confirmed",
+      "validation_reason": "At reviewed a9c2148, expire() calls _bound at deadline_watchdog.py:223 before either container stop or cleanup finally; a missing/quarantined anchor raises from guarded_store.py:83-93, or the blocking flock at line57 waits indefinitely, so neither original container is stopped; the COMMIT-before-anchor ordering at lines99-101 makes quarantine reachable after coordinator failure, though live incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "requirements_completeness": {
+    "plan": "/Users/bo/code/software-factory-stapled/docs/planning/stapled-factory/phase-9d-plan.md",
+    "source": "explicit",
+    "scope": "Phase 9d.3 implementation only; activation intentionally deferred.",
+    "requirements": [
+      {
+        "id": "9d.3-reuse",
+        "requirement": "Evaluate existing execution first; record reuse decision and measured benefit.",
+        "status": "met",
+        "evidence": "Corresponding implementation and qualification are present in reviewed diff."
+      },
+      {
+        "id": "9d.3-ordering",
+        "requirement": "Batch independent reads; order mutations with preconditions/postconditions.",
+        "status": "met",
+        "evidence": "Corresponding implementation and qualification are present in reviewed diff."
+      },
+      {
+        "id": "9d.3-boundary",
+        "requirement": "Preserve sandbox, egress, credential and holdout boundaries.",
+        "status": "met",
+        "evidence": "Corresponding implementation and qualification are present in reviewed diff."
+      },
+      {
+        "id": "9d.3-limits",
+        "requirement": "Enforce runtime, memory, process, output, disk, concurrency and cancellation.",
+        "status": "partially addressed",
+        "evidence": "Deadline containment can be skipped on ledger quarantine or blocked lock; finding #1."
+      },
+      {
+        "id": "9d.3-replay",
+        "requirement": "Reconcile partial effects without blind retry or reset reservations.",
+        "status": "met",
+        "evidence": "Corresponding implementation and qualification are present in reviewed diff."
+      }
+    ],
+    "implementation_units": [],
+    "unrequested_behavior_rules": [],
+    "intentional_deferrals": [
+      "Bounded-profile retained-bind deployment/canary",
+      "Paid-model trials",
+      "Phase 9d.4"
+    ]
+  },
+  "actionable_findings": [
+    {
+      "#": 1,
+      "autofix_class": "gated_auto",
+      "confidence": 100,
+      "evidence": [
+        "stapled-factory/worker/deadline_watchdog.py:223 --     status=_bound(store,record)",
+        "stapled-factory/worker/deadline_watchdog.py:226-235 -- The try/finally begins only after _bound and only guarantees _stop(record,'proxy').",
+        "stapled-factory/worker/guarded_store.py:91-93 -- A database/anchor generation mismatch raises StoreQuarantined before yielding the transaction.",
+        "stapled-factory/worker/guarded_store.py:99-101 -- COMMIT happens before _write_anchor, so a coordinator crash in between creates this quarantined state.",
+        "stapled-factory/worker/guarded_store.py:57 --             fcntl.flock(fd, fcntl.LOCK_EX)",
+        "docs/planning/stapled-factory/phase-9d-plan.md:42 -- Acceptance requires timeout/fork/output attacks to terminate within configured limits."
+      ],
+      "file": "stapled-factory/worker/deadline_watchdog.py",
+      "first_evidence": "stapled-factory/worker/deadline_watchdog.py:223 --     status=_bound(store,record)",
+      "independent_reviewers": [
+        "reliability"
+      ],
+      "line": 223,
+      "owner": "downstream-resolver",
+      "pre_existing": false,
+      "requires_verification": true,
+      "reviewers": [
+        "reliability"
+      ],
+      "severity": "P1",
+      "suggested_fix": "After validating the private deadline record and both original container identities/lifecycles, arrange independent best-effort stops for worker and proxy even if ledger lookup or durable fencing fails. Bound ledger-lock acquisition so it cannot indefinitely delay these stops; preserve the ledger and report incomplete fencing without permitting completion/replay. Add tests for a quarantined anchor and unavailable/held ledger lock at expiry, asserting both original containers stop and evidence remains retained.",
+      "title": "Stop original containers when deadline ledger validation fails",
+      "why_it_matters": "The external deadline can leave both original containers running indefinitely when the attempt ledger becomes quarantined or unavailable. expire() reads the guarded ledger before entering its cleanup block; a coordinator crash between the database commit and anchor update makes _bound() raise, so the one-shot timer never reaches either kill. The immutable private deadline record already carries the original container identities and lifecycles; containment must remain possible independently of ledger availability, while reporting durable fencing as incomplete.",
+      "validation_status": "confirmed",
+      "validation_reason": "At reviewed a9c2148, expire() calls _bound at deadline_watchdog.py:223 before either container stop or cleanup finally; a missing/quarantined anchor raises from guarded_store.py:83-93, or the blocking flock at line57 waits indefinitely, so neither original container is stopped; the COMMIT-before-anchor ordering at lines99-101 makes quarantine reachable after coordinator failure, though live incidence was not measured.",
+      "protected_subject": "concurrency"
+    }
+  ],
+  "triage_groups": [],
+  "pre_existing_findings": [],
+  "learnings": [],
+  "agent_native_gaps": [],
+  "deployment_notes": [],
+  "residual_risks": [
+    "The exact retained quota-backed bind mount, durable HOME, AgentServer startup and normal tool execution remain an explicit bounded-profile activation canary; tmpfs component qualification establishes neither hosted activation nor autonomous model quality.",
+    "Containment trusts the operator, Docker daemon and systemd user manager; compromise of those trusted components is outside this boundary."
+  ],
+  "testing_gaps": [
+    "Add an integration test driving real provision with fake Docker operations where arm_deadline or validate_deadline fails, asserting zero credential bytes released and retained allocation reservation."
+  ],
+  "coverage": {
+    "depth": "full",
+    "notes": [
+      "Exact reviewed source a9c2148; current working tree advanced to3c07b81, inspect reviewed code with git show a9c2148:path.",
+      "Project standards not run: successful empty criteria search.",
+      "No new model-facing primitive or deployment; exact retained-bind profile activation remains gated.",
+      "All eight local lenses completed; no peer content reached a provider.",
+      "Caller exact revision CI passed505 Python tests plus12 subtests,25Node tests,secret/dependency audit and build.",
+      "adversarial lens: in-process fallback (cross-model peer not run: Claude transport unavailable pre-egress with Internal error; replacement Antigravity lacked installed ACP runtime route).",
+      "Confidence suppression: none; malformed findings: 0; malformed returns: 0.",
+      "first_evidence_backfilled: 1; quote-gate demotions: 0; mode-aware demotions: 0.",
+      "No cross-model corroboration; one P1 selected for independent validator batch; shortcut-skipped: 0.",
+      "Historical review scope remains a9c2148; later fixes are intentionally excluded and require separate follow-up.",
+      "One independent validator batch confirmed #1; no validator shortcut, timeout or infrastructure failure.",
+      "Stage5c skipped: report-only; no code or index mutations by report leaf.",
+      "Separate reliability follow-up verified #1 resolved at3c07b8145836f5a9f28620bea7c10c41e80c9efe with14 watchdog tests passing. Caller reports exact final CI507 Python tests plus12 subtests and25Node tests, secret/dependency audit and build, plus real2second deadline qualification. These do not rewrite historical a9c2148 findings."
+    ],
+    "validator": {
+      "outcome": "verdicts",
+      "confirmed": 1,
+      "rejected": 0,
+      "unresolved": 0,
+      "malformed": 0,
+      "failed": 0,
+      "shortcut_skipped": 0,
+      "protected_subject_reclassifications": 0
+    },
+    "suppressed_by_confidence": {},
+    "mode_aware_demotions": 0,
+    "first_evidence_backfilled": 1,
+    "quote_gate_demotions": 0,
+    "failed_reviewers": [],
+    "timed_out_reviewers": []
+  },
+  "peer": {
+    "outcome": "in-process-fallback",
+    "coverage": "adversarial lens: in-process fallback (cross-model peer not run: Claude transport unavailable pre-egress with Internal error; replacement Antigravity lacked installed ACP runtime route)."
+  },
+  "follow_up": {
+    "path": "/tmp/compound-engineering-501/ce-code-review/phase9d-final-a9c2148/reliability-followup-3c07b81.json",
+    "head_sha": "3c07b8145836f5a9f28620bea7c10c41e80c9efe",
+    "outcome": "P1 resolved; no new actionable reliability findings in delta"
+  },
+  "artifact_path": "/tmp/compound-engineering-501/ce-code-review/phase9d-final-a9c2148",
+  "run_id": "phase9d-final-a9c2148"
+}

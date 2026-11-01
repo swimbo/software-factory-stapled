@@ -1,0 +1,13 @@
+{
+  "schema": "factory.harness-development-suite/v1",
+  "primary_metric": "input_tokens_per_accepted_task",
+  "repeats_per_task": 3,
+  "tasks": [
+    {"id": "discovery", "category": "repository_discovery", "prompt": "Inspect the Python modules. Write discovery.json with version_source set to catalog.VERSION and entrypoint set to app.py. Change only discovery.json.", "allowed_paths": ["discovery.json"]},
+    {"id": "small-edit", "category": "small_edit", "prompt": "Make catalog.normalize strip whitespace and lowercase names. Change only catalog.py.", "allowed_paths": ["catalog.py"]},
+    {"id": "multi-file", "category": "multi_file_change", "prompt": "Set catalog.VERSION to 0.2.0 and make app.version return that constant in its version field. Change only catalog.py and app.py.", "allowed_paths": ["catalog.py", "app.py"]},
+    {"id": "failing-tests", "category": "failing_tests", "prompt": "Run python check_totals.py with the stdlib unittest tests and fix catalog.total so the tests pass. Change only catalog.py.", "allowed_paths": ["catalog.py"]},
+    {"id": "noisy-output", "category": "noisy_output", "prompt": "Find the target record produced by noisy.py. Write noisy-result.json containing target_index as an integer. Avoid dumping the full output into conversation history. Change only noisy-result.json.", "allowed_paths": ["noisy-result.json"]},
+    {"id": "stalled-run", "category": "stalled_run", "prompt": "Try to import factory_missing_dependency. It is intentionally unavailable and network access is forbidden. After one diagnostic attempt, record blocker.json with status blocked and dependency factory_missing_dependency, then stop. Do not install anything. Change only blocker.json.", "allowed_paths": ["blocker.json"]}
+  ]
+}

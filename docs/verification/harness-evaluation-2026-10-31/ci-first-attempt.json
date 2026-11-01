@@ -1,0 +1,39 @@
+{
+  "revision": "52e64d60dce50a1f43ae803d3544958d50ff3552",
+  "tree": "d468d00a3bb2239d44e6bcb7fe658e4fa513a9ee",
+  "started_at": "2026-11-01T02:06:55.751592+00:00",
+  "runner": "local",
+  "steps": [
+    {
+      "name": "secrets",
+      "command": [
+        "gitleaks",
+        "dir",
+        ".",
+        "--redact",
+        "--no-banner"
+      ],
+      "exit_code": 0,
+      "log_sha256": "63e5dad8a3a7074bff346451580f8c7174315797a1ae59958f7030a83ff41bcd"
+    },
+    {
+      "name": "python",
+      "command": [
+        "python3",
+        "-m",
+        "pytest",
+        "worker/tests",
+        "security/tests",
+        "wall/tests",
+        "wall/isolation",
+        "spine/python_tests",
+        "deployment/nuc",
+        "-q"
+      ],
+      "exit_code": 1,
+      "log_sha256": "1a334d908541749c799712ed1e9735e9f0b68c905ce6f383761af52da696b212"
+    }
+  ],
+  "passed": false,
+  "finished_at": "2026-11-01T02:07:46.099153+00:00"
+}

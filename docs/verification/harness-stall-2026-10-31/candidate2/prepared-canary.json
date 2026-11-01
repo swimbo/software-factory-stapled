@@ -1,0 +1,23 @@
+{
+  "progress_snapshot": {
+    "schema": "factory.workspace-progress/v1",
+    "complete": true,
+    "sha256": "c583c2e4dbbe2ece312fb69da71c6500144072d5fce739e223709cd1f5fb5c74",
+    "files": 1,
+    "bytes": 8
+  },
+  "unit": "s9d4-canary-20261031-02",
+  "baseline": "a0613bd46c181275f5d5d2965173eed56e3989a8",
+  "task_sha256": "714a07c5e837d0b123e27eb5449c0d71717b3babff06797b581cd5deec9d788c",
+  "runtime_sha256": "7acfcde13160bd5955ce4cfb3ef0a97e6bc078a4e02f08d5693e979d0b02591f",
+  "inputs": {
+    "/home/bo/.local/share/stapled-factory-control/dispatch/s9d4-canary-20261031-02/runtime.json": "7acfcde13160bd5955ce4cfb3ef0a97e6bc078a4e02f08d5693e979d0b02591f",
+    "/home/bo/.local/share/stapled-factory-control/dispatch/s9d4-canary-20261031-02/task.txt": "714a07c5e837d0b123e27eb5449c0d71717b3babff06797b581cd5deec9d788c",
+    "/home/bo/.local/share/stapled-factory-control/dispatch/s9d4-canary-20261031-02/invocation.json": "6a340dbe71e9c6803ea137c1b30eac4a336bfc77ba1502491229e8a123d0c2a1",
+    "/home/bo/.local/share/stapled-factory-control/dispatch/s9d4-canary-20261031-02/context-profile.json": "2016e14bfda3cb2500981e8ff0ad2d7ee1cb554c93ba1568e4d1da5801091a63",
+    "/home/bo/.local/share/stapled-factory-control/dispatch/s9d4-canary-20261031-02/stall-profile.json": "37e59233aaed285119b797a54824b6b2b83743c39d38c5c4a55f8a5e834a4dfd",
+    "/home/bo/.local/share/stapled-factory-control/dispatch/s9d4-canary-20261031-02/bounded-storage.json": "fffefdde2fbbf18f2231d80eb7b4e356225d41c3a94f047456f0bd756054f3d0"
+  },
+  "prepared_not_dispatched": true,
+  "new_request_limits": false
+}

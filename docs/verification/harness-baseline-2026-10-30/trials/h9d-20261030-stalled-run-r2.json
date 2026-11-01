@@ -1,0 +1,130 @@
+{
+  "unit": "h9d-20261030-stalled-run-r2",
+  "task_id": "stalled-run",
+  "repeat": 2,
+  "baseline": "e25eb19801c9a82b5255ecaccc35ce6e0677e91f",
+  "task_sha256": "b6a5e78462b948b6654a0fb8fa7080bdf8b37dd62dd37a3b56b2eea0cf948e72",
+  "allowed_paths": [
+    "blocker.json"
+  ],
+  "runtime_sha256": "e6d230b47d912ff5d803365b472f67c9b87fc478332132184ec1a6485cda5a86",
+  "state": {
+    "stage": "needs_validation",
+    "build": {
+      "attempt_id": "h9d-20261030-stalled-run-r2:0",
+      "status": "completed",
+      "conversation_id": "a215fe55-d75a-58bc-998a-214974803e41",
+      "git_revision": "d0f321a4ca19da783ec87c86d659c569f5d42851"
+    },
+    "claim": {
+      "worker_id": "spine",
+      "lease_until_ms": 1793385553638
+    },
+    "receipt": null,
+    "attempts": 0,
+    "recovery": {
+      "request": {
+        "unitId": "h9d-20261030-stalled-run-r2",
+        "target": "http://127.0.0.1:1",
+        "scenarios": "baseline-external-development-checks",
+        "targetRepo": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r2/workspace",
+        "taskFile": "/home/bo/.local/share/stapled-factory-control/dispatch/h9d-20261030-stalled-run-r2/task.txt"
+      },
+      "attemptDb": "/home/bo/.local/share/stapled-factory-control/attempt-store/attempts.db",
+      "attemptAnchor": "/home/bo/.local/share/stapled-factory-control/attempt-anchor/watermark.json"
+    }
+  },
+  "revision": "d0f321a4ca19da783ec87c86d659c569f5d42851",
+  "changed": [
+    "blocker.json"
+  ],
+  "accepted": true,
+  "task_wall_elapsed_s": 44.836,
+  "budget": {
+    "budgets": [
+      [
+        "h9d-20261030-stalled-run-r2:0",
+        "auto",
+        12,
+        6,
+        "5559c73efa30005c78d76b5c51c72dbfcefa6e55fb46878d71f9945e7b5e870b"
+      ]
+    ],
+    "monetary_budgets": [
+      [
+        "h9d-20261030-stalled-run-r2:0",
+        2000000,
+        1398176,
+        "request-size-pro-2026-10-28-v2-best-effort",
+        1793405114,
+        428127
+      ]
+    ]
+  },
+  "telemetry": {
+    "schema": "factory.harness-telemetry/v1",
+    "requests_observed": 6,
+    "requests_without_end": 0,
+    "actual_cost_usd": null,
+    "cached_input_share": null,
+    "actual_routed_model": null,
+    "retries": null,
+    "complete_responses": 6,
+    "observed_input_tokens": 1929,
+    "input_tokens_coverage": 6,
+    "input_tokens": 1929,
+    "observed_output_tokens": 1061,
+    "output_tokens_coverage": 6,
+    "output_tokens": 1061,
+    "observed_cache_read_input_tokens": 59264,
+    "cache_read_input_tokens_coverage": 6,
+    "cache_read_input_tokens": 59264,
+    "observed_cache_creation_input_tokens": 0,
+    "cache_creation_input_tokens_coverage": 6,
+    "cache_creation_input_tokens": 0,
+    "estimated_reserved_microdollars": 428127,
+    "log_sha256": "3edb7e7a8e2265db2fb307b7fc9f954f3a4ac5cea671e8e0dadc21f76de9aea4"
+  },
+  "trace": {
+    "event_count": 21,
+    "event_kinds": {
+      "SystemPromptEvent": 1,
+      "MessageEvent": 1,
+      "other": 9,
+      "ActionEvent": 5,
+      "ObservationEvent": 5
+    },
+    "tool_actions": {
+      "terminal": 3,
+      "file_editor": 1,
+      "finish": 1
+    },
+    "observation_serialized_bytes": 5837,
+    "dependency_diagnostic_commands": 1,
+    "install_commands": 0,
+    "command_sha256": [
+      "d020d9f7c28091a1e791a24282f20b273fe5cedd2c4e25ebbe57e763f60ac931",
+      "553bce211d7d5afd0e29c9b0d813e78d26085673a87786f044df6ef75ab1c1df",
+      "fa8847b0c33183273f5945508b31c3208a9e4ece58ca47233a05628d8dba3799",
+      "3542e483038890c02bc5efadd420908a04577a8e959fd941fa67c8fae7adab8d"
+    ],
+    "first_event_timestamp": "2026-10-30T18:29:22.798172",
+    "last_event_timestamp": "2026-10-30T18:29:47.672274",
+    "complete": true
+  },
+  "candidate_archive_sha256": "b0f257b18141045f94b84d99bb4dde4518e3d265f274b99fa483b8e6a33f3a29",
+  "candidate_check": {
+    "passed": true,
+    "exit_code": 0,
+    "timed_out": false
+  },
+  "reservation_count_matches_telemetry": true,
+  "worker_telemetry_and_budget_paths_denied": true,
+  "resources_stopped": true,
+  "requires_abandonment": false,
+  "worker": "92e4b54271f8296ad0a26cd2721eb68fd1f262cdf85f47d6aafcbd840671cf53",
+  "proxy": "3eefce993a06af1703ffa6d457aba7a0e51a4873a6015751bdcd3f5fc47b454b",
+  "actual_charges": null,
+  "phase_9d_2_started": false,
+  "binding_restored": true
+}
