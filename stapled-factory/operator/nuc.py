@@ -9,6 +9,7 @@ from pathlib import Path
 import sqlite3
 import subprocess
 import sys
+import tarfile
 import time
 import tempfile
 import urllib.error
@@ -130,6 +131,46 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action == 'validation_verify_transfer':
+        target = approval / 'validation-inputs'
+        transfer = main('validation_transfer_status', {'unit': unit})
+        selected = main('validation_status', {'unit': unit})
+        if (not transfer['complete'] or selected.get('accepted') is not False or
+                selected.get('stage') != 'needs_validation' or
+                selected.get('attempt_id') != transfer['attempt_id'] or
+                selected.get('revision') != transfer['revision']):
+            raise ValueError('original transfer or selected build incomplete')
+        intent = json.loads((target/'transfer-intent.json').read_text())
+        subprocess.run(['openssl', 'pkeyutl', '-verify', '-pubin', '-inkey', str(ROOT/'operator-build-public.pem'),
+                        '-rawin', '-in', str(target/'build.json'), '-sigfile', str(target/'build.sig')],
+                       check=True, capture_output=True, timeout=15)
+        binding = json.loads((target/'build.json').read_text())
+        if (binding.get('revision') != intent['revision'] or binding.get('baseline') != intent['baseline'] or
+                any(binding.get(field) != intent['files'][name] for field, name in
+                    [('archive_sha256', 'source.tar'), ('diff_sha256', 'diff'), ('dockerfile_sha256', 'Dockerfile')])):
+            raise ValueError('signed build source differs from original transfer')
+        with tarfile.open(target/'image.tar') as tar:
+            def member(name, limit):
+                matches = [entry for entry in tar.getmembers() if entry.name == name]
+                if len(matches) != 1 or not matches[0].isfile() or matches[0].size > limit:
+                    raise ValueError('unsafe image metadata')
+                return tar.extractfile(matches[0]).read()
+            images = json.loads(member('manifest.json', 1024*1024))
+            tag = 'factory-candidate-' + unit.lower() + ':' + intent['revision']
+            if not isinstance(images, list) or len(images) != 1 or images[0].get('RepoTags') != [tag]:
+                raise ValueError('image tag differs from original build')
+            config = member(images[0]['Config'], 8*1024*1024)
+        if 'sha256:' + hashlib.sha256(config).hexdigest() != binding.get('config_digest'):
+            raise ValueError('signed image configuration differs')
+        image = json.loads(config)
+        labels = (image.get('config') or {}).get('Labels') or {}
+        if (image.get('os') != 'linux' or image.get('architecture') != 'amd64' or
+                labels.get('factory.git-revision') != intent['revision'] or
+                labels.get('factory.source-archive-sha256') != binding['archive_sha256']):
+            raise ValueError('signed image labels or platform differ')
+        return {'verified': True, 'attempt_id': intent['attempt_id'], 'revision': intent['revision'],
+                'config_digest': binding['config_digest'], 'image_tar_sha256': intent['files']['image.tar'],
+                'manifest_sha256': intent['files']['build.json'], 'tag': tag, 'loaded': False}
     if action in ('validation_transfer_begin', 'validation_transfer_status'):
         target = approval / 'validation-inputs'
         names = {'image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle'}

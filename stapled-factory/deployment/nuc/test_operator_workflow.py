@@ -251,6 +251,20 @@ def test_transfer_observation_rejects_different_remote_file_binding(tmp_path, mo
         cli.observe_validation_transfer(tmp_path)
 
 
+def test_verify_transfer_compares_original_local_image(tmp_path, monkeypatch):
+    intent = {'unit': 'unit-1', 'revision': 'a'*40, 'attempt_id': 'unit-1:0',
+              'files': {'image.tar': 'b'*64, 'build.json': 'c'*64}}
+    (tmp_path/'transfer-intent.json').write_text(json.dumps(intent))
+    monkeypatch.setattr(cli, 'observe_candidate_build', lambda run: {'manifest': {'config_digest': 'sha256:'+'d'*64}})
+    verified = {'verified': True, 'loaded': False, 'revision': 'a'*40, 'attempt_id': 'unit-1:0',
+                'image_tar_sha256': 'b'*64, 'manifest_sha256': 'c'*64, 'config_digest': 'sha256:'+'d'*64}
+    monkeypatch.setattr(cli, 'remote', lambda action, data: verified)
+    assert cli.verify_validation_transfer(tmp_path) == verified
+    verified['image_tar_sha256'] = 'e'*64
+    with pytest.raises(ValueError, match='differs'):
+        cli.verify_validation_transfer(tmp_path)
+
+
 def test_transfer_joins_local_and_nuc_original_files(tmp_path, monkeypatch):
     import hashlib
     import shutil
@@ -276,6 +290,53 @@ def test_transfer_joins_local_and_nuc_original_files(tmp_path, monkeypatch):
     (approval/'validation-inputs/image.tar').write_text('changed')
     assert cli.observe_validation_transfer(local)['complete'] is False
     with pytest.raises(ValueError, match='original transfer'):cli.transfer_validation_inputs(local)
+
+
+def test_verify_transferred_image_checks_real_signature_and_image_config(tmp_path, monkeypatch):
+    import hashlib
+    import io
+    import tarfile
+    import subprocess
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    approval = tmp_path/'approvals/unit-1';approval.mkdir(parents=True)
+    target = approval/'validation-inputs';target.mkdir()
+    unit, revision, baseline = 'unit-1', 'a'*40, 'b'*40
+    files = {'source.tar': b'source', 'diff': b'diff', 'Dockerfile': b'FROM scratch', 'result.bundle': b'bundle'}
+    for name, raw in files.items():(target/name).write_bytes(raw)
+    config = json.dumps({'os': 'linux', 'architecture': 'amd64', 'config': {'Labels': {
+        'factory.git-revision': revision, 'factory.source-archive-sha256': hashlib.sha256(files['source.tar']).hexdigest()}}}).encode()
+    image_manifest = json.dumps([{'Config': 'config.json', 'RepoTags': ['factory-candidate-unit-1:'+revision], 'Layers': []}]).encode()
+    with tarfile.open(target/'image.tar', 'w') as tar:
+        for name, raw in [('manifest.json', image_manifest), ('config.json', config)]:
+            info = tarfile.TarInfo(name);info.size = len(raw);tar.addfile(info, io.BytesIO(raw))
+    binding = {'revision': revision, 'baseline': baseline, 'archive_sha256': hashlib.sha256(files['source.tar']).hexdigest(),
+        'diff_sha256': hashlib.sha256(files['diff']).hexdigest(), 'dockerfile_sha256': hashlib.sha256(files['Dockerfile']).hexdigest(),
+        'config_digest': 'sha256:'+hashlib.sha256(config).hexdigest()}
+    (target/'build.json').write_text(json.dumps(binding))
+    key = tmp_path/'fixture-key';public = tmp_path/'operator-build-public.pem'
+    subprocess.run(['openssl', 'genpkey', '-algorithm', 'ed25519', '-out', str(key)], check=True)
+    subprocess.run(['openssl', 'pkey', '-in', str(key), '-pubout', '-out', str(public)], check=True)
+    subprocess.run(['openssl', 'pkeyutl', '-sign', '-inkey', str(key), '-rawin', '-in', str(target/'build.json'), '-out', str(target/'build.sig')], check=True)
+    names = ('image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle')
+    intent = {'unit': unit, 'revision': revision, 'attempt_id': unit+':0', 'baseline': baseline,
+              'files': {name: hashlib.sha256((target/name).read_bytes()).hexdigest() for name in names}}
+    (target/'transfer-intent.json').write_text(json.dumps(intent))
+    (approval/'result.json').write_text(json.dumps({'revision': revision, 'attempt_id': unit+':0', 'binding_restored': True}))
+    monkeypatch.setattr(nuc, 'post', lambda route, body: {'stage': 'needs_validation',
+        'build': {'status': 'completed', 'attempt_id': unit+':0', 'git_revision': revision}})
+    result = nuc.main('validation_verify_transfer', {'unit': unit})
+    assert result['verified'] and result['config_digest'] == binding['config_digest']
+    wrong_tag = json.dumps([{'Config': 'config.json', 'RepoTags': ['existing:tag'], 'Layers': []}]).encode()
+    with tarfile.open(target/'image.tar', 'w') as tar:
+        for name, raw in [('manifest.json', wrong_tag), ('config.json', config)]:
+            info = tarfile.TarInfo(name);info.size = len(raw);tar.addfile(info, io.BytesIO(raw))
+    intent['files']['image.tar'] = hashlib.sha256((target/'image.tar').read_bytes()).hexdigest()
+    (target/'transfer-intent.json').write_text(json.dumps(intent))
+    with pytest.raises(ValueError, match='tag'):nuc.main('validation_verify_transfer', {'unit': unit})
+    (target/'build.sig').write_bytes(b'forged')
+    intent['files']['build.sig'] = hashlib.sha256(b'forged').hexdigest()
+    (target/'transfer-intent.json').write_text(json.dumps(intent))
+    with pytest.raises(subprocess.CalledProcessError):nuc.main('validation_verify_transfer', {'unit': unit})
 
 
 def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):

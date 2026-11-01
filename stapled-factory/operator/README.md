@@ -88,6 +88,7 @@ python3 stapled-factory/operator/cli.py build-candidate /absolute/private/run --
 python3 stapled-factory/operator/cli.py build-status /absolute/private/run
 python3 stapled-factory/operator/cli.py transfer-validation /absolute/private/run
 python3 stapled-factory/operator/cli.py transfer-status /absolute/private/run
+python3 stapled-factory/operator/cli.py verify-transfer /absolute/private/run
 python3 stapled-factory/operator/cli.py validation-status /absolute/private/run
 ```
 
@@ -97,6 +98,8 @@ image/signature. Transfer records a separate one-shot intent and checks the
 received file hashes. After interruption, `transfer-status` observes the same
 intent; it never resends files. Isolated validation and signed acceptance still
 require separate operator steps; full security coverage remains incomplete.
+`verify-transfer` checks the trusted build signature, exact transferred source,
+image configuration, platform and image tag without loading or running it.
 
 `publish` requires matching accepted application validation and complete
 scanner coverage. `publish-repository` is explicitly repository-only. Each is

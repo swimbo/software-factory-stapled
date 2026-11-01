@@ -325,6 +325,19 @@ def observe_validation_transfer(run):
     return status
 
 
+def verify_validation_transfer(run):
+    intent = json.loads((run / 'transfer-intent.json').read_text())
+    build = observe_candidate_build(run)
+    result = remote('validation_verify_transfer', {'unit': intent['unit']})
+    if (result.get('verified') is not True or result.get('loaded') is not False or
+            result.get('attempt_id') != intent['attempt_id'] or result.get('revision') != intent['revision'] or
+            result.get('image_tar_sha256') != intent['files']['image.tar'] or
+            result.get('manifest_sha256') != intent['files']['build.json'] or
+            result.get('config_digest') != build['manifest'].get('config_digest')):
+        raise ValueError('verified transfer differs from original local build')
+    return result
+
+
 def application_validation(run, plan, result):
     observed = remote('validation_status', {'unit': plan['unit']})
     proof = observed.get('validation') or {}
@@ -414,7 +427,7 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
@@ -436,6 +449,7 @@ def main():
     elif a.action == 'build-status':result = observe_candidate_build(a.path.resolve())
     elif a.action == 'transfer-validation':result = transfer_validation_inputs(a.path.resolve())
     elif a.action == 'transfer-status':result = observe_validation_transfer(a.path.resolve())
+    elif a.action == 'verify-transfer':result = verify_validation_transfer(a.path.resolve())
     elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)
     elif a.action == 'validation-status':
         plan = json.loads((a.path.resolve() / 'operator.json').read_text())
