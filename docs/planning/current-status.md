@@ -7,7 +7,7 @@ Updated: November 1, 2026. **Resumed at the user's request.** The full delivery 
 - Checkout: `/Users/bo/code/software-factory-stapled`.
 - Branch: `codex/phase9d-qualification`.
 - Confirm the current branch and remote with Git; subsequent checkpoints may advance beyond this document.
-- Exact-revision local CI passed for `ccde75654c21ee57563780644b5159212c7ea360`: 817 Python tests, 18 subtests, 36 Node tests, secrets scan, locked npm dependency installation/audit and spine build. Receipt: `.local-ci/ccde75654c21ee57563780644b5159212c7ea360/receipt.json`.
+- Exact-revision local CI passed for `a2841cd7bf4a984020cf99cc211f21ce7e1c92f5`: 930 Python tests, 18 subtests, 36 Node tests, secrets scan, locked npm dependency installation/audit and spine build. The release still needs its admission and provenance gates.
 - Baseline harness remains default; optimization profile promotion remains held. Native terminal truncation telemetry remains unknown.
 
 ## Work completed locally
@@ -71,14 +71,18 @@ A read-only Restate inventory returned 182 WorkUnits: 159 need validation, six a
 
 A separate activation core and host adapter were prepared and locally reviewed. They are fail-closed: the NUC adapter has no verified admission fence covering direct Restate submissions, and its conservative preflight rejects the nonterminal WorkUnits above. A crash leaving a service inactive requires manual reconciliation. No activation or paid comparison occurred. The staged `5a44f9` release predates the later local Git-attributes preflight fix and any activation-preparation files; a new exact release must be built and verified before eventual activation.
 
+The subsequent read-only attempt audit confirmed that all eight bound worker/proxy pairs are stopped with restart disabled and all 28 recorded volume identities match. Four pairs have durable fence confirmation; four do not. Six unbound attempts have verified signed pre-dispatch failure records, but their reservations remain intact. For the four bound and unfenced attempts, no matching process or systemd unit was found; this cannot rule out an already accepted delayed start. No attempt was replayed, reset, refunded or declared terminal.
+
+The admission fence remains unimplemented and activation remains blocked. A workable fence must cover direct ingress on 18080, normal ingress on 19081 and the mutating admin API on 19070, drain existing connections and in-flight or scheduled work, and provide an isolated probe path. It must also survive a reboot during an uncertain switch: host firewall rules alone do not, and restarting ingress changes its cgroup identity. The existing host adapter deliberately fails closed instead of claiming such a fence exists. This requires a reviewed, durable pre-start guard and recovery procedure before any shared service change.
+
+A private one-pair evaluation task and independent acceptance oracle were prepared under `/Users/bo/.local/share/stapled-factory-release/out/actual-pair-prep-59b02c5b90d6c92f`. The oracle rejected the present baseline and passed an isolated positive control. This is preparation only; no paid trial was run. Refresh its exact source revision and freeze the task before submission if the checkout advances.
+
 ## Resume order
 
-1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.
-2. Finish the runtime candidate review's dependency-coverage finding. Local work adds image scanning, reports obvious missing locks, compares OSV's all-package output with npm and Cargo lock entries, and records differences between extracted lock and image inventories. It still reports coverage as incomplete: other formats and the relationship between compiled artifacts and their dependency inventories are not proven. Do not weaken that gate. The NUC scanner bundle has synthetic probe evidence, and local changes bind its file manifest to evaluation and address pre-journal recovery. Those changes need independent review and exact-release verification. The active endpoint lacks receipt capability; the new runtime has not been activated. Preserve the passed wall/substitution and isolated receipt proofs. Prepare and review the exact-source runtime release before activation; preserve shared services and all prior resources.
-3. Complete the reusable operator join from selected factory output to attested local image build, immutable transfer, isolated validation, accepted matching receipt and validation-gated application publication.
-4. Complete Phases 10–11 acceptance, rejection, crash recovery and approval paths without duplicate dispatch.
-5. Run one real small fullstack dogfood feature through model build, validation and a reviewed remote PR. Preserve failed consumption; no automatic paid reruns.
-6. Implement the planned Inception cascade, deterministic issue qualification/intake, dashboard, authenticated approval flows and required PostgreSQL audit persistence.
-7. Complete the full plan-gap audit and required fixes, independent review, secret-safe atomic publication and final verification.
+1. Preserve all original attempts, evidence and reservations. Establish and independently verify the durable admission fence and recovery procedure, including the admin path; take a fresh consistent inventory under that fence. Do not infer terminality from absent records or stopped containers.
+2. Complete the supported dependency provenance and coverage controls in the [decision brief](decisions/dependency-provenance/consensus-plan.md). Unknown publisher or binary provenance stays incomplete. Keep the deployment hold until the required gate passes.
+3. Prepare and verify a new exact-source release, activate it through the fenced procedure, and run the prepared small paired comparison using a freshly frozen baseline. Record acceptance and available telemetry; unknown costs and truncation stay unknown. A small sample does not authorize profile promotion.
+4. Complete Phases 10–11 acceptance, rejection, crash recovery and approval paths without duplicate dispatch, then run a real fullstack dogfood feature through build, validation and a reviewed remote PR.
+5. Implement the planned Inception cascade, deterministic issue qualification/intake, dashboard, authenticated approval flows and required PostgreSQL audit persistence. Complete the full plan-gap audit, independent review and verification.
 
 Detailed scope and gates: [delivery-loop-plan.md](stapled-factory/delivery-loop-plan.md). Execution history: [progress.md](stapled-factory/progress.md). The full objective remains intact and must not be declared complete based on the foundation tests or probe alone.
