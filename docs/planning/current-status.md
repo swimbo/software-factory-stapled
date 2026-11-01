@@ -1,13 +1,12 @@
 # Software factory current status
 
-Updated: November 1, 2026. **Active after the user resumed the goal.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
+Updated: November 1, 2026. **Paused at the user's request.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
 
 ## Repository and verification
 
 - Checkout: `/Users/bo/code/software-factory-stapled`.
 - Branch: `codex/phase9d-qualification`.
-- Latest exact-CI implementation revision: `8d7012f52b9e0b9d1ed7b8cbb8a81cfd37a74939`. Later probe/documentation commits require their own exact CI before publication.
-- At pause, 12 implementation/planning commits were local and the worktree was clean before this checkpoint was created. The user subsequently authorized committing and pushing all current work, including this checkpoint. That publication does not resume implementation or authorize runtime activation; confirm the current branch/remote match with Git.
+- Latest implementation revision at this checkpoint: `a6205e53a4214714e58ab480f0d690cc9874ddc7`, which matched the remote branch before this status update. Confirm the current branch and remote before resuming.
 - Exact-revision local CI passed: 751 Python tests, 18 subtests, 35 Node tests, secrets scan, locked npm dependency installation/audit and spine build. Receipt: `.local-ci/8d7012f52b9e0b9d1ed7b8cbb8a81cfd37a74939/receipt.json`.
 - Baseline harness remains default; optimization profile promotion remains held. Native terminal truncation telemetry remains unknown.
 
@@ -16,6 +15,7 @@ Updated: November 1, 2026. **Active after the user resumed the goal.** The full 
 - Durable original-only disposable validation lifecycle, independent deadline enforcement, crash/uncertain-start observation and bounded candidate transport output.
 - Exact-build validation session binding, signed aggregate receipts, acceptance readback reconciliation and receipt storage code.
 - Approval identity/decision integrity and conflict rejection. Authenticated dashboard identity and PostgreSQL audit persistence remain outstanding.
+- The operator can prepare an exact source bundle, verify and load a signed image once, transfer a private holdout with digest binding, and join a prepared build to the validation journal. These steps have fixture evidence; they do not establish a real end-to-end delivery.
 - Four confirmed foundation review findings were fixed and independently checked. The latest deadline retirement fix received a separate review with no actionable findings.
 - These local checks and code changes do not establish live end-to-end delivery or production readiness.
 
@@ -50,7 +50,7 @@ First live probe evidence on the NUC:
 ## Resume order
 
 1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.
-2. Close real security-engine/provenance coverage and production signed endpoint/receipt integration. Preserve the passed wall/substitution and isolated receipt proofs; they do not require repeating. Prepare and review any necessary exact-source, locally built runtime release before activation; preserve shared services and all prior resources.
+2. Independently review the current runtime candidate and close real security-engine/provenance coverage and production signed endpoint/receipt integration. The active endpoint lacks the receipt capability; the new runtime has not been activated. Preserve the passed wall/substitution and isolated receipt proofs. Prepare any necessary exact-source, locally built runtime release before activation; preserve shared services and all prior resources.
 3. Complete the reusable operator join from selected factory output to attested local image build, immutable transfer, isolated validation, accepted matching receipt and validation-gated application publication.
 4. Complete Phases 10–11 acceptance, rejection, crash recovery and approval paths without duplicate dispatch.
 5. Run one real small fullstack dogfood feature through model build, validation and a reviewed remote PR. Preserve failed consumption; no automatic paid reruns.
