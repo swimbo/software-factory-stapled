@@ -176,7 +176,8 @@ def main(action, data):
         else:
             recorded = json.loads(intent_path.read_text())
             rel = verify_release(recorded['release'])
-        manifest = json.loads((rel/'release-manifest.json').read_text())
+        manifest_bytes = (rel/'release-manifest.json').read_bytes()
+        manifest = json.loads(manifest_bytes)
         required = ('stapled-factory/deployment/nuc/validate.py', 'stapled-factory/spine/validation_session.py',
                     'stapled-factory/spine/prebuilt_validation.py', 'stapled-factory/spine/validation_transport.py',
                     'stapled-factory/security/pipeline_cli.py', 'stapled-factory/security/pipeline.py',
@@ -212,6 +213,7 @@ def main(action, data):
         original = {'unit': unit, 'attempt_id': prepared['attempt_id'], 'revision': prepared['revision'],
                     'baseline': prepared['baseline'], 'image_id': prepared['image_id'],
                     'release': str(rel), 'build_release': plan['release'],
+                    'release_manifest_sha256': hashlib.sha256(manifest_bytes).hexdigest(),
                     'scenario_sha256': scenario_sha256, 'validator_sha256': script_sha256}
         if action == 'validation_execute':
             try:capabilities = validation_capabilities(unit)

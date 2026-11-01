@@ -551,6 +551,12 @@ def test_evaluation_uses_frozen_holdout_and_observes_same_receipt(tmp_path, monk
     monkeypatch.setattr(nuc, 'release', lambda: (_ for _ in ()).throw(AssertionError('active runtime must not replace the original validator')))
     assert nuc.main('validation_execute_status', {'unit': 'unit-1'}) == receipt
     assert verified == [str(release)]
+    manifest = release/'release-manifest.json'
+    original_manifest = manifest.read_bytes()
+    manifest.write_bytes(original_manifest + b' ')
+    with pytest.raises(ValueError, match='original evaluation binding differs'):
+        nuc.main('validation_execute_resume', {'unit': 'unit-1'})
+    manifest.write_bytes(original_manifest)
     assert nuc.main('validation_execute_resume', {'unit': 'unit-1'}) == receipt
     assert len(calls) == 3 and '--observe-only' not in calls[0] and '--observe-only' in calls[1]
     assert '--resume-only' in calls[2] and '--observe-only' not in calls[2]
