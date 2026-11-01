@@ -1,0 +1,12 @@
+{
+  "schema": "factory.stapled-recovery-evidence-manifest/v1",
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:assemble-stapled-recovery-evidence-bundle",
+  "source_revision": "24b4ca4ffd9173d3c9916f611c5043fd8ad16795",
+  "files": {
+    "execution-boundary.json": "d13e4f7fc113c7f4bc875c552d07b6e252a2b542e7a250e2dcb2f51cf6f6f87d",
+    "nuc-test-output.txt": "cdae0054ca7e22adc9f3515865743bdfad6d5a8df22b7ce684db37ef3f744e3a",
+    "qualification-checklist.md": "dd1e0e51efa4803af9e3430d5684d51da71be859fa7e786729f89bee4f9afddf"
+  },
+  "files_hashed": 3,
+  "private_oracle_and_raw_thoughts_excluded": true
+}
