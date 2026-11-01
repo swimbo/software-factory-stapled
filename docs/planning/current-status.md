@@ -61,6 +61,10 @@ A local isolated BuildKit feasibility check exported an OCI image from a pinned 
 
 New local build manifests bind the exact Docker image archive to the operator signature; transfer and validation verify that binding, and new signed validation evidence includes the manifest digest. Legacy sessions keep their previous format. Targeted tests cover archive substitution, real signature verification, stored receipt validation and lost-response recovery. A synthetic local scratch-image build produced a v2 manifest whose signature and image archive verified; its first attempt stopped before Docker ran because the selected system Python lacked `tarfile` extraction filters. Retained fixture: `/Users/bo/.local/share/stapled-factory-release/out/signed-image-smoke-9c65afd859245f7c`. These changes are not deployed, and do not establish controlled npm/Rust build provenance or clear the deployment hold.
 
+A second dedicated local Buildx builder also started with `network=none`, but inspection showed Buildx appended the daemon `network.host` entitlement despite explicit debug flags. The owned builder was stopped and its state retained. The intended fixed build request must not grant that entitlement and must use network-none RUN instructions; the trusted daemon and host remain a security boundary. No conclusion about arbitrary builder isolation follows from this check.
+
+Local fixed-recipe npm and Cargo smoke builds consumed independently verified frozen material snapshots with networking disabled. The npm fixture also completed a separate real build-to-signature check; Cargo compiled a synthetic one-crate binary. Both remain incomplete coverage, and neither establishes publisher identity or a production application. [Controlled-build smoke](../verification/delivery-lifecycle-2026-11-01/controlled-build-smoke.md).
+
 ## Resume order
 
 1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.
