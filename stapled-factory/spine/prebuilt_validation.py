@@ -94,6 +94,120 @@ def record(path, value):
         os.close(fd)
 
 
+def _boot_id():
+    return Path('/proc/sys/kernel/random/boot_id').read_text().strip()
+
+
+def _candidate_identity(selector, intent, container=None):
+    value = json.loads(command('docker', 'inspect', selector))[0]
+    if (not re.fullmatch(r'[a-f0-9]{64}', value['Id']) or
+            container is not None and value['Id'] != container or
+            value['Name'] != '/' + intent['name'] or value['Image'] != intent['image'] or
+            value['Config']['Labels'].get('factory.validation') != intent['operation'] or
+            value['HostConfig']['NetworkMode'] != 'none' or
+            not value['HostConfig']['ReadonlyRootfs'] or value.get('Mounts')):
+        raise ValueError('validation container identity/isolation differs; preserve uncertainty')
+    return value
+
+
+def _arm_candidate_deadline(evidence, intent, container):
+    unit = 'factory-validation-deadline-' + intent['operation']
+    deadline = dict(unit=unit, container_id=container, seconds=240,
+                    boot_id=_boot_id(), armed_monotonic=time.monotonic())
+    # Five seconds covers short arming latency plus the one-second timer
+    # accuracy window. A slower or mis-scheduled arm must not start a target.
+    deadline['upper_bound_monotonic'] = deadline['armed_monotonic'] + 245
+    record(evidence / 'deadline.json', deadline)
+    # Systemd owns this bound independently of the validation observer. The
+    # exact immutable ID cannot select a replacement container with this name.
+    command('systemd-run', '--user', '--quiet', '--unit=' + unit,
+            '--on-active=240s', '--timer-property=AccuracySec=1s',
+            '--timer-property=RemainAfterElapse=no', '--property=Type=oneshot',
+            '/usr/bin/docker', 'kill', '--signal', 'KILL', container)
+    _validate_candidate_deadline(deadline)
+    return deadline
+
+
+def _validate_candidate_deadline(deadline):
+    if (deadline['boot_id'] != _boot_id() or
+            time.monotonic() >= deadline['armed_monotonic'] + deadline['seconds']):
+        raise ValueError('original validation deadline expired; never extend')
+    timer = dict(line.split('=', 1) for line in command(
+        'systemctl', '--user', 'show', deadline['unit'] + '.timer',
+        '--property=ActiveState', '--property=Triggers').splitlines())
+    service = command('systemctl', '--user', 'show', deadline['unit'] + '.service',
+                      '--property=ExecStart', '--value')
+    unit_path = '/org/freedesktop/systemd1/unit/' + (
+        deadline['unit'] + '.timer').replace('-', '_2d').replace('.', '_2e')
+
+    def property_value(name):
+        return command('busctl', '--user', 'get-property',
+            'org.freedesktop.systemd1', unit_path,
+            'org.freedesktop.systemd1.Timer', name)
+
+    def usecs(name):
+        value = property_value(name)
+        if not re.fullmatch(r't [0-9]+', value):
+            raise ValueError('invalid original validation deadline clock property')
+        return int(value.split()[1])
+
+    # D-Bus exposes these as uint64 CLOCK_MONOTONIC microseconds, avoiding
+    # systemctl's human-formatted timespans. WakeSystem must retain that clock.
+    due = usecs('NextElapseUSecMonotonic') / 1000000
+    accuracy = usecs('AccuracyUSec') / 1000000
+    wake = property_value('WakeSystem')
+    now = time.monotonic()
+    expected = '/usr/bin/docker kill --signal KILL ' + deadline['container_id']
+    if (timer.get('ActiveState') != 'active' or
+            timer.get('Triggers') != deadline['unit'] + '.service' or
+            service.count('argv[]=') != 1 or
+            service.split('argv[]=', 1)[-1].split(' ;', 1)[0] != expected or
+            wake != 'b false' or accuracy > 1 or due <= now or
+            due + accuracy > deadline['upper_bound_monotonic'] or
+            deadline['boot_id'] != _boot_id() or
+            now >= deadline['upper_bound_monotonic']):
+        raise ValueError('original validation deadline not armed or bound')
+
+
+def _contain_candidate(evidence, intent, container):
+    state = _candidate_identity(container, intent, container)
+    if state['State']['Running'] or state['State']['Restarting']:
+        command('docker', 'stop', '--time', '5', container, timeout=15)
+    state = _candidate_identity(container, intent, container)
+    if state['State']['Running'] or state['State']['Restarting']:
+        raise ValueError('original validation target not confirmed stopped')
+    stopped = dict(container_id=container, stopped=True)
+    path = evidence / 'stopped.json'
+    if path.exists():
+        if json.loads(path.read_text()) != stopped:
+            raise ValueError('original validation stop evidence differs')
+    else:
+        record(path, stopped)
+    return stopped
+
+
+def observe_candidate(evidence_dir, *, contain=False):
+    """Inspect/contain only the retained original; never create, start or rearm."""
+    evidence = Path(evidence_dir)
+    intent = json.loads((evidence / 'intent.json').read_text())
+    if (not re.fullmatch(r'factory-validation-[a-f0-9]{32}', intent['name']) or
+            not re.fullmatch(r'[a-f0-9]{32}', intent['operation']) or
+            not re.fullmatch(r'sha256:[a-f0-9]{64}', intent['image'])):
+        raise ValueError('invalid original validation identity')
+    binding = evidence / 'container.json'
+    container = json.loads(binding.read_text())['container_id'] if binding.exists() else None
+    if container is not None and not re.fullmatch(r'[a-f0-9]{64}', container):
+        raise ValueError('invalid original validation container ID')
+    state = _candidate_identity(container or intent['name'], intent, container)
+    container = state['Id']
+    if contain:
+        if not binding.exists():
+            record(binding, dict(container_id=container))
+        return _contain_candidate(evidence, intent, container)
+    return dict(container_id=container, stopped=not (
+        state['State']['Running'] or state['State']['Restarting']))
+
+
 @contextmanager
 def candidate_lifecycle(evidence_dir, image):
     """One original target only; never recreate an uncertain validation run."""
@@ -104,19 +218,12 @@ def candidate_lifecycle(evidence_dir, image):
         raise ValueError('original validation exists; inspect retained evidence, never recreate')
     name = 'factory-validation-' + uuid.uuid4().hex
     operation = uuid.uuid4().hex
-    record(evidence / 'intent.json', dict(name=name, image=image, operation=operation))
+    intent = dict(name=name, image=image, operation=operation)
+    record(evidence / 'intent.json', intent)
     container = None
 
     def identity(selector):
-        value = json.loads(command('docker', 'inspect', selector))[0]
-        if (not re.fullmatch(r'[a-f0-9]{64}', value['Id']) or
-                container is not None and value['Id'] != container or
-                value['Name'] != '/' + name or value['Image'] != image or
-                value['Config']['Labels'].get('factory.validation') != operation or
-                value['HostConfig']['NetworkMode'] != 'none' or
-                not value['HostConfig']['ReadonlyRootfs'] or value.get('Mounts')):
-            raise ValueError('validation container identity/isolation differs; preserve uncertainty')
-        return value
+        return _candidate_identity(selector, intent, container)
 
     try:
         try:
@@ -133,20 +240,16 @@ def candidate_lifecycle(evidence_dir, image):
             raise
         identity(container)
         record(evidence / 'container.json', dict(container_id=container))
+        deadline = _arm_candidate_deadline(evidence, intent, container)
         command('docker', 'start', container)
         state = identity(container)
         if not state['State']['Running'] or state['State']['Restarting']:
             raise ValueError('validation container not running')
+        _validate_candidate_deadline(deadline)
         yield container
     finally:
         if container is not None:
-            state = identity(container)
-            if state['State']['Running'] or state['State']['Restarting']:
-                command('docker', 'stop', '--time', '5', container, timeout=15)
-            state = identity(container)
-            if state['State']['Running'] or state['State']['Restarting']:
-                raise ValueError('original validation target not confirmed stopped')
-            record(evidence / 'stopped.json', dict(container_id=container, stopped=True))
+            _contain_candidate(evidence, intent, container)
 
 
 class CandidateTransport:
