@@ -139,6 +139,27 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action in ('validation_holdout_begin', 'validation_holdout_status'):
+        folder = approval/'holdouts'
+        if action == 'validation_holdout_begin':
+            selected = main('validation_status', {'unit': unit})
+            if (selected.get('accepted') is not False or selected.get('stage') != 'needs_validation' or
+                    data.get('attempt_id') != selected.get('attempt_id') or data.get('revision') != selected.get('revision') or
+                    not isinstance(data.get('sha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', data['sha256'])):
+                raise ValueError('holdout binding differs from selected build')
+            folder.mkdir(mode=0o700)
+            private(folder/'holdout-intent.json', data)
+            return {'created': True}
+        intent = json.loads((folder/'holdout-intent.json').read_text())
+        if intent.get('unit') != unit or not re.fullmatch(r'[a-f0-9]{64}', intent.get('sha256', '')):
+            raise ValueError('original holdout binding differs')
+        path = folder/'scenarios.json'
+        complete = False
+        if (not folder.is_symlink() and folder.is_dir() and folder.stat().st_uid == os.getuid() and
+                not folder.stat().st_mode & 0o077 and not path.is_symlink() and path.is_file() and
+                path.stat().st_uid == os.getuid() and not path.stat().st_mode & 0o077):
+            with path.open('rb') as stream:complete = hashlib.file_digest(stream, 'sha256').hexdigest() == intent['sha256']
+        return {'complete': complete, 'sha256': intent['sha256'], 'attempt_id': intent['attempt_id'], 'revision': intent['revision']}
     if action in ('validation_execute', 'validation_execute_status'):
         target = approval/'validation-inputs'
         intent_path, session = target/'evaluation-intent.json', target/'validation-session'
@@ -167,12 +188,19 @@ def main(action, data):
         scenarios = target/'frozen-scenarios.json'
         if action == 'validation_execute':
             holdouts, source = approval/'holdouts', approval/'holdouts/scenarios.json'
+            holdout_status = main('validation_holdout_status', {'unit': unit})
+            if (holdout_status.get('complete') is not True or
+                    holdout_status.get('attempt_id') != prepared['attempt_id'] or
+                    holdout_status.get('revision') != prepared['revision']):
+                raise ValueError('original private holdout transfer incomplete')
             if (holdouts.is_symlink() or source.is_symlink() or not holdouts.is_dir() or not source.is_file() or
                     holdouts.stat().st_uid != os.getuid() or holdouts.stat().st_mode & 0o077 or
                     source.stat().st_uid != os.getuid() or source.stat().st_mode & 0o077):
                 raise ValueError('private operator holdout unavailable')
             scenario_bytes = source.read_bytes()
             scenario_sha256 = hashlib.sha256(scenario_bytes).hexdigest()
+            if scenario_sha256 != holdout_status['sha256']:
+                raise ValueError('original private holdout changed')
         else:
             recorded = json.loads(intent_path.read_text())
             scenario_sha256 = recorded['scenario_sha256']

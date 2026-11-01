@@ -369,6 +369,48 @@ def prepare_validation_source(run, *, observe_only=False):
     return result
 
 
+def transfer_holdout(run, source):
+    """Send one operator-owned holdout; never repeat an uncertain transfer."""
+    intent = run/'holdout-intent.json'
+    if intent.exists():raise ValueError('original holdout transfer exists; observe without repeating')
+    plan = json.loads((run/'operator.json').read_text())
+    result = json.loads((run/'result.json').read_text())
+    source = Path(source)
+    st = source.lstat()
+    if (not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077 or
+            source.resolve().is_relative_to((run/'candidate').resolve()) or
+            ('repo' in plan and source.resolve().is_relative_to(Path(plan['repo']).resolve()))):
+        raise ValueError('private operator holdout outside candidate required')
+    raw = source.read_bytes()
+    document = json.loads(raw)
+    if not isinstance(document, dict) or not isinstance(document.get('scenarios'), list) or not document['scenarios']:
+        raise ValueError('nonempty holdout scenarios required')
+    selected = remote('validation_status', {'unit': plan['unit']})
+    if (selected.get('accepted') is not False or selected.get('stage') != 'needs_validation' or
+            selected.get('attempt_id') != result['attempt_id'] or selected.get('revision') != result['revision']):
+        raise ValueError('selected build differs or is no longer awaiting validation')
+    data = {'unit': plan['unit'], 'attempt_id': result['attempt_id'], 'revision': result['revision'],
+            'sha256': hashlib.sha256(raw).hexdigest()}
+    fd = os.open(intent, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as stream:
+        json.dump(data, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+    fd = os.open(run, os.O_RDONLY)
+    try:os.fsync(fd)
+    finally:os.close(fd)
+    remote('validation_holdout_begin', data)
+    copy(source, plan['unit'], name='holdouts/scenarios.json')
+    return observe_holdout(run)
+
+
+def observe_holdout(run):
+    intent = json.loads((run/'holdout-intent.json').read_text())
+    status = remote('validation_holdout_status', {'unit': intent['unit']})
+    if (type(status.get('complete')) is not bool or status.get('sha256') != intent['sha256'] or
+            status.get('attempt_id') != intent['attempt_id'] or status.get('revision') != intent['revision']):
+        raise ValueError('original holdout observation differs')
+    return status
+
+
 def execute_validation(run, *, observe_only=False):
     intent = json.loads((run/'transfer-intent.json').read_text())
     prepared = prepare_validation_source(run, observe_only=True)
@@ -479,11 +521,12 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'validate', 'validate-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'transfer-holdout', 'holdout-status', 'validate', 'validate-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
     p.add_argument('--build-signing-key', type=Path, help='owner-only build attestation key')
+    p.add_argument('--holdout', type=Path, help='owner-only scenarios outside the candidate repository')
     a = p.parse_args()
     try:configure(load_config(a.config))
     except (OSError, ValueError) as exc:p.error('Cannot load operator config: ' + str(exc))
@@ -506,6 +549,10 @@ def main():
     elif a.action == 'load-status':result = validation_image_load(a.path.resolve(), observe_only=True)
     elif a.action == 'prepare-validation':result = prepare_validation_source(a.path.resolve())
     elif a.action == 'prepare-validation-status':result = prepare_validation_source(a.path.resolve(), observe_only=True)
+    elif a.action == 'transfer-holdout':
+        if not a.holdout:p.error('transfer-holdout requires --holdout')
+        result = transfer_holdout(a.path.resolve(), a.holdout)
+    elif a.action == 'holdout-status':result = observe_holdout(a.path.resolve())
     elif a.action == 'validate':result = execute_validation(a.path.resolve())
     elif a.action == 'validate-status':result = execute_validation(a.path.resolve(), observe_only=True)
     elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)

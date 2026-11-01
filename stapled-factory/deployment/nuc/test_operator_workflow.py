@@ -477,6 +477,8 @@ def test_evaluation_preflight_and_lost_response_never_repeat(tmp_path, monkeypat
     original = nuc.main
     def route(action, data):
         if action == 'validation_prepare_status':return prepared
+        if action == 'validation_holdout_status':return {'complete': True, 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+                                                         'sha256': hashlib.sha256(b'{}').hexdigest()}
         return original(action, data)
     monkeypatch.setattr(nuc, 'main', route)
     calls = []
@@ -524,6 +526,8 @@ def test_evaluation_uses_frozen_holdout_and_observes_same_receipt(tmp_path, monk
     def route(action, data):
         if action == 'validation_prepare_status':return prepared
         if action == 'validation_status':return {'accepted': True, 'validation': proof}
+        if action == 'validation_holdout_status':return {'complete': True, 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+                                                         'sha256': hashlib.sha256(b'original holdout').hexdigest()}
         return original(action, data)
     monkeypatch.setattr(nuc, 'main', route)
     calls = []
@@ -556,6 +560,65 @@ def test_operator_validation_observation_checks_original_prepared_identity(tmp_p
     proof['artifact_digest'] = 'sha256:'+'d'*64
     with pytest.raises(ValueError, match='differs'):
         cli.execute_validation(tmp_path, observe_only=True)
+
+
+def test_private_holdout_transfer_rejects_changes_and_repetition(tmp_path, monkeypatch):
+    import hashlib
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    approval = tmp_path/'approvals/unit-1';approval.mkdir(parents=True)
+    result = {'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'binding_restored': True}
+    (approval/'result.json').write_text(json.dumps(result))
+    monkeypatch.setattr(nuc, 'post', lambda route, body: {'stage': 'needs_validation',
+        'build': {'status': 'completed', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40}})
+    raw = b'{"scenarios":[{"id":"private"}]}'
+    data = {'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+            'sha256': hashlib.sha256(raw).hexdigest()}
+    assert nuc.main('validation_holdout_begin', data)['created']
+    holdout = approval/'holdouts/scenarios.json';holdout.write_bytes(raw);holdout.chmod(0o600)
+    observed = nuc.main('validation_holdout_status', {'unit': 'unit-1'})
+    assert observed['complete'] and observed['sha256'] == data['sha256']
+    assert 'private' not in json.dumps(observed)
+    holdout.write_bytes(b'changed')
+    assert not nuc.main('validation_holdout_status', {'unit': 'unit-1'})['complete']
+    with pytest.raises(FileExistsError):nuc.main('validation_holdout_begin', data)
+
+
+def test_lost_holdout_begin_never_repeats_or_copies(tmp_path, monkeypatch):
+    (tmp_path/'operator.json').write_text(json.dumps({'unit': 'unit-1'}))
+    (tmp_path/'result.json').write_text(json.dumps({'revision': 'a'*40, 'attempt_id': 'unit-1:0'}))
+    (tmp_path/'candidate').mkdir()
+    holdout = tmp_path/'private-scenarios';holdout.write_text('{"scenarios":[{"id":"hidden"}]}');holdout.chmod(0o600)
+    calls = []
+    def remote(action, data):
+        calls.append(action)
+        if action == 'validation_status':return {'accepted': False, 'stage': 'needs_validation', 'attempt_id': 'unit-1:0', 'revision': 'a'*40}
+        raise OSError('response lost')
+    monkeypatch.setattr(cli, 'remote', remote)
+    monkeypatch.setattr(cli, 'copy', lambda *a, **k: pytest.fail('uncertain begin must not copy'))
+    with pytest.raises(OSError):cli.transfer_holdout(tmp_path, holdout)
+    with pytest.raises(ValueError, match='original holdout'):cli.transfer_holdout(tmp_path, holdout)
+    assert calls.count('validation_holdout_begin') == 1
+
+
+def test_holdout_transfer_joins_local_intent_to_private_nuc_file(tmp_path, monkeypatch):
+    import shutil
+    local = tmp_path/'local';local.mkdir();(local/'candidate').mkdir()
+    root = tmp_path/'nuc';approval = root/'approvals/unit-1';approval.mkdir(parents=True)
+    plan = {'unit': 'unit-1'};result = {'attempt_id': 'unit-1:0', 'revision': 'a'*40, 'binding_restored': True}
+    for directory in (local, approval):
+        (directory/'operator.json').write_text(json.dumps(plan));(directory/'result.json').write_text(json.dumps(result))
+    holdout = tmp_path/'holdout.json';holdout.write_text('{"scenarios":[{"id":"fixture-private"}]}');holdout.chmod(0o600)
+    monkeypatch.setattr(nuc, 'ROOT', root)
+    monkeypatch.setattr(nuc, 'post', lambda route, body: {'stage': 'needs_validation',
+        'build': {'status': 'completed', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40}})
+    monkeypatch.setattr(cli, 'remote', lambda action, data: nuc.main(action, data))
+    def copy(source, unit, name=None, **kwargs):
+        shutil.copyfile(source, approval/name);(approval/name).chmod(0o600)
+    monkeypatch.setattr(cli, 'copy', copy)
+    result = cli.transfer_holdout(local, holdout)
+    assert result['complete'] and 'fixture-private' not in json.dumps(result)
+    assert cli.observe_holdout(local) == result
+    with pytest.raises(ValueError, match='original holdout'):cli.transfer_holdout(local, holdout)
 
 
 def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):
