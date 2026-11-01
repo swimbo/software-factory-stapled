@@ -110,6 +110,13 @@ def _candidate_identity(selector, intent, container=None):
     return value
 
 
+def _deadline_enforcer(container):
+    # Each attempt is bounded; failures (including not-yet-running) never consume
+    # the fence. systemd restarts a failed supervisor without start-rate limits.
+    return ('while :; do /usr/bin/timeout --kill-after=1s 1s /usr/bin/docker kill --signal KILL '
+            + container + ' >/dev/null 2>&1; /usr/bin/sleep 1; done')
+
+
 def _arm_candidate_deadline(evidence, intent, container):
     unit = 'factory-validation-deadline-' + intent['operation']
     deadline = dict(unit=unit, container_id=container, seconds=240,
@@ -122,8 +129,10 @@ def _arm_candidate_deadline(evidence, intent, container):
     # exact immutable ID cannot select a replacement container with this name.
     command('systemd-run', '--user', '--quiet', '--unit=' + unit,
             '--on-active=240s', '--timer-property=AccuracySec=1s',
-            '--timer-property=RemainAfterElapse=no', '--property=Type=oneshot',
-            '/usr/bin/docker', 'kill', '--signal', 'KILL', container)
+            '--timer-property=RemainAfterElapse=no', '--property=Type=exec',
+            '--property=Restart=always', '--property=RestartSec=1s',
+            '--property=StartLimitIntervalSec=0',
+            '/bin/sh', '-c', _deadline_enforcer(container))
     _validate_candidate_deadline(deadline)
     return deadline
 
@@ -137,6 +146,10 @@ def _validate_candidate_deadline(deadline):
         '--property=ActiveState', '--property=Triggers').splitlines())
     service = command('systemctl', '--user', 'show', deadline['unit'] + '.service',
                       '--property=ExecStart', '--value')
+    policy = dict(line.split('=', 1) for line in command(
+        'systemctl', '--user', 'show', deadline['unit'] + '.service',
+        '--property=Restart', '--property=RestartUSec',
+        '--property=StartLimitIntervalUSec', '--property=Type').splitlines())
     unit_path = '/org/freedesktop/systemd1/unit/' + (
         deadline['unit'] + '.timer').replace('-', '_2d').replace('.', '_2e')
 
@@ -157,11 +170,13 @@ def _validate_candidate_deadline(deadline):
     accuracy = usecs('AccuracyUSec') / 1000000
     wake = property_value('WakeSystem')
     now = time.monotonic()
-    expected = '/usr/bin/docker kill --signal KILL ' + deadline['container_id']
+    expected = '/bin/sh -c ' + _deadline_enforcer(deadline['container_id'])
     if (timer.get('ActiveState') != 'active' or
             timer.get('Triggers') != deadline['unit'] + '.service' or
             service.count('argv[]=') != 1 or
-            service.split('argv[]=', 1)[-1].split(' ;', 1)[0] != expected or
+            service.split('argv[]=', 1)[-1].split(' ; ignore_errors=', 1)[0] != expected or
+            policy != dict(Restart='always', RestartUSec='1s',
+                           StartLimitIntervalUSec='0', Type='exec') or
             wake != 'b false' or accuracy > 1 or due <= now or
             due + accuracy > deadline['upper_bound_monotonic'] or
             deadline['boot_id'] != _boot_id() or
@@ -186,6 +201,36 @@ def _contain_candidate(evidence, intent, container):
     return stopped
 
 
+def _close_candidate_deadline(evidence, container):
+    # A stopped snapshot alone cannot exclude a delayed accepted start. Keep
+    # enforcing indefinitely if the sole original RPC has an uncertain outcome.
+    settled = evidence / 'start-settled.json'
+    deadline_path = evidence / 'deadline.json'
+    if not settled.exists() or not deadline_path.exists():
+        return
+    if (json.loads(settled.read_text()) != dict(container_id=container, acknowledged=True)
+            or json.loads((evidence / 'stopped.json').read_text()) !=
+            dict(container_id=container, stopped=True)):
+        raise ValueError('original validation closure proof differs')
+    deadline = json.loads(deadline_path.read_text())
+    intent = json.loads((evidence / 'intent.json').read_text())
+    operation = intent.get('operation', '')
+    if (not re.fullmatch(r'[a-f0-9]{32}', operation) or
+            deadline['unit'] != 'factory-validation-deadline-' + operation or
+            deadline['container_id'] != container):
+        raise ValueError('original validation deadline identity differs')
+    # Proof is durable before retiring either unit. A crash before retirement
+    # leaves harmless exact-ID enforcement; a crash between stops is also safe.
+    proof = dict(container_id=container, start_settled=True, stopped=True)
+    closed = evidence / 'closed.json'
+    if not closed.exists():
+        record(closed, proof)
+    elif json.loads(closed.read_text()) != proof:
+        raise ValueError('original validation closure evidence differs')
+    command('systemctl', '--user', 'stop', deadline['unit'] + '.timer')
+    command('systemctl', '--user', 'stop', deadline['unit'] + '.service')
+
+
 def observe_candidate(evidence_dir, *, contain=False):
     """Inspect/contain only the retained original; never create, start or rearm."""
     evidence = Path(evidence_dir)
@@ -203,7 +248,9 @@ def observe_candidate(evidence_dir, *, contain=False):
     if contain:
         if not binding.exists():
             record(binding, dict(container_id=container))
-        return _contain_candidate(evidence, intent, container)
+        stopped = _contain_candidate(evidence, intent, container)
+        _close_candidate_deadline(evidence, container)
+        return stopped
     return dict(container_id=container, stopped=not (
         state['State']['Running'] or state['State']['Restarting']))
 
@@ -241,7 +288,11 @@ def candidate_lifecycle(evidence_dir, image):
         identity(container)
         record(evidence / 'container.json', dict(container_id=container))
         deadline = _arm_candidate_deadline(evidence, intent, container)
+        record(evidence / 'start-intent.json', dict(container_id=container, attempts=1))
         command('docker', 'start', container)
+        # Only an acknowledged successful RPC proves daemon start processing
+        # settled. Timeout/client death leaves this absent, even after a stop.
+        record(evidence / 'start-settled.json', dict(container_id=container, acknowledged=True))
         state = identity(container)
         if not state['State']['Running'] or state['State']['Restarting']:
             raise ValueError('validation container not running')
@@ -250,6 +301,7 @@ def candidate_lifecycle(evidence_dir, image):
     finally:
         if container is not None:
             _contain_candidate(evidence, intent, container)
+            _close_candidate_deadline(evidence, container)
 
 
 class CandidateTransport:
