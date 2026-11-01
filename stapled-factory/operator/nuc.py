@@ -261,11 +261,31 @@ def main(action, data):
                 result = {'state': state, 'requires_intervention': True}
                 private(approval / 'result.json', result)
             else:
-                revision = state['build']['git_revision']
+                selected = state.get('successor') or state.get('build') or {}
+                attempt = selected.get('attempt_id')
+                revision = selected.get('git_revision')
+                if (selected.get('status') != 'completed' or
+                        attempt not in (unit + ':0', unit + ':0:successor') or
+                        not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{40}', revision)):
+                    raise ValueError('selected completed build required before collection')
                 with sqlite3.connect('file:' + str(ROOT / 'attempt-store/attempts.db') + '?mode=ro', uri=True) as db:
-                    binding = json.loads(db.execute('SELECT binding FROM allocation_bindings WHERE attempt_id=?',
-                                                   (unit + ':0',)).fetchone()[0])
-                worker, proxy = binding['worker_id'], binding['proxy_id']
+                    row = db.execute('SELECT binding FROM allocation_bindings WHERE attempt_id=?',
+                                     (unit + ':0',)).fetchone()
+                    if not row:
+                        raise ValueError('original allocation binding unavailable')
+                    binding = json.loads(row[0])
+                    worker, proxy = binding['worker_id'], binding['proxy_id']
+                    if attempt.endswith(':successor'):
+                        # Successors keep the original proxy/budget allocation;
+                        # their worker is recorded in the consumed restart claim.
+                        restart = db.execute('SELECT c.workspace, c.baseline, c.worker_id, c.lifecycle '
+                            'FROM restart_reservations r JOIN restart_claims c ON r.source_attempt=c.source_attempt '
+                            'WHERE r.source_attempt=? AND r.restart_id=?', (unit + ':0', attempt)).fetchone()
+                        if (not restart or restart[:2] != (str(run / 'successor'), plan['baseline']) or
+                                not isinstance(restart[2], str) or not re.fullmatch(r'[a-f0-9]{64}', restart[2]) or
+                                not restart[3] or not isinstance(json.loads(restart[3]), dict)):
+                            raise ValueError('selected successor binding unavailable')
+                        worker = restart[2]
                 def git(*args):return command('docker', 'exec', worker, 'git', '-C', '/workspace', *args)
                 if git('rev-parse', 'HEAD') != revision or git('status', '--porcelain'):
                     raise ValueError('worker did not leave exact clean committed result')
@@ -278,7 +298,7 @@ def main(action, data):
                     command('docker', 'cp', worker + ':/tmp/operator-result.bundle', bundle)
                 code = "import sqlite3,json;d=sqlite3.connect('file:/budget/b.db?mode=ro',uri=True);print(json.dumps({t:d.execute('SELECT * FROM '+t).fetchall() for t in ('budgets','monetary_budgets')}))"
                 ledger = json.loads(command('docker', 'exec', proxy, 'python3', '-c', code))
-                result = {'state': state, 'revision': revision, 'changed': changed, 'budget': ledger,
+                result = {'state': state, 'attempt_id': attempt, 'revision': revision, 'changed': changed, 'budget': ledger,
                           'bundle_sha256': bundle_hash(bundle),
                           'actual_charges': 'unknown', 'runtime_validation': last,
                           'worker': worker, 'proxy': proxy}

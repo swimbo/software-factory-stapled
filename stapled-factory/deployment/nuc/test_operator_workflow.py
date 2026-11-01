@@ -69,6 +69,66 @@ def test_completed_run_is_observed_without_rebinding_or_dispatch(tmp_path, monke
     assert nuc.main('run', {'unit': 'unit-1'}) == result
 
 
+@pytest.mark.parametrize('successor_status', [None, 'completed', 'unknown'])
+def test_collection_exports_only_selected_completed_attempt(tmp_path, monkeypatch, successor_status):
+    import sqlite3
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    monkeypatch.setattr(nuc.Path, 'home', lambda: tmp_path)
+    approval = tmp_path / 'approvals/unit-1';approval.mkdir(parents=True)
+    run = tmp_path / 'dispatch/unit-1';run.mkdir(parents=True)
+    service = tmp_path / '.config/systemd/user/factory-endpoint.service';service.parent.mkdir(parents=True)
+    previous = 'Environment=FACTORY_RUNTIME_CONFIG=/prior/runtime.json\n'
+    desired = 'Environment=FACTORY_RUNTIME_CONFIG=' + str(run / 'runtime.json') + '\n'
+    service.write_text(desired);(approval / 'previous.service').write_text(previous)
+    (tmp_path / 'operator-active.json').write_text(json.dumps({'unit': 'unit-1'}))
+    (approval / 'dispatch-intent.json').write_text('{}')
+    (approval / 'operator.json').write_text(json.dumps({'baseline': 'c'*40, 'allowed_paths': ['app.py']}))
+    state = {'stage': 'needs_validation', 'build': {'attempt_id': 'unit-1:0',
+             'status': 'completed', 'git_revision': 'a'*40}}
+    attempt, revision, worker, proxy = 'unit-1:0', 'a'*40, 'a'*64, 'c'*64
+    if successor_status:
+        attempt, revision, worker = 'unit-1:0:successor', 'b'*40, 'b'*64
+        state['successor'] = {'attempt_id': attempt, 'status': successor_status, 'git_revision': revision}
+    store = tmp_path / 'attempt-store';store.mkdir()
+    with sqlite3.connect(store / 'attempts.db') as db:
+        db.execute('CREATE TABLE allocation_bindings(attempt_id TEXT PRIMARY KEY, binding TEXT)')
+        db.execute('INSERT INTO allocation_bindings VALUES (?,?)', ('unit-1:0',
+            json.dumps({'worker_id': 'a'*64, 'proxy_id': proxy})))
+        if successor_status:
+            db.execute('CREATE TABLE restart_reservations(source_attempt TEXT PRIMARY KEY, restart_id TEXT, restart_hash TEXT, restart_conversation_id TEXT, allocation_id TEXT)')
+            db.execute('CREATE TABLE restart_claims(source_attempt TEXT PRIMARY KEY, workspace TEXT, baseline TEXT, worker_id TEXT, lifecycle TEXT)')
+            db.execute('INSERT INTO restart_reservations VALUES (?,?,?,?,?)',
+                ('unit-1:0', attempt, 'request-hash', 'conversation', 'owned'))
+            db.execute('INSERT INTO restart_claims VALUES (?,?,?,?,?)',
+                ('unit-1:0', str(run / 'successor'), 'c'*40, worker, json.dumps({'started_at': 'original-start'})))
+    monkeypatch.setattr(nuc, 'endpoint_config', lambda: str(run / 'runtime.json'))
+    monkeypatch.setattr(nuc, 'post', lambda route, body: state)
+    effects = []
+    def command(*args):
+        if args[:2] == ('docker', 'exec'):
+            effects.append(args)
+            assert args[2] in (worker, proxy), 'must not export another attempt'
+            if args[2] == proxy:return '{}'
+            if 'rev-parse' in args:return revision
+            if 'status' in args:return ''
+            if 'diff' in args:return 'app.py'
+        if args[:2] == ('docker', 'cp'):
+            Path(args[-1]).write_bytes(b'fixture result bundle')
+        if args[:2] == ('docker', 'inspect'):
+            return json.dumps([{'Config': {'Labels': {'factory.allocation': 'owned'}}}])
+        return ''
+    monkeypatch.setattr(nuc, 'command', command)
+    if successor_status == 'unknown':
+        with pytest.raises(ValueError, match='selected completed'):
+            nuc.main('run', {'unit': 'unit-1', 'polls': 1})
+        assert not effects and not (approval / 'result.bundle').exists()
+    else:
+        result = nuc.main('run', {'unit': 'unit-1', 'polls': 1})
+        assert result['revision'] == revision and result['attempt_id'] == attempt
+        assert result['worker'] == worker and result['proxy'] == proxy
+        assert result['binding_restored']
+
+
 def test_run_does_not_collect_uncertain_result(tmp_path, monkeypatch):
     (tmp_path / 'operator.json').write_text(json.dumps({'unit': 'unit-1'}))
     monkeypatch.setattr(cli, 'remote', lambda *a: (_ for _ in ()).throw(ValueError('uncertain')))
