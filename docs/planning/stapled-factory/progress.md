@@ -607,3 +607,7 @@ Added a standalone real-Restate validation-session boundary probe with an exclus
 ### Dependency scanner failure handling
 
 A configured OSV scan previously treated scanner errors, empty or malformed output, and a disappearing executable as a clean result. Regression cases failed before the fix. The pipeline now uses the documented explicit lockfile option, bounds execution, and rejects failed, unparseable, or inconsistent reports rather than claiming an OSV pass. Clean and vulnerability reports remain distinct. All 28 security tests and two subtests passed. This does not provide the missing NUC security engines or establish full provenance coverage.
+
+### Secret scanner failure handling
+
+A failed Gitleaks process could leave an empty report and be classified as a clean real-engine scan. A regression reproduced that false pass; the pipeline now rejects scanner errors and a findings exit without findings, and bounds scanner execution. The temporary report remains cleaned on failure. All 29 security tests and two subtests passed. Missing-engine fallback remains explicitly labelled and does not establish the required full security coverage.

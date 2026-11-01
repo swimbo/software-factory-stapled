@@ -102,16 +102,20 @@ def run_gitleaks(target: str) -> list[Finding] | None:
         report_path = tmp.name
     original_error = None
     try:
-        subprocess.run(
+        result = subprocess.run(
             ["gitleaks", "dir", "--report-format", "json", "--report-path", report_path, target],
-            capture_output=True, text=True,
+            capture_output=True, text=True, timeout=180,
         )
+        if result.returncode not in (0, 1):
+            raise ValueError('Gitleaks scan failed')
         try:
             data = json.loads(Path(report_path).read_text())
         except (json.JSONDecodeError, OSError):
             return None
         # Gitleaks v8 emits a top-level array; older versions nest under "Findings".
         raw = data if isinstance(data, list) else (data.get("Findings") or data.get("Leaks") or [])
+        if result.returncode == 1 and not raw:
+            raise ValueError('Gitleaks reported findings without a usable report')
         out = []
         for f in raw:
             out.append(Finding(

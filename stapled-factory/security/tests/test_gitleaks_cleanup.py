@@ -16,7 +16,7 @@ class GitleaksCleanupTests(unittest.TestCase):
             report_path = cmd[cmd.index("--report-path") + 1]
             reports.append(report_path)
             Path(report_path).write_text(payload)
-            return subprocess.CompletedProcess(cmd, 1)
+            return subprocess.CompletedProcess(cmd, 0 if payload == '[]' else 1)
         return run
 
     def _run_gitleaks(self, payload):
@@ -121,6 +121,15 @@ class GitleaksCleanupTests(unittest.TestCase):
 
         self.assertIsNone(result)
         run.assert_not_called()
+
+    def test_scanner_error_cannot_be_a_clean_scan(self):
+        def failed(cmd, **kwargs):
+            Path(cmd[cmd.index('--report-path') + 1]).write_text('[]')
+            return subprocess.CompletedProcess(cmd, 2)
+        with mock.patch.object(pipeline, '_which', side_effect=lambda name: 'fixture' if name == 'gitleaks' else None), \
+                mock.patch.object(pipeline.subprocess, 'run', side_effect=failed):
+            with self.assertRaisesRegex(ValueError, 'Gitleaks'):
+                pipeline.scan('clean', target='fixture')
 
 
 if __name__ == "__main__":
