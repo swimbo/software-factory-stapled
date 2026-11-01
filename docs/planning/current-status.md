@@ -39,6 +39,10 @@ An owner-controlled NUC scanner bundle now contains Semgrep, Gitleaks, OSV-Scann
 
 A private probe of the fullstack template resolved a frontend lockfile and scanned it and the existing backend lock: OSV reported one frontend finding and 34 backend findings. The agents manifest did not resolve: its unpinned latest agent SDK requires Zod 4 while the manifest requires Zod 3. No override or template edit was made. These are fixture findings, not a release assessment. [Dependency probe](../verification/delivery-lifecycle-2026-11-01/fullstack-dependency-probe.json).
 
+An image negative control showed OSV reporting 135 npm packages from a hidden lock although the image held only one package metadata file. A provisional guard was removed after independent review identified incomplete filesystem handling and invalid rejection of supported package layouts. Trivy correctly reported the one package in this synthetic image, but image scan coverage remains incomplete until filesystem and provenance checks are proven. NUC free space was approximately 4.14 GiB at the last check, limiting large image transfers.
+
+The pre-journal recovery path also passed a synthetic NUC Python/filesystem fixture: one evaluation and submission, concurrent start refused, and accepted receipt observed without replay. It did not use a live WorkUnit or Docker target. [Recovery fixture](../verification/delivery-lifecycle-2026-11-01/prejournal-recovery-fixture.json).
+
 Commit `198677b` makes result collection select the completed original/successor revision using the original allocation/proxy and matching restart claim; 65 operator workflow tests pass and independent delta review found no remaining actionable issue. That operator change is not deployed.
 
 Private evidence/checkpoint directory on the Mac:

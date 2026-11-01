@@ -43,6 +43,20 @@
     "image_ecosystems_without_locks": ["Debian:13", "PyPI"],
     "scope": "Negative control using an unrelated retained fixture image; not a candidate build"
   },
+  "npm_image_metadata_controls": {
+    "scope": "Synthetic Docker archives, not a factory candidate",
+    "hidden_lock_claimed_packages": 135,
+    "package_metadata_files_present": 1,
+    "osv_alone_reported": 135,
+    "mismatched_image_rejected_by_provisional_guard": true,
+    "guard_status": "removed after review found incomplete filesystem handling and unsupported valid package layouts",
+    "negative_image_sha256": "83993525b85c182a2e2358a876505188dd314be533bff7f231b991a9a7e00472",
+    "local_trivy_version": "0.76.1",
+    "trivy_reported_npm_components": 1,
+    "no_hidden_lock_trivy_sbom_osv_packages": 1,
+    "matched_one_package_image_accepted_by_provisional_guard": true,
+    "positive_image_sha256": "d9947046471489c1394eebf658f3c3e8d2a0a779be6d05d33cf75180e4f1c355"
+  },
   "limitations": [
     "The generated frontend lock was not present in or applied to the original template.",
     "No agents lock was applied to the original template, and no complete source-to-image dependency inventory was established.",
