@@ -6,9 +6,9 @@ Updated: November 1, 2026. **Active after the user resumed the goal.** The full 
 
 - Checkout: `/Users/bo/code/software-factory-stapled`.
 - Branch: `codex/phase9d-qualification`.
-- Verified implementation revision: `dcb56ec9eb27e294fd068efba4a101e5771ee1eb`; subsequent checkpoint commits may change documentation only.
+- Latest exact-CI implementation revision: `8d7012f52b9e0b9d1ed7b8cbb8a81cfd37a74939`. Later probe/documentation commits require their own exact CI before publication.
 - At pause, 12 implementation/planning commits were local and the worktree was clean before this checkpoint was created. The user subsequently authorized committing and pushing all current work, including this checkpoint. That publication does not resume implementation or authorize runtime activation; confirm the current branch/remote match with Git.
-- Exact-revision local CI passed: 745 Python tests, 18 subtests, 35 Node tests, secrets scan, locked npm dependency installation/audit and spine build. Receipt: `.local-ci/dcb56ec9eb27e294fd068efba4a101e5771ee1eb/receipt.json`.
+- Exact-revision local CI passed: 751 Python tests, 18 subtests, 35 Node tests, secrets scan, locked npm dependency installation/audit and spine build. Receipt: `.local-ci/8d7012f52b9e0b9d1ed7b8cbb8a81cfd37a74939/receipt.json`.
 - Baseline harness remains default; optimization profile promotion remains held. Native terminal truncation telemetry remains unknown.
 
 ## Work completed locally
@@ -31,7 +31,11 @@ Commit `dcb56ec` fixes retirement by accepting a failed stop only after exact no
 
 **The corrected probe passed after resumption.** Exact `dcb56ec` source completed normal production transport and actual 240-second deadline expiry, then contained a late original start after observer exit without observer cleanup. An exact-ID Docker SIGKILL event and non-OOM exit 137 were witnessed before cleanup. All 189 tracked WorkUnits, 732 prior volume identities, 360 prior role-container lifecycles and recorded service/guarded-file state were unchanged. Original candidates and evidence are retained. Aggregate proof and evidence hashes: [lifecycle receipt](../verification/delivery-lifecycle-2026-11-01/receipt.json).
 
-No new model calls, live runtime activation or profile promotion occurred during this delivery-foundation work. The last verified live runtime remains `b5fe329`; the new receipt code is not deployed. Full-wall positive control subsequently failed at 40%, so substitution controls correctly did not run. The failed original target is stopped and retained. Investigation is testing per-request Docker startup overhead against the unchanged 100ms fixture windows; bounded persistent transport restoration is in progress. Security reported regex fallbacks, not complete SAST/secret-engine verification. No passing receipt was minted.
+No new model calls, live runtime activation or profile promotion occurred during this delivery-foundation work. The last verified live runtime remains `b5fe329`; the new receipt code is not deployed. The first full-wall positive control failed at 40% and stopped before substitution controls. Bounded persistent transport in `8d7012f` fixes per-request startup overhead without weakening the unchanged 100ms fixture windows. A fresh actual NUC positive control passed at 100% over three runs; all four archive/diff/signature/artifact substitution controls rejected for their expected reasons. Both failed and passed original targets/evidence are retained. [Binding controls](../verification/delivery-lifecycle-2026-11-01/binding-controls.json).
+
+An isolated actual Restate probe using those passing checks and a fresh fixture key also passed: stale/tampered acceptance denied, client crash after committed acceptance, owned endpoint crash/restart, repeated original observation without reevaluation/resubmission, exact stored receipt and duplicate rejection. Recorded owned PIDs and listeners were confirmed terminal/closed. This uses a fixture-seeded WorkUnit and unsigned loopback test endpoint; it does not establish production identity/authorization or real model output. [Receipt boundary](../verification/delivery-lifecycle-2026-11-01/restate-receipt-boundary.json).
+
+Security still used regex fallbacks on the NUC; Semgrep/Gitleaks/OSV/Cosign are absent there. Full security-engine/provenance verification remains required, as do live runtime integration and application publication gates.
 
 Commit `198677b` makes result collection select the completed original/successor revision using the original allocation/proxy and matching restart claim; 65 operator workflow tests pass and independent delta review found no remaining actionable issue. That operator change is not deployed.
 
@@ -46,7 +50,7 @@ First live probe evidence on the NUC:
 ## Resume order
 
 1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.
-2. Verify full prebuilt wall/security positive and substitution controls, then real signed receipt acceptance and recovery. Prepare and review any necessary exact-source, locally built runtime release before activation; preserve shared services and all prior resources.
+2. Close real security-engine/provenance coverage and production signed endpoint/receipt integration. Preserve the passed wall/substitution and isolated receipt proofs; they do not require repeating. Prepare and review any necessary exact-source, locally built runtime release before activation; preserve shared services and all prior resources.
 3. Complete the reusable operator join from selected factory output to attested local image build, immutable transfer, isolated validation, accepted matching receipt and validation-gated application publication.
 4. Complete Phases 10–11 acceptance, rejection, crash recovery and approval paths without duplicate dispatch.
 5. Run one real small fullstack dogfood feature through model build, validation and a reviewed remote PR. Preserve failed consumption; no automatic paid reruns.

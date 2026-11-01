@@ -1,0 +1,31 @@
+{
+  "result": {
+    "boundary": "Fixture-seeded WorkUnit and fresh fixture key on isolated unsigned loopback endpoint; checks provenance and actual build/deployment are not established by this probe.",
+    "client_crash_after_acceptance": true,
+    "duplicate_acceptance_rejected": true,
+    "endpoint_crash_recovery": true,
+    "factory_dispatches": 0,
+    "fixture_unit": "receipt-probe-a9ca64effc0f4846af2d04dd47aed0e5",
+    "model_calls": 0,
+    "original_journal_reconciled_without_resubmit": true,
+    "passed": true,
+    "production_runtime_activated": false,
+    "real_restate": true,
+    "repeated_observation_unchanged": true,
+    "signed_receipt_stored": true,
+    "stale_bindings_rejected": true,
+    "tamper_rejected": true
+  },
+  "owned_recorded_pids_terminal": true,
+  "recorded_admin_ingress_endpoint_listeners_closed": true,
+  "probe_source_sha256": "a3ec2a65f55856635e852773a772f8dfcbdc8e809ad38ad30987c8a097b4b8a1",
+  "private_evidence_sha256": {
+    "intent.json": "bc6f57d6fe435e01536b2bef87e612db478b8ad2c3efec888d28ff7276427e32",
+    "result.json": "16ad35736f77646923fde450258e528a7769f7d1ba84fd927ab4f4bdbed18fd0",
+    "tamper-rejection.json": "b1727aac3b302f8edd39d65168ed3eb08c06968c4c4d41b87e03d83c06ab4afc",
+    "sole-submit-intent.json": "370383253f294a92309726a1010ea9b8369d0ccff6acc0db01dcf7c56bf311a4",
+    "acceptance-committed-before-client-crash.json": "370383253f294a92309726a1010ea9b8369d0ccff6acc0db01dcf7c56bf311a4",
+    "validation-session/accepted.json": "473d4439f587e87273775e661861f88a17baecf5ae326c7cf11521f34a506835",
+    "validation-session/submission.json": "ace09ed1fec574363c486ceba9072092bb80cbf3516c60bc7a592a3684d173ea"
+  }
+}

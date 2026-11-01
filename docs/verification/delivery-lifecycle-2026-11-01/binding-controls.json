@@ -1,0 +1,25 @@
+{
+  "validator_revision": "8d7012f52b9e0b9d1ed7b8cbb8a81cfd37a74939",
+  "validator_source_archive_sha256": "4de93982bcf151e9f5fc3482d4b6b1ef538912279323134b7f6beeb5bf2f4be1",
+  "local_ci_sha256": "e70d0a9d487b8c62cd0c0d0a7b0887ef927c477a2ec4f665cb76f516222cbbea",
+  "candidate_revision": "ded4cc3373a36c17b0974c1ea4f6f7d8a8a19149",
+  "candidate_source_archive_digest": "0414e790b4580612f6ff313061d98eb55bfc6b5f4a655e60b7d2bb483d11e991",
+  "artifact_digest": "sha256:d871e6d8dde1da8b61530aea11076021545a2cbca678c3e4a14ffababcf0bcde",
+  "private_checks_sha256": "f5fdb540a5aba47173d9cf9152efd8f65e09e99e1b5da9b4f093a24001efe31c",
+  "wall_pass_rate": 1.0,
+  "runs_per_scenario": 3,
+  "security_verdict": "pass",
+  "security_engines": {
+    "dependency": "manifest-flag",
+    "sast": "regex-fallback",
+    "secret": "regex-fallback"
+  },
+  "original_target_closed_and_retained": true,
+  "archive_substitution_rejected": true,
+  "diff_substitution_rejected": true,
+  "signature_substitution_rejected": true,
+  "artifact_substitution_rejected": true,
+  "model_calls": 0,
+  "runtime_activated": false,
+  "scope": "Unpaid existing signed fixture, actual NUC Docker target and unchanged wall. Security used regex fallbacks; this is not full SAST/secret/dependency/provenance security verification, production acceptance or real model dogfood."
+}
