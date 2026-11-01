@@ -471,6 +471,7 @@ def test_evaluation_preflight_and_lost_response_never_repeat(tmp_path, monkeypat
     (release/'release-manifest.json').write_text(json.dumps({'files': {k: validator_sha256 if k == required[0] else 'fixture' for k in required}}))
     (approval/'operator.json').write_text(json.dumps({'release': str(release)}))
     monkeypatch.setattr(nuc, 'release', lambda: release)
+    monkeypatch.setattr(nuc, 'verify_release', lambda path: Path(path))
     monkeypatch.setattr(nuc, 'validation_capabilities', lambda unit: {'receipt_storage': 'atomic-v1'} if capable else {})
     prepared = {'prepared': True, 'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
                 'baseline': 'b'*40, 'image_id': 'sha256:'+'c'*64}
@@ -515,8 +516,10 @@ def test_evaluation_uses_frozen_holdout_and_observes_same_receipt(tmp_path, monk
                 'stapled-factory/wall/evaluator/evaluate.py', 'stapled-factory/wall/evaluator/gate.py',
                 'stapled-factory/wall/evaluator/receipt.py']
     (release/'release-manifest.json').write_text(json.dumps({'files': {k: validator for k in required}}))
-    (approval/'operator.json').write_text(json.dumps({'release': str(release)}))
+    (approval/'operator.json').write_text(json.dumps({'release': str(tmp_path/'releases/old-build')}))
     monkeypatch.setattr(nuc, 'release', lambda: release)
+    verified = []
+    monkeypatch.setattr(nuc, 'verify_release', lambda path: verified.append(path) or Path(path))
     monkeypatch.setattr(nuc, 'validation_capabilities', lambda unit: {'receipt_storage': 'atomic-v1'})
     prepared = {'prepared': True, 'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
                 'baseline': 'b'*40, 'image_id': 'sha256:'+'c'*64}
@@ -542,8 +545,15 @@ def test_evaluation_uses_frozen_holdout_and_observes_same_receipt(tmp_path, monk
         return subprocess.CompletedProcess(args, 0, json.dumps(receipt), '')
     monkeypatch.setattr(nuc.subprocess, 'run', execute)
     assert nuc.main('validation_execute', {'unit': 'unit-1', 'validator_sha256': validator}) == receipt
+    recorded = json.loads((target/'evaluation-intent.json').read_text())
+    assert recorded['build_release'] == str(tmp_path/'releases/old-build')
+    assert recorded['release'] == str(release)
+    monkeypatch.setattr(nuc, 'release', lambda: (_ for _ in ()).throw(AssertionError('active runtime must not replace the original validator')))
     assert nuc.main('validation_execute_status', {'unit': 'unit-1'}) == receipt
-    assert len(calls) == 2 and '--observe-only' not in calls[0] and '--observe-only' in calls[1]
+    assert verified == [str(release)]
+    assert nuc.main('validation_execute_resume', {'unit': 'unit-1'}) == receipt
+    assert len(calls) == 3 and '--observe-only' not in calls[0] and '--observe-only' in calls[1]
+    assert '--resume-only' in calls[2] and '--observe-only' not in calls[2]
 
 
 def test_operator_validation_observation_checks_original_prepared_identity(tmp_path, monkeypatch):

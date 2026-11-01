@@ -97,6 +97,7 @@ python3 stapled-factory/operator/cli.py transfer-holdout /absolute/private/run -
 python3 stapled-factory/operator/cli.py holdout-status /absolute/private/run
 python3 stapled-factory/operator/cli.py validate /absolute/private/run
 python3 stapled-factory/operator/cli.py validate-status /absolute/private/run
+python3 stapled-factory/operator/cli.py validate-resume /absolute/private/run
 python3 stapled-factory/operator/cli.py validation-status /absolute/private/run
 ```
 
@@ -117,9 +118,12 @@ After interruption, `prepare-validation-status` observes that original clone.
 Before `validate`, transfer an operator-owned, owner-only holdout outside the
 candidate. Transfer records its digest without publishing scenario contents;
 after interruption, `holdout-status` observes the original without resending.
-The validator freezes that file, requires the pinned active runtime and atomic-receipt capability, and
-records one evaluation intent. After an uncertain result, `validate-status`
-observes the original journal without reevaluating or resubmitting. The current
+The validator freezes that file, records the active validation release separately
+from the original build release, and requires atomic-receipt capability. After
+an uncertain result, `validate-status` observes the original journal without
+reevaluating or resubmitting. `validate-resume` can continue from retained,
+completed checks before a submission was attempted; it never reruns the target
+or resends a recorded submission. The current
 live runtime and scanner coverage do not yet satisfy these gates.
 
 `publish` requires matching accepted application validation and complete

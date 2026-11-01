@@ -40,6 +40,54 @@ def result(passed=True):
                                   'cost_estimate_usd': None, 'ceiling_violation': ''}})
 
 
+def test_passing_receipt_requires_requests_for_each_scenario_run():
+    checks = result()
+    checks['wall']['receipt']['requests'] = 0
+    with pytest.raises(ValueError, match='cover every scenario run'):
+        m.evidence(checks, binding())
+
+
+@pytest.mark.parametrize('checks_recorded', [False, True])
+def test_explicit_continuation_uses_original_completed_checks_without_reevaluation(tmp_path, checks_recorded):
+    folder = tmp_path / 'session'; folder.mkdir(mode=0o700)
+    m.record(folder/'intent.json', binding())
+    if checks_recorded:
+        m.record(folder/'checks.json', result())
+    else:
+        (folder/'target').mkdir(mode=0o700)
+        m.record(folder/'target'/'result.json', result())
+    runtime = Runtime()
+    accepted = runtime.run(folder, resume_only=True)
+    assert accepted['accepted'] is True
+    assert runtime.evaluations == 0 and runtime.submissions == 1
+    assert runtime.run(folder, resume_only=True) == accepted
+    assert runtime.evaluations == 0 and runtime.submissions == 1
+
+
+def test_continuation_never_repeats_an_uncertain_submission(tmp_path):
+    runtime = Runtime(); runtime.lose_response = True
+    folder = tmp_path / 'session'
+    # The first submission is recorded but never accepted by the remote.
+    def lose_before_acceptance(envelope):
+        runtime.submissions += 1
+        raise TimeoutError('unknown outcome')
+    runtime.submit = lose_before_acceptance
+    with pytest.raises(ValueError, match='unresolved'):
+        runtime.run(folder)
+    with pytest.raises(ValueError, match='never resend'):
+        runtime.run(folder, resume_only=True)
+    assert runtime.evaluations == 1 and runtime.submissions == 1
+
+
+def test_continuation_without_completed_checks_never_restarts_target(tmp_path):
+    folder = tmp_path / 'session'; folder.mkdir(mode=0o700)
+    m.record(folder/'intent.json', binding())
+    runtime = Runtime()
+    with pytest.raises(ValueError, match='never recreate'):
+        runtime.run(folder, resume_only=True)
+    assert runtime.evaluations == 0 and runtime.submissions == 0
+
+
 class Runtime:
     def __init__(self):
         self.state = {'stage': 'needs_validation', 'build': {
@@ -97,15 +145,16 @@ def test_receipt_must_be_durably_stored_before_acceptance(tmp_path, stored_recei
 
 
 def test_passing_aggregate_keeps_failed_holdout_feedback_private(tmp_path):
-    scenarios = [ScenarioResult(f'private-pass-{i}', 1, 1) for i in range(9)]
+    scenarios = [ScenarioResult(f'private-pass-{i}', 3, 3) for i in range(9)]
     markers = ('private-holdout-marker', '/private/holdout-path', 'expected-secret-value')
-    scenarios.append(ScenarioResult(markers[0], 0, 1,
+    scenarios.append(ScenarioResult(markers[0], 0, 3,
                                     f'GET {markers[1]} expected {markers[2]}'))
     verdict = gate(scenarios)
     assert verdict.passed is True
     assert verdict.aggregate_pass_rate == .9
     original = result()
     original['wall']['verdict'] = asdict(verdict)
+    original['wall']['receipt']['requests'] = 30
     runtime = Runtime()
     def evaluate():
         runtime.evaluations += 1

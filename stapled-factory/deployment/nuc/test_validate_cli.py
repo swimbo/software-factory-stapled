@@ -91,7 +91,7 @@ def test_actual_http_response_loss_reconciles_without_second_validation(tmp_path
             deployment_id='d' * 64, passed=True,
             security={'verdict': 'pass', 'engines': {'sast': 'fixture-only'}},
             wall={'verdict': {'passed': True, 'aggregate_pass_rate': 1,
-                             'failure_message': '', 'per_scenario': {}},
+                              'failure_message': '', 'per_scenario': {'fixture': True}},
                   'receipt': {'tokens_in': 0, 'tokens_out': 0, 'requests': 3, 'retries': 0,
                               'wall_clock_ms': 10, 'tier': 'unknown', 'pricing_mode': 'subscription',
                               'cost_estimate_usd': None, 'ceiling_violation': ''}})

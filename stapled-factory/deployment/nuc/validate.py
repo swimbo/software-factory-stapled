@@ -36,7 +36,9 @@ def main(argv=None):
     parser.add_argument('--entrypoint', help=argparse.SUPPRESS)
     parser.add_argument('--runtime-image', help=argparse.SUPPRESS)
     parser.add_argument('--ingress', default='http://127.0.0.1:18080')
-    parser.add_argument('--observe-only', action='store_true')
+    modes = parser.add_mutually_exclusive_group()
+    modes.add_argument('--observe-only', action='store_true')
+    modes.add_argument('--resume-only', action='store_true')
     parser.add_argument('--expected-scenario-digest')
     args = parser.parse_args(argv)
     address = urllib.parse.urlsplit(args.ingress)
@@ -81,7 +83,7 @@ def main(argv=None):
     result = validate_session(directory, binding,
         lambda: post(args.ingress, args.unit, 'getState', {}), evaluate,
         lambda envelope: post(args.ingress, args.unit, 'acceptValidation', envelope),
-        key, observe_only=args.observe_only)
+        key, observe_only=args.observe_only, resume_only=args.resume_only)
     print(json.dumps(result, sort_keys=True))
     return result
 

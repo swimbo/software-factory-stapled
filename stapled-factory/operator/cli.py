@@ -411,12 +411,13 @@ def observe_holdout(run):
     return status
 
 
-def execute_validation(run, *, observe_only=False):
+def execute_validation(run, *, observe_only=False, resume_only=False):
+    if observe_only and resume_only:raise ValueError('observation and continuation are mutually exclusive')
     intent = json.loads((run/'transfer-intent.json').read_text())
     prepared = prepare_validation_source(run, observe_only=True)
-    action = 'validation_execute_status' if observe_only else 'validation_execute'
+    action = 'validation_execute_status' if observe_only else 'validation_execute_resume' if resume_only else 'validation_execute'
     data = {'unit': intent['unit']}
-    if not observe_only:
+    if not observe_only and not resume_only:
         script = Path(__file__).resolve().parents[1]/'deployment/nuc/validate.py'
         data['validator_sha256'] = hashlib.sha256(script.read_bytes()).hexdigest()
     result = remote(action, data)
@@ -521,7 +522,7 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'transfer-holdout', 'holdout-status', 'validate', 'validate-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'transfer-holdout', 'holdout-status', 'validate', 'validate-status', 'validate-resume', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
@@ -555,6 +556,7 @@ def main():
     elif a.action == 'holdout-status':result = observe_holdout(a.path.resolve())
     elif a.action == 'validate':result = execute_validation(a.path.resolve())
     elif a.action == 'validate-status':result = execute_validation(a.path.resolve(), observe_only=True)
+    elif a.action == 'validate-resume':result = execute_validation(a.path.resolve(), resume_only=True)
     elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)
     elif a.action == 'validation-status':
         plan = json.loads((a.path.resolve() / 'operator.json').read_text())

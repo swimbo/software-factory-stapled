@@ -2,6 +2,7 @@
 import json
 import sys
 import threading
+import pytest
 from contextlib import contextmanager
 from http.server import HTTPServer
 from pathlib import Path
@@ -166,13 +167,26 @@ def test_receipt_counts_all_successes_across_scenarios_and_repeats(tmp_path):
             "id": "two-requests",
             "steps": [{"delay_seconds": 0}, _get("/health"), _get("/health")],
         },
-        {
-            "id": "delay-only",
-            "steps": [{"delay_seconds": 0.01}],
-        },
     ])
     with _serve(CorrectHandler) as srv:
         verdict, receipt = evaluate(_url(srv), scenarios, runs_per_scenario=3)
     assert verdict.passed is True
     assert verdict.aggregate_pass_rate == 1.0
     assert receipt.requests == 9
+
+
+@pytest.mark.parametrize("steps", [[], [{"delay_seconds": 0}],
+                                  [{"request": {}}],
+                                  [{"request": {}, "expect": {"status": 0}}]])
+def test_unexercised_scenario_is_rejected(tmp_path, steps):
+    scenarios = _write_scenarios(tmp_path, [{"id": "invalid", "steps": steps}])
+    with pytest.raises(ValueError):
+        evaluate("http://127.0.0.1:1", scenarios)
+
+
+def test_transport_failure_cannot_satisfy_body_assertion(tmp_path):
+    scenarios = _write_scenarios(tmp_path, [{"id": "request", "steps": [
+        {"request": {}, "expect": {"body_contains": "refused"}}
+    ]}])
+    verdict, _ = evaluate("http://127.0.0.1:1", scenarios)
+    assert verdict.passed is False

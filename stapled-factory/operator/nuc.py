@@ -64,16 +64,20 @@ def validation_capabilities(unit):
         return json.load(response)
 
 
-def release():
-    pid = command('systemctl', '--user', 'show', 'factory-endpoint', '-p', 'MainPID', '--value')
-    path = Path('/proc', pid, 'cwd').resolve().parents[1]
+def verify_release(path):
+    path = Path(path)
     if path.parent != ROOT / 'releases':
-        raise ValueError('endpoint is not a frozen release')
+        raise ValueError('runtime is not a frozen release')
     manifest = json.loads((path / 'release-manifest.json').read_text())
     for name, digest in manifest['files'].items():
         if hashlib.sha256((path / name).read_bytes()).hexdigest() != digest:
             raise ValueError('frozen release changed')
     return path
+
+
+def release():
+    pid = command('systemctl', '--user', 'show', 'factory-endpoint', '-p', 'MainPID', '--value')
+    return verify_release(Path('/proc', pid, 'cwd').resolve().parents[1])
 
 
 
@@ -160,16 +164,18 @@ def main(action, data):
                 path.stat().st_uid == os.getuid() and not path.stat().st_mode & 0o077):
             with path.open('rb') as stream:complete = hashlib.file_digest(stream, 'sha256').hexdigest() == intent['sha256']
         return {'complete': complete, 'sha256': intent['sha256'], 'attempt_id': intent['attempt_id'], 'revision': intent['revision']}
-    if action in ('validation_execute', 'validation_execute_status'):
+    if action in ('validation_execute', 'validation_execute_status', 'validation_execute_resume'):
         target = approval/'validation-inputs'
         intent_path, session = target/'evaluation-intent.json', target/'validation-session'
         if action == 'validation_execute' and (intent_path.exists() or session.exists()):
             raise ValueError('original evaluation exists; observe without repeating')
         prepared = main('validation_prepare_status', {'unit': unit})
         plan = json.loads((approval/'operator.json').read_text())
-        rel = release()
-        if str(rel) != plan['release']:
-            raise ValueError('active validation runtime differs from pinned build release')
+        if action == 'validation_execute':
+            rel = release()
+        else:
+            recorded = json.loads(intent_path.read_text())
+            rel = verify_release(recorded['release'])
         manifest = json.loads((rel/'release-manifest.json').read_text())
         required = ('stapled-factory/deployment/nuc/validate.py', 'stapled-factory/spine/validation_session.py',
                     'stapled-factory/spine/prebuilt_validation.py', 'stapled-factory/spine/validation_transport.py',
@@ -202,11 +208,11 @@ def main(action, data):
             if scenario_sha256 != holdout_status['sha256']:
                 raise ValueError('original private holdout changed')
         else:
-            recorded = json.loads(intent_path.read_text())
             scenario_sha256 = recorded['scenario_sha256']
         original = {'unit': unit, 'attempt_id': prepared['attempt_id'], 'revision': prepared['revision'],
                     'baseline': prepared['baseline'], 'image_id': prepared['image_id'],
-                    'release': str(rel), 'scenario_sha256': scenario_sha256, 'validator_sha256': script_sha256}
+                    'release': str(rel), 'build_release': plan['release'],
+                    'scenario_sha256': scenario_sha256, 'validator_sha256': script_sha256}
         if action == 'validation_execute':
             try:capabilities = validation_capabilities(unit)
             except (OSError, ValueError) as error:raise ValueError('runtime receipt capability unavailable') from error
@@ -243,6 +249,7 @@ def main(action, data):
                 '--build-signature', str(target/'build.sig'), '--session-dir', str(session),
                 '--ingress', f'http://127.0.0.1:{RAW_INGRESS_PORT}']
         if action == 'validation_execute_status':args.append('--observe-only')
+        if action == 'validation_execute_resume':args.append('--resume-only')
         env = {k: v for k, v in os.environ.items() if not k.startswith('FACTORY_')}
         env['FACTORY_BUILD_APPROVAL_PUBLIC_KEY'] = str(ROOT/'operator-build-public.pem')
         completed = subprocess.run(args, capture_output=True, text=True, timeout=900, env=env)

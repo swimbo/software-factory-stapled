@@ -72,6 +72,11 @@ def evidence(result, binding):
         if any(type(usage.get(name)) is not int or not 0 <= usage[name] <= 2**53-1
                for name in ('tokens_in', 'tokens_out', 'requests', 'retries', 'wall_clock_ms')):
             raise ValueError('complete wall usage receipt required')
+        scenarios = verdict.get('per_scenario')
+        if (not isinstance(scenarios, dict) or not scenarios or
+                any(not isinstance(name, str) or not name or type(ok) is not bool for name, ok in scenarios.items()) or
+                usage['requests'] < 3 * len(scenarios)):
+            raise ValueError('passing wall receipt must cover every scenario run')
         cost = usage.get('cost_estimate_usd')
         if (not isinstance(usage.get('tier'), str) or
                 usage.get('pricing_mode') not in ('subscription', 'metered') or
@@ -87,13 +92,15 @@ def evidence(result, binding):
     return proof
 
 
-def validate_session(directory, binding, read_state, evaluate, submit, key, *, observe_only=False):
+def validate_session(directory, binding, read_state, evaluate, submit, key, *, observe_only=False, resume_only=False):
     """Persist checks and envelope before one signed acceptance submission.
 
     Readback can prove a lost response succeeded. An unresolved submission or
     interrupted evaluation stays attached to its original intent; observation
     cannot create another target, submit another acceptance, or invoke a model.
     """
+    if observe_only and resume_only:
+        raise ValueError('observation and continuation are mutually exclusive')
     validate_binding(binding)
     if not isinstance(key, bytes) or not 32 <= len(key) <= 4096:
         raise ValueError('bounded validation authority key required')
@@ -112,18 +119,24 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
         state = read_state()
         selected(state, binding)
         if not original:
-            if observe_only:
+            if observe_only or resume_only:
                 raise ValueError('no original validation to observe')
             if state['stage'] != 'needs_validation' or state.get('validation'):
                 raise ValueError('selected build already has different validation authority')
             record(intent, binding)
         checks_path = root / 'checks.json'
         if not checks_path.exists():
-            if original or observe_only:
+            retained = root / 'target' / 'result.json'
+            if resume_only and original and retained.exists():
+                result = read(retained)
+                evidence(result, binding)
+                record(checks_path, result)
+            elif original or observe_only or resume_only:
                 raise ValueError('original evaluation incomplete; inspect retained target, never recreate')
-            result = evaluate()
-            evidence(result, binding)
-            record(checks_path, result)
+            else:
+                result = evaluate()
+                evidence(result, binding)
+                record(checks_path, result)
         result = read(checks_path)
         proof = evidence(result, binding)
         if not proof['passed']:
