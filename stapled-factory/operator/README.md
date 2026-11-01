@@ -93,6 +93,8 @@ python3 stapled-factory/operator/cli.py load-validation /absolute/private/run
 python3 stapled-factory/operator/cli.py load-status /absolute/private/run
 python3 stapled-factory/operator/cli.py prepare-validation /absolute/private/run
 python3 stapled-factory/operator/cli.py prepare-validation-status /absolute/private/run
+python3 stapled-factory/operator/cli.py validate /absolute/private/run
+python3 stapled-factory/operator/cli.py validate-status /absolute/private/run
 python3 stapled-factory/operator/cli.py validation-status /absolute/private/run
 ```
 
@@ -110,6 +112,12 @@ use `load-status` to observe it; do not repeat the load or delete the image.
 `prepare-validation` clones the transferred bundle once and checks the exact
 revision, baseline, source archive and diff against the verified image binding.
 After interruption, `prepare-validation-status` observes that original clone.
+Before `validate`, an operator must provision `holdouts/scenarios.json` under
+the NUC approval directory with owner-only permissions. The command freezes that
+file, requires the pinned active runtime and atomic-receipt capability, and
+records one evaluation intent. After an uncertain result, `validate-status`
+observes the original journal without reevaluating or resubmitting. The current
+live runtime and scanner coverage do not yet satisfy these gates.
 
 `publish` requires matching accepted application validation and complete
 scanner coverage. `publish-repository` is explicitly repository-only. Each is

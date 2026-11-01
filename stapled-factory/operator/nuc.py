@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 import sqlite3
+import stat
 import subprocess
 import sys
 import tarfile
@@ -52,6 +53,13 @@ def post(route, data):
     req = urllib.request.Request(f'http://127.0.0.1:{INGRESS_PORT}/' + route,
         json.dumps(data).encode(), headers={'Content-Type': 'application/json',
                                           'Authorization': 'Bearer ' + token})
+    with urllib.request.urlopen(req, timeout=20) as response:
+        return json.load(response)
+
+
+def validation_capabilities(unit):
+    req = urllib.request.Request(f'http://127.0.0.1:{RAW_INGRESS_PORT}/WorkUnit/{unit}/getValidationCapabilities',
+                                 b'{}', headers={'Content-Type': 'application/json'})
     with urllib.request.urlopen(req, timeout=20) as response:
         return json.load(response)
 
@@ -131,6 +139,95 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action in ('validation_execute', 'validation_execute_status'):
+        target = approval/'validation-inputs'
+        intent_path, session = target/'evaluation-intent.json', target/'validation-session'
+        if action == 'validation_execute' and (intent_path.exists() or session.exists()):
+            raise ValueError('original evaluation exists; observe without repeating')
+        prepared = main('validation_prepare_status', {'unit': unit})
+        plan = json.loads((approval/'operator.json').read_text())
+        rel = release()
+        if str(rel) != plan['release']:
+            raise ValueError('active validation runtime differs from pinned build release')
+        manifest = json.loads((rel/'release-manifest.json').read_text())
+        required = ('stapled-factory/deployment/nuc/validate.py', 'stapled-factory/spine/validation_session.py',
+                    'stapled-factory/spine/prebuilt_validation.py', 'stapled-factory/spine/validation_transport.py',
+                    'stapled-factory/security/pipeline_cli.py', 'stapled-factory/security/pipeline.py',
+                    'stapled-factory/wall/evaluator/cli.py', 'stapled-factory/wall/evaluator/config.py',
+                    'stapled-factory/wall/evaluator/evaluate.py', 'stapled-factory/wall/evaluator/gate.py',
+                    'stapled-factory/wall/evaluator/receipt.py')
+        if not all(name in manifest.get('files', {}) for name in required):
+            raise ValueError('pinned runtime lacks frozen validation components')
+        script = rel/'stapled-factory/deployment/nuc/validate.py'
+        script_sha256 = hashlib.sha256(script.read_bytes()).hexdigest()
+        if manifest['files'][required[0]] != script_sha256:
+            raise ValueError('pinned validator differs from release manifest')
+        if action == 'validation_execute' and data.get('validator_sha256') != script_sha256:
+            raise ValueError('active validator differs from operator-reviewed source')
+        scenarios = target/'frozen-scenarios.json'
+        if action == 'validation_execute':
+            holdouts, source = approval/'holdouts', approval/'holdouts/scenarios.json'
+            if (holdouts.is_symlink() or source.is_symlink() or not holdouts.is_dir() or not source.is_file() or
+                    holdouts.stat().st_uid != os.getuid() or holdouts.stat().st_mode & 0o077 or
+                    source.stat().st_uid != os.getuid() or source.stat().st_mode & 0o077):
+                raise ValueError('private operator holdout unavailable')
+            scenario_bytes = source.read_bytes()
+            scenario_sha256 = hashlib.sha256(scenario_bytes).hexdigest()
+        else:
+            recorded = json.loads(intent_path.read_text())
+            scenario_sha256 = recorded['scenario_sha256']
+        original = {'unit': unit, 'attempt_id': prepared['attempt_id'], 'revision': prepared['revision'],
+                    'baseline': prepared['baseline'], 'image_id': prepared['image_id'],
+                    'release': str(rel), 'scenario_sha256': scenario_sha256, 'validator_sha256': script_sha256}
+        if action == 'validation_execute':
+            try:capabilities = validation_capabilities(unit)
+            except (OSError, ValueError) as error:raise ValueError('runtime receipt capability unavailable') from error
+            if capabilities != {'receipt_storage': 'atomic-v1'}:
+                raise ValueError('runtime receipt capability unavailable')
+            fd = os.open(intent_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                json.dump(original, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+            fd = os.open(scenarios, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(scenario_bytes);stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+        else:
+            if recorded != original:
+                raise ValueError('original evaluation binding differs')
+            if scenarios.is_symlink() or not scenarios.is_file():
+                return {'status': 'unresolved', 'reason': 'original frozen holdout unavailable'}
+            with scenarios.open('rb') as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != scenario_sha256:
+                    raise ValueError('original frozen holdout differs')
+            if not (session/'intent.json').is_file():
+                return {'status': 'unresolved', 'reason': 'original evaluation journal not established'}
+        args = ['python3', str(script), '--repo', str(target/'source-repo'), '--revision', original['revision'],
+                '--baseline', original['baseline'], '--scenarios', str(scenarios), '--unit', unit,
+                '--expected-scenario-digest', original['scenario_sha256'],
+                '--attempt', original['attempt_id'], '--key-file', str(ROOT/'validation.key'),
+                '--prebuilt-image', original['image_id'], '--source-archive', str(target/'source.tar'),
+                '--diff-file', str(target/'diff'), '--build-manifest', str(target/'build.json'),
+                '--build-signature', str(target/'build.sig'), '--session-dir', str(session),
+                '--ingress', f'http://127.0.0.1:{RAW_INGRESS_PORT}']
+        if action == 'validation_execute_status':args.append('--observe-only')
+        env = {k: v for k, v in os.environ.items() if not k.startswith('FACTORY_')}
+        env['FACTORY_BUILD_APPROVAL_PUBLIC_KEY'] = str(ROOT/'operator-build-public.pem')
+        completed = subprocess.run(args, capture_output=True, text=True, timeout=900, env=env)
+        try:result = json.loads(completed.stdout)
+        except ValueError as error:raise ValueError('original evaluation unresolved; inspect retained journal') from error
+        if completed.returncode == 1 and result.get('accepted') is False and result.get('reason') == 'candidate validation rejected':
+            return result
+        if completed.returncode != 0 or result.get('accepted') is not True:
+            raise ValueError('original evaluation unresolved; inspect retained journal')
+        status = main('validation_status', {'unit': unit})
+        if status.get('accepted') is not True or status.get('validation') != result.get('evidence'):
+            raise ValueError('accepted receipt differs from durable WorkUnit')
+        return result
     if action in ('validation_prepare', 'validation_prepare_status'):
         target = approval / 'validation-inputs'
         intent_path, repo = target / 'prepare-intent.json', target / 'source-repo'

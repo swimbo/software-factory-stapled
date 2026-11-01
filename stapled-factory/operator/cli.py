@@ -369,6 +369,27 @@ def prepare_validation_source(run, *, observe_only=False):
     return result
 
 
+def execute_validation(run, *, observe_only=False):
+    intent = json.loads((run/'transfer-intent.json').read_text())
+    prepared = prepare_validation_source(run, observe_only=True)
+    action = 'validation_execute_status' if observe_only else 'validation_execute'
+    data = {'unit': intent['unit']}
+    if not observe_only:
+        script = Path(__file__).resolve().parents[1]/'deployment/nuc/validate.py'
+        data['validator_sha256'] = hashlib.sha256(script.read_bytes()).hexdigest()
+    result = remote(action, data)
+    if result.get('status') == 'unresolved' or (result.get('accepted') is False and
+            result.get('reason') == 'candidate validation rejected'):
+        return result
+    proof = result.get('evidence') or {}
+    if (result.get('accepted') is not True or proof.get('unit_id') != intent['unit'] or
+            proof.get('attempt_id') != intent['attempt_id'] or proof.get('git_revision') != intent['revision'] or
+            proof.get('artifact_digest') != prepared['image_id'] or
+            proof.get('source_archive_digest') != intent['files']['source.tar']):
+        raise ValueError('accepted validation differs from original prepared build')
+    return result
+
+
 def application_validation(run, plan, result):
     observed = remote('validation_status', {'unit': plan['unit']})
     proof = observed.get('validation') or {}
@@ -458,7 +479,7 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'validate', 'validate-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
@@ -485,6 +506,8 @@ def main():
     elif a.action == 'load-status':result = validation_image_load(a.path.resolve(), observe_only=True)
     elif a.action == 'prepare-validation':result = prepare_validation_source(a.path.resolve())
     elif a.action == 'prepare-validation-status':result = prepare_validation_source(a.path.resolve(), observe_only=True)
+    elif a.action == 'validate':result = execute_validation(a.path.resolve())
+    elif a.action == 'validate-status':result = execute_validation(a.path.resolve(), observe_only=True)
     elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)
     elif a.action == 'validation-status':
         plan = json.loads((a.path.resolve() / 'operator.json').read_text())

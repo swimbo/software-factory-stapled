@@ -37,6 +37,7 @@ def main(argv=None):
     parser.add_argument('--runtime-image', help=argparse.SUPPRESS)
     parser.add_argument('--ingress', default='http://127.0.0.1:18080')
     parser.add_argument('--observe-only', action='store_true')
+    parser.add_argument('--expected-scenario-digest')
     args = parser.parse_args(argv)
     address = urllib.parse.urlsplit(args.ingress)
     if (address.scheme != 'http' or address.hostname != '127.0.0.1' or
@@ -61,10 +62,13 @@ def main(argv=None):
     def digest(path):
         return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
+    scenario_digest = digest(args.scenarios)
+    if args.expected_scenario_digest is not None and args.expected_scenario_digest != scenario_digest:
+        raise ValueError('frozen scenario digest differs')
     binding = dict(unit_id=args.unit, attempt_id=args.attempt, git_revision=args.revision,
                    baseline=args.baseline, artifact_digest=args.prebuilt_image,
                    source_archive_digest=digest(args.source_archive),
-                   scenario_digest=digest(args.scenarios),
+                   scenario_digest=args.expected_scenario_digest or scenario_digest,
                    build_manifest_digest=digest(args.build_manifest))
     directory = Path(args.session_dir)
 

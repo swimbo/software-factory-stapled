@@ -132,6 +132,15 @@ def test_old_runtime_is_rejected_before_validation_effect(tmp_path, monkeypatch)
     assert not (tmp_path/'session').exists()
 
 
+def test_frozen_holdout_digest_is_enforced_before_candidate(tmp_path, monkeypatch):
+    cli = load_cli();values = inputs(tmp_path)
+    monkeypatch.setattr(cli, 'post', lambda *args: {'receipt_storage': 'atomic-v1'})
+    monkeypatch.setattr(cli, 'validate_prebuilt', lambda *a, **kw: pytest.fail('changed holdout must not run'))
+    with pytest.raises(ValueError, match='scenario digest'):
+        cli.main(arguments(values) + ['--expected-scenario-digest', '0'*64])
+    assert not (tmp_path/'session').exists()
+
+
 def test_cli_refuses_external_signing_destination_before_key_access(tmp_path):
     cli = load_cli()
     values = inputs(tmp_path)

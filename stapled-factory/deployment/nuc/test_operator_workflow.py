@@ -452,6 +452,112 @@ def test_operator_prepare_observation_does_not_reclone_or_accept_other_image(tmp
         cli.prepare_validation_source(tmp_path, observe_only=True)
 
 
+@pytest.mark.parametrize('capable', [False, True])
+def test_evaluation_preflight_and_lost_response_never_repeat(tmp_path, monkeypatch, capable):
+    import subprocess
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    approval = tmp_path/'approvals/unit-1';target = approval/'validation-inputs';target.mkdir(parents=True)
+    holdout = approval/'holdouts';holdout.mkdir(mode=0o700);(holdout/'scenarios.json').write_text('{}');(holdout/'scenarios.json').chmod(0o600)
+    release = tmp_path/'releases/reviewed';release.mkdir(parents=True)
+    script = release/'stapled-factory/deployment/nuc/validate.py';script.parent.mkdir(parents=True);script.write_text('# fixture')
+    required = ['stapled-factory/deployment/nuc/validate.py', 'stapled-factory/spine/validation_session.py',
+                'stapled-factory/spine/prebuilt_validation.py', 'stapled-factory/spine/validation_transport.py',
+                'stapled-factory/security/pipeline_cli.py', 'stapled-factory/security/pipeline.py',
+                'stapled-factory/wall/evaluator/cli.py', 'stapled-factory/wall/evaluator/config.py',
+                'stapled-factory/wall/evaluator/evaluate.py', 'stapled-factory/wall/evaluator/gate.py',
+                'stapled-factory/wall/evaluator/receipt.py']
+    import hashlib
+    validator_sha256 = hashlib.sha256(script.read_bytes()).hexdigest()
+    (release/'release-manifest.json').write_text(json.dumps({'files': {k: validator_sha256 if k == required[0] else 'fixture' for k in required}}))
+    (approval/'operator.json').write_text(json.dumps({'release': str(release)}))
+    monkeypatch.setattr(nuc, 'release', lambda: release)
+    monkeypatch.setattr(nuc, 'validation_capabilities', lambda unit: {'receipt_storage': 'atomic-v1'} if capable else {})
+    prepared = {'prepared': True, 'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+                'baseline': 'b'*40, 'image_id': 'sha256:'+'c'*64}
+    original = nuc.main
+    def route(action, data):
+        if action == 'validation_prepare_status':return prepared
+        return original(action, data)
+    monkeypatch.setattr(nuc, 'main', route)
+    calls = []
+    def execute(args, **kwargs):
+        calls.append(args)
+        assert (target/'evaluation-intent.json').is_file()
+        raise subprocess.TimeoutExpired(args, 900)
+    monkeypatch.setattr(nuc.subprocess, 'run', execute)
+    if not capable:
+        with pytest.raises(ValueError, match='receipt capability'):nuc.main('validation_execute', {'unit': 'unit-1', 'validator_sha256': validator_sha256})
+        assert not calls and not (target/'evaluation-intent.json').exists()
+    else:
+        with pytest.raises(subprocess.TimeoutExpired):nuc.main('validation_execute', {'unit': 'unit-1', 'validator_sha256': validator_sha256})
+        assert nuc.main('validation_execute_status', {'unit': 'unit-1'})['status'] == 'unresolved'
+        with pytest.raises(ValueError, match='original evaluation'):
+            nuc.main('validation_execute', {'unit': 'unit-1', 'validator_sha256': validator_sha256})
+        assert len(calls) == 1
+
+
+def test_evaluation_uses_frozen_holdout_and_observes_same_receipt(tmp_path, monkeypatch):
+    import hashlib
+    import subprocess
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    approval = tmp_path/'approvals/unit-1';target = approval/'validation-inputs';target.mkdir(parents=True)
+    holdout = approval/'holdouts';holdout.mkdir(mode=0o700);scenario = holdout/'scenarios.json'
+    scenario.write_bytes(b'original holdout');scenario.chmod(0o600)
+    release = tmp_path/'releases/reviewed';release.mkdir(parents=True)
+    script = release/'stapled-factory/deployment/nuc/validate.py';script.parent.mkdir(parents=True);script.write_text('# fixture')
+    validator = hashlib.sha256(script.read_bytes()).hexdigest()
+    required = ['stapled-factory/deployment/nuc/validate.py', 'stapled-factory/spine/validation_session.py',
+                'stapled-factory/spine/prebuilt_validation.py', 'stapled-factory/spine/validation_transport.py',
+                'stapled-factory/security/pipeline_cli.py', 'stapled-factory/security/pipeline.py',
+                'stapled-factory/wall/evaluator/cli.py', 'stapled-factory/wall/evaluator/config.py',
+                'stapled-factory/wall/evaluator/evaluate.py', 'stapled-factory/wall/evaluator/gate.py',
+                'stapled-factory/wall/evaluator/receipt.py']
+    (release/'release-manifest.json').write_text(json.dumps({'files': {k: validator for k in required}}))
+    (approval/'operator.json').write_text(json.dumps({'release': str(release)}))
+    monkeypatch.setattr(nuc, 'release', lambda: release)
+    monkeypatch.setattr(nuc, 'validation_capabilities', lambda unit: {'receipt_storage': 'atomic-v1'})
+    prepared = {'prepared': True, 'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+                'baseline': 'b'*40, 'image_id': 'sha256:'+'c'*64}
+    proof = {'unit_id': 'unit-1', 'checks_digest': 'd'*64}
+    receipt = {'accepted': True, 'evidence': proof}
+    original = nuc.main
+    def route(action, data):
+        if action == 'validation_prepare_status':return prepared
+        if action == 'validation_status':return {'accepted': True, 'validation': proof}
+        return original(action, data)
+    monkeypatch.setattr(nuc, 'main', route)
+    calls = []
+    def execute(args, **kwargs):
+        calls.append(args)
+        frozen = Path(args[args.index('--scenarios')+1])
+        assert frozen.read_bytes() == b'original holdout'
+        assert args[args.index('--expected-scenario-digest')+1] == hashlib.sha256(b'original holdout').hexdigest()
+        journal = Path(args[args.index('--session-dir')+1]);journal.mkdir(exist_ok=True)
+        (journal/'intent.json').write_text('{}')
+        scenario.write_bytes(b'changed outside frozen journal')
+        return subprocess.CompletedProcess(args, 0, json.dumps(receipt), '')
+    monkeypatch.setattr(nuc.subprocess, 'run', execute)
+    assert nuc.main('validation_execute', {'unit': 'unit-1', 'validator_sha256': validator}) == receipt
+    assert nuc.main('validation_execute_status', {'unit': 'unit-1'}) == receipt
+    assert len(calls) == 2 and '--observe-only' not in calls[0] and '--observe-only' in calls[1]
+
+
+def test_operator_validation_observation_checks_original_prepared_identity(tmp_path, monkeypatch):
+    intent = {'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+              'files': {'source.tar': 'b'*64}}
+    (tmp_path/'transfer-intent.json').write_text(json.dumps(intent))
+    monkeypatch.setattr(cli, 'prepare_validation_source', lambda run, **kw: {'image_id': 'sha256:'+'c'*64})
+    proof = {'unit_id': 'unit-1', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40,
+             'artifact_digest': 'sha256:'+'c'*64, 'source_archive_digest': 'b'*64}
+    result = {'accepted': True, 'evidence': proof};calls = []
+    monkeypatch.setattr(cli, 'remote', lambda action, data: calls.append(action) or result)
+    assert cli.execute_validation(tmp_path, observe_only=True) == result
+    assert calls == ['validation_execute_status']
+    proof['artifact_digest'] = 'sha256:'+'d'*64
+    with pytest.raises(ValueError, match='differs'):
+        cli.execute_validation(tmp_path, observe_only=True)
+
+
 def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):
     import hashlib
     archive = b'exact candidate archive'
