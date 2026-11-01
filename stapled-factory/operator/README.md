@@ -86,12 +86,16 @@ local attested build with operator-owned inputs outside the candidate:
 ```sh
 python3 stapled-factory/operator/cli.py build-candidate /absolute/private/run --dockerfile /absolute/private/Dockerfile --build-signing-key /absolute/private/build-key.pem
 python3 stapled-factory/operator/cli.py build-status /absolute/private/run
+python3 stapled-factory/operator/cli.py transfer-validation /absolute/private/run
+python3 stapled-factory/operator/cli.py transfer-status /absolute/private/run
 python3 stapled-factory/operator/cli.py validation-status /absolute/private/run
 ```
 
 The first command records a one-shot intent before building. If interrupted,
 inspect the original with `build-status`; it does not rebuild or verify the
-image/signature. Transfer, isolated validation and signed acceptance still
+image/signature. Transfer records a separate one-shot intent and checks the
+received file hashes. After interruption, `transfer-status` observes the same
+intent; it never resends files. Isolated validation and signed acceptance still
 require separate operator steps; full security coverage remains incomplete.
 
 `publish` requires matching accepted application validation and complete

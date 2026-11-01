@@ -197,6 +197,87 @@ def test_attested_build_returns_verified_original_manifest(tmp_path, monkeypatch
         cli.observe_candidate_build(tmp_path)
 
 
+def test_nuc_transfer_status_checks_retained_original_files(tmp_path, monkeypatch):
+    import hashlib
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    approval = tmp_path/'approvals/unit-1';approval.mkdir(parents=True)
+    names = ('image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle')
+    expected = {name: hashlib.sha256(name.encode()).hexdigest() for name in names}
+    state = {'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+             'baseline': 'b'*40, 'files': expected}
+    (approval/'result.json').write_text(json.dumps({'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'binding_restored': True}))
+    (approval/'operator.json').write_text(json.dumps({'baseline': 'b'*40}))
+    monkeypatch.setattr(nuc, 'post', lambda route, body: {'stage': 'needs_validation',
+        'build': {'status': 'completed', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40}})
+    nuc.main('validation_transfer_begin', state)
+    target = approval/'validation-inputs'
+    for name in names:(target/name).write_text(name)
+    assert nuc.main('validation_transfer_status', {'unit': 'unit-1'})['complete'] is True
+    (target/'image.tar').write_text('changed')
+    assert nuc.main('validation_transfer_status', {'unit': 'unit-1'})['complete'] is False
+    with pytest.raises(FileExistsError):nuc.main('validation_transfer_begin', state)
+    assert (target/'image.tar').read_text() == 'changed'
+
+
+def test_transfer_lost_response_cannot_repeat_or_copy(tmp_path, monkeypatch):
+    import hashlib
+    names = ('image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig')
+    output = tmp_path/'attested-build';output.mkdir()
+    for name in names:(output/name).write_text(name)
+    (tmp_path/'result.bundle').write_text('bundle')
+    (tmp_path/'operator.json').write_text(json.dumps({'unit': 'unit-1', 'baseline': 'b'*40}))
+    (tmp_path/'result.json').write_text(json.dumps({'revision': 'a'*40, 'attempt_id': 'unit-1:0',
+        'bundle_sha256': hashlib.sha256(b'bundle').hexdigest()}))
+    monkeypatch.setattr(cli, 'observe_candidate_build', lambda run: {'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40})
+    calls = []
+    def remote(action, data):
+        calls.append(action)
+        if action == 'validation_status':return {'accepted': False, 'stage': 'needs_validation', 'attempt_id': 'unit-1:0', 'revision': 'a'*40}
+        raise OSError('response lost')
+    monkeypatch.setattr(cli, 'remote', remote)
+    monkeypatch.setattr(cli, 'copy', lambda *a, **k: pytest.fail('uncertain begin must not send files'))
+    with pytest.raises(OSError):cli.transfer_validation_inputs(tmp_path)
+    with pytest.raises(ValueError, match='original transfer'):cli.transfer_validation_inputs(tmp_path)
+    assert calls.count('validation_transfer_begin') == 1 and (tmp_path/'transfer-intent.json').exists()
+
+
+def test_transfer_observation_rejects_different_remote_file_binding(tmp_path, monkeypatch):
+    intent = {'unit': 'unit-1', 'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'files': {'image.tar': 'b'*64}}
+    (tmp_path/'transfer-intent.json').write_text(json.dumps(intent))
+    status = {'revision': intent['revision'], 'attempt_id': intent['attempt_id'],
+              'complete': True, 'files': {'image.tar': True}, 'expected': {'image.tar': 'c'*64}}
+    monkeypatch.setattr(cli, 'remote', lambda action, data: status)
+    with pytest.raises(ValueError, match='observation differs'):
+        cli.observe_validation_transfer(tmp_path)
+
+
+def test_transfer_joins_local_and_nuc_original_files(tmp_path, monkeypatch):
+    import hashlib
+    import shutil
+    local = tmp_path/'local';local.mkdir()
+    remote_root = tmp_path/'nuc';approval = remote_root/'approvals/unit-1';approval.mkdir(parents=True)
+    output = local/'attested-build';output.mkdir()
+    for name in ('image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig'):
+        (output/name).write_text(name)
+    (local/'result.bundle').write_text('bundle')
+    plan = {'unit': 'unit-1', 'baseline': 'b'*40}
+    result = {'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'binding_restored': True,
+              'bundle_sha256': hashlib.sha256(b'bundle').hexdigest()}
+    for directory in (local, approval):
+        (directory/'operator.json').write_text(json.dumps(plan));(directory/'result.json').write_text(json.dumps(result))
+    monkeypatch.setattr(nuc, 'ROOT', remote_root)
+    monkeypatch.setattr(nuc, 'post', lambda route, body: {'stage': 'needs_validation',
+        'build': {'status': 'completed', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40}})
+    monkeypatch.setattr(cli, 'observe_candidate_build', lambda run: {'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40})
+    monkeypatch.setattr(cli, 'remote', lambda action, data: nuc.main(action, data))
+    monkeypatch.setattr(cli, 'copy', lambda path, unit, name=None, **kw: shutil.copyfile(path, approval/name))
+    status = cli.transfer_validation_inputs(local)
+    assert status['complete'] and all(status['files'].values())
+    (approval/'validation-inputs/image.tar').write_text('changed')
+    assert cli.observe_validation_transfer(local)['complete'] is False
+    with pytest.raises(ValueError, match='original transfer'):cli.transfer_validation_inputs(local)
+
+
 def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):
     import hashlib
     archive = b'exact candidate archive'

@@ -130,6 +130,40 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action in ('validation_transfer_begin', 'validation_transfer_status'):
+        target = approval / 'validation-inputs'
+        names = {'image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle'}
+        if action == 'validation_transfer_begin':
+            files = data.get('files')
+            result = json.loads((approval / 'result.json').read_text())
+            plan = json.loads((approval / 'operator.json').read_text())
+            state = post('WorkUnit/' + unit + '/getState', {})
+            selected = state.get('successor') or state.get('build') or {}
+            if (not isinstance(files, dict) or set(files) != names or
+                    any(not isinstance(v, str) or not re.fullmatch(r'[a-f0-9]{64}', v) for v in files.values()) or
+                    not result.get('binding_restored') or state.get('stage') != 'needs_validation' or
+                    selected.get('status') != 'completed' or
+                    selected.get('attempt_id') != result.get('attempt_id') or
+                    selected.get('git_revision') != result.get('revision') or
+                    data.get('attempt_id') != result.get('attempt_id') or
+                    data.get('revision') != result.get('revision') or data.get('baseline') != plan.get('baseline')):
+                raise ValueError('validation transfer binding differs')
+            target.mkdir(mode=0o700)
+            private(target / 'transfer-intent.json', data)
+            return {'created': True}
+        intent = json.loads((target / 'transfer-intent.json').read_text())
+        if intent.get('unit') != unit or set(intent.get('files', {})) != names:
+            raise ValueError('original transfer intent differs')
+        matches = {}
+        for name, expected in intent['files'].items():
+            path = target / name
+            if path.is_symlink() or not path.is_file():
+                matches[name] = False
+            else:
+                with path.open('rb') as stream:
+                    matches[name] = hashlib.file_digest(stream, 'sha256').hexdigest() == expected
+        return {'complete': all(matches.values()), 'files': matches, 'expected': intent['files'], 'attempt_id': intent['attempt_id'],
+                'revision': intent['revision']}
     if action == 'validation_status':
         result = json.loads((approval / 'result.json').read_text())
         if not result.get('binding_restored'):

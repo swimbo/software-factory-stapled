@@ -276,6 +276,55 @@ def observe_candidate_build(run):
             'signature_verified': False, 'image_verified': False}
 
 
+def transfer_validation_inputs(run):
+    """Transfer one retained build without retrying an uncertain original."""
+    intent = run / 'transfer-intent.json'
+    if intent.exists():
+        raise ValueError('original transfer exists; inspect it without repeating')
+    build = observe_candidate_build(run)
+    plan = json.loads((run / 'operator.json').read_text())
+    result = json.loads((run / 'result.json').read_text())
+    if any(build[k] != result[k] for k in ('revision', 'attempt_id')) or build['unit'] != plan['unit']:
+        raise ValueError('build differs from collected attempt')
+    selected = remote('validation_status', {'unit': plan['unit']})
+    if (selected.get('accepted') is not False or selected.get('stage') != 'needs_validation' or
+            selected.get('attempt_id') != result['attempt_id'] or selected.get('revision') != result['revision']):
+        raise ValueError('selected build differs or is no longer awaiting validation')
+    names = ('image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle')
+    paths = {name: (run / 'result.bundle' if name == 'result.bundle' else run / 'attested-build' / name) for name in names}
+    hashes = {}
+    for name, path in paths.items():
+        if path.is_symlink() or not path.is_file():
+            raise ValueError('unsafe original transfer file')
+        with path.open('rb') as stream:hashes[name] = hashlib.file_digest(stream, 'sha256').hexdigest()
+    if hashes['result.bundle'] != result['bundle_sha256']:
+        raise ValueError('collected bundle differs')
+    data = {'unit': plan['unit'], 'attempt_id': result['attempt_id'], 'revision': result['revision'],
+            'baseline': plan['baseline'], 'files': hashes}
+    fd = os.open(intent, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(fd, 'w') as stream:
+        json.dump(data, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+    fd = os.open(run, os.O_RDONLY)
+    try:os.fsync(fd)
+    finally:os.close(fd)
+    remote('validation_transfer_begin', data)
+    for name, path in paths.items():copy(path, plan['unit'], name='validation-inputs/' + name)
+    return observe_validation_transfer(run)
+
+
+def observe_validation_transfer(run):
+    intent = json.loads((run / 'transfer-intent.json').read_text())
+    status = remote('validation_transfer_status', {'unit': intent['unit']})
+    if (status.get('revision') != intent['revision'] or status.get('attempt_id') != intent['attempt_id'] or
+            status.get('expected') != intent['files'] or
+            not isinstance(status.get('files'), dict) or set(status['files']) != set(intent['files']) or
+            type(status.get('complete')) is not bool or
+            any(type(value) is not bool for value in status['files'].values()) or
+            status['complete'] != all(status['files'].values())):
+        raise ValueError('original transfer observation differs')
+    return status
+
+
 def application_validation(run, plan, result):
     observed = remote('validation_status', {'unit': plan['unit']})
     proof = observed.get('validation') or {}
@@ -365,7 +414,7 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
@@ -385,6 +434,8 @@ def main():
         if not a.dockerfile or not a.build_signing_key:p.error('build-candidate requires --dockerfile and --build-signing-key')
         result = build_candidate(a.path.resolve(), a.dockerfile, a.build_signing_key)
     elif a.action == 'build-status':result = observe_candidate_build(a.path.resolve())
+    elif a.action == 'transfer-validation':result = transfer_validation_inputs(a.path.resolve())
+    elif a.action == 'transfer-status':result = observe_validation_transfer(a.path.resolve())
     elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)
     elif a.action == 'validation-status':
         plan = json.loads((a.path.resolve() / 'operator.json').read_text())
