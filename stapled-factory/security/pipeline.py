@@ -410,7 +410,7 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
             engines['image_dependency'] = 'unavailable'
         else:
             findings += image_findings
-            engines['image_dependency'] = 'osv-scanner-image'
+            engines['image_dependency'] = 'osv-scanner-image-incomplete'
             if hasattr(image_findings, 'inventory'):
                 with Path(image_archive).open('rb') as stream:source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
                 dependency_inventories.append({'kind': 'image', 'source_sha256': source_digest, **image_findings.inventory})

@@ -175,7 +175,7 @@ def test_prebuilt_image_findings_contribute_to_security_verdict(monkeypatch):
     monkeypatch.setattr(pipeline, 'run_osv_image', lambda path: [pipeline.Finding(
         'medium', 'dependency', 'TEST-IMAGE', 'fixture-package', 'known vulnerability')])
     report = pipeline.scan('safe', lockfiles=['package-lock.json'], image_archive='image.tar')
-    assert report.engines['image_dependency'] == 'osv-scanner-image'
+    assert report.engines['image_dependency'] == 'osv-scanner-image-incomplete'
     assert report.engines['dependency'] == 'osv-scanner-incomplete'
     assert report.verdict == 'needs_review'
     assert any(f.rule == 'TEST-IMAGE' for f in report.findings)
