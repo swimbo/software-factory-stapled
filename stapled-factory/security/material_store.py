@@ -1,6 +1,7 @@
 """Bounded reads from an operator-owned, digest-addressed material directory."""
 import hashlib
 import os
+import re
 import stat
 
 MAX_MATERIAL_BYTES = 256 * 1024 * 1024
@@ -25,6 +26,10 @@ class MaterialStore:
         os.close(self.fd)
 
     def verify(self, algorithm, digest, label):
+        lengths = {'sha256': 64, 'sha512': 128}
+        if (not isinstance(algorithm, str) or algorithm not in lengths or not isinstance(digest, str) or
+                not re.fullmatch(r'[0-9a-f]{' + str(lengths[algorithm]) + '}', digest)):
+            raise ValueError('invalid material identity')
         key = (algorithm, digest)
         if key in self.checked:
             return
