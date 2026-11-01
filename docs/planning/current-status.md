@@ -65,6 +65,8 @@ A second dedicated local Buildx builder also started with `network=none`, but in
 
 Local fixed-recipe npm and Cargo smoke builds consumed independently verified frozen material snapshots with networking disabled. The npm fixture also completed a separate real build-to-signature check; Cargo compiled a synthetic one-crate binary. Both remain incomplete coverage, and neither establishes publisher identity or a production application. [Controlled-build smoke](../verification/delivery-lifecycle-2026-11-01/controlled-build-smoke.md).
 
+A frozen runtime release at revision `5a44f946ada7c56b4a7e2d71caae90ee16181c6e` is staged on the NUC under `releases/5a44f946ada7c56b4a7e2d71caae90ee16181c6e`. Its exact-revision local CI passed (915 Python tests, 18 subtests and 36 Node tests), all 1,380 release files matched the manifest, and the staged verifier checked a synthetic signed npm material snapshot. Staged directory permissions were corrected after the first verifier check rejected group-writable directories. **It has not been activated:** the active endpoint remains on `b5fe329`, and complete dependency provenance and publication coverage remain open. No paired comparison has run against this staged release. [Fixture details](../verification/delivery-lifecycle-2026-11-01/controlled-build-smoke.md).
+
 ## Resume order
 
 1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.
