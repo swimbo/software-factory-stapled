@@ -122,8 +122,10 @@ The validator freezes that file, records the active validation release separatel
 from the original build release, and requires atomic-receipt capability. After
 an uncertain result, `validate-status` observes the original journal without
 reevaluating or resubmitting. `validate-resume` can continue from retained,
-completed checks before a submission was attempted; it never reruns the target
-or resends a recorded submission. The current
+completed checks before a submission was attempted. If the original evaluation
+intent exists but its session never started, it can claim that original session
+and start its first target under the journal lock. It never recreates an
+already-started target or resends a recorded submission. The current
 live runtime and scanner coverage do not yet satisfy these gates.
 
 `publish` requires matching accepted application validation and complete

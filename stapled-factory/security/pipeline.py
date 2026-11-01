@@ -148,13 +148,22 @@ def run_gitleaks(target: str) -> list[Finding] | None:
 
 def run_osv_scanner(lockfile: str) -> list[Finding] | None:
     """Run OSV-Scanner (dependency vulnerabilities). Returns None if absent."""
+    return _run_osv(['scan', '-L', lockfile])
+
+
+def run_osv_image(archive: str) -> list[Finding] | None:
+    """Scan the saved, already identity-verified image without executing it."""
+    return _run_osv(['scan', 'image', '--archive', archive])
+
+
+def _run_osv(target_args: list[str]) -> list[Finding] | None:
     if not _which("osv-scanner"):
         return None
     # A candidate-controlled osv-scanner.toml must not suppress findings.
     with NamedTemporaryFile(suffix='.toml') as config:
         config.write(b'# operator-controlled empty configuration\n');config.flush()
         r = subprocess.run(
-            ["osv-scanner", "scan", "-L", lockfile, "--format", "json", "--config", config.name],
+            ["osv-scanner", *target_args, "--format", "json", "--config", config.name],
             capture_output=True, text=True, timeout=180,
         )
     if r.returncode not in (0, 1):
@@ -274,7 +283,7 @@ def _verdict(findings: list[Finding], security_relevant: bool) -> str:
     return "pass"
 
 
-def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None = None, lockfile: str | None = None, lockfiles: list[str] | None = None) -> ScanReport:
+def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None = None, lockfile: str | None = None, lockfiles: list[str] | None = None, image_archive: str | None = None) -> ScanReport:
     """Run the pipeline. Uses real engines when installed, regex fallback otherwise."""
     paths = paths or []
     findings: list[Finding] = []
@@ -308,11 +317,19 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
             if dependency_findings is None:
                 raise ValueError('OSV scanner became unavailable')
             findings += dependency_findings
-        # Discovery alone cannot prove every dependency is represented.
-        engines["dependency"] = "osv-scanner" if lockfile else "osv-scanner-incomplete"
+        # A selected lockfile alone cannot prove every dependency is represented.
+        engines["dependency"] = "osv-scanner-incomplete"
     else:
         findings += _regex_dependencies(diff_text)
         engines["dependency"] = "regex-fallback" if selected_lockfiles else "manifest-flag"
+
+    if image_archive:
+        image_findings = run_osv_image(image_archive)
+        if image_findings is None:
+            engines['image_dependency'] = 'unavailable'
+        else:
+            findings += image_findings
+            engines['image_dependency'] = 'osv-scanner-image'
 
     security_relevant = classify_security_relevance(paths, diff_text)
     return ScanReport(

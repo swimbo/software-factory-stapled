@@ -384,6 +384,13 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
     binding=json.loads(Path(manifest).read_text())
     if hashlib.sha256(Path(manifest).with_name('Dockerfile').read_bytes()).hexdigest()!=binding['dockerfile_sha256']:raise ValueError('signed Dockerfile mismatch')
     if binding['revision']!=revision or binding['baseline']!=baseline or binding['archive_sha256']!=digest or binding['diff_sha256']!=hashlib.sha256(diff).hexdigest():raise ValueError('signed build source mismatch')
+    scenario_digest=hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()
+    metadata=json.loads(command('docker','image','inspect',image))[0]
+    labels=metadata['Config']['Labels'] or {}
+    if labels.get('factory.git-revision')!=revision or labels.get('factory.source-archive-sha256')!=digest:
+        raise ValueError('prebuilt source binding mismatch')
+    if evidence_dir is None:
+        raise ValueError('durable validation evidence directory required')
     # Docker save gives the exact config bytes underlying the image selected by
     # the trusted daemon; config IDs and OCI manifest IDs differ across engines.
     with tempfile.TemporaryDirectory(prefix='image-binding-') as tmp:
@@ -394,39 +401,33 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
             if len(entries)!=1:raise ValueError('ambiguous saved image')
             config=tar.extractfile(entries[0]['Config']).read()
         if 'sha256:'+hashlib.sha256(config).hexdigest()!=binding['config_digest']:raise ValueError('signed build artifact mismatch')
-    scenario_digest=hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()
-    metadata=json.loads(command('docker','image','inspect',image))[0]
-    labels=metadata['Config']['Labels'] or {}
-    if labels.get('factory.git-revision')!=revision or labels.get('factory.source-archive-sha256')!=digest:
-        raise ValueError('prebuilt source binding mismatch')
-    if evidence_dir is None:
-        raise ValueError('durable validation evidence directory required')
-    with tempfile.TemporaryDirectory(prefix='prebuilt-validation-') as temp:
-        source=Path(temp)/'source';source.mkdir()
-        with tarfile.open(fileobj=io.BytesIO(raw)) as tar:tar.extractall(source,filter='data')
-        trusted_diff=Path(temp)/'trusted.diff';trusted_diff.write_bytes(diff)
-        lockfiles = archive_lockfiles(raw, source)
-        security_args = ['python3', str(ROOT/'security/pipeline_cli.py'), '--diff-file', str(trusted_diff), '--target', str(source)]
-        for lockfile in lockfiles:
-            security_args.extend(['--lockfile', lockfile])
-        security=json.loads(command(*security_args,timeout=180))
-        with candidate_lifecycle(evidence_dir, image) as container:
-            def identity():
-                state=json.loads(command('docker','inspect',container))[0]
-                if state['Id']!=container or state['Image']!=metadata['Id'] or not state['State']['Running'] or state['HostConfig']['NetworkMode']!='none' or state.get('Mounts'):
-                    raise ValueError('candidate identity/isolation changed')
-            transport=CandidateTransport(container)
-            transport_lock=threading.Lock()
-            identity();time.sleep(.3)
-            try:
-                with candidate_http_server(transport, transport_lock) as server:
-                    target='http://127.0.0.1:'+str(server.server_port)
-                    wall=json.loads(command('python3',str(ROOT/'wall/evaluator/cli.py'),'--target',target,'--scenarios',str(scenarios),'--runs','3',timeout=180))
-                    identity()
-                    if hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()!=scenario_digest:raise ValueError('scenario set changed')
-                    result = dict(scope='nuc-disposable-candidate',git_revision=revision,artifact_digest=metadata['Id'],deployment_id=container,source_archive_digest=digest,scenario_digest=scenario_digest,security=security,wall=wall,passed=security['verdict']=='pass' and wall['verdict']['passed'])
-                    record(Path(evidence_dir) / 'checks.json', result)
-            finally:
-                transport.close()
-        record(Path(evidence_dir) / 'result.json', result)
-        return result
+        with tempfile.TemporaryDirectory(prefix='prebuilt-validation-') as temp:
+            source=Path(temp)/'source';source.mkdir()
+            with tarfile.open(fileobj=io.BytesIO(raw)) as tar:tar.extractall(source,filter='data')
+            trusted_diff=Path(temp)/'trusted.diff';trusted_diff.write_bytes(diff)
+            lockfiles = archive_lockfiles(raw, source)
+            security_args = ['python3', str(ROOT/'security/pipeline_cli.py'), '--diff-file', str(trusted_diff),
+                             '--target', str(source), '--image-archive', str(saved)]
+            for lockfile in lockfiles:
+                security_args.extend(['--lockfile', lockfile])
+            security=json.loads(command(*security_args,timeout=360))
+    with candidate_lifecycle(evidence_dir, image) as container:
+        def identity():
+            state=json.loads(command('docker','inspect',container))[0]
+            if state['Id']!=container or state['Image']!=metadata['Id'] or not state['State']['Running'] or state['HostConfig']['NetworkMode']!='none' or state.get('Mounts'):
+                raise ValueError('candidate identity/isolation changed')
+        transport=CandidateTransport(container)
+        transport_lock=threading.Lock()
+        identity();time.sleep(.3)
+        try:
+            with candidate_http_server(transport, transport_lock) as server:
+                target='http://127.0.0.1:'+str(server.server_port)
+                wall=json.loads(command('python3',str(ROOT/'wall/evaluator/cli.py'),'--target',target,'--scenarios',str(scenarios),'--runs','3',timeout=180))
+                identity()
+                if hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()!=scenario_digest:raise ValueError('scenario set changed')
+                result = dict(scope='nuc-disposable-candidate',git_revision=revision,artifact_digest=metadata['Id'],deployment_id=container,source_archive_digest=digest,scenario_digest=scenario_digest,security=security,wall=wall,passed=security['verdict']=='pass' and wall['verdict']['passed'])
+                record(Path(evidence_dir) / 'checks.json', result)
+        finally:
+            transport.close()
+    record(Path(evidence_dir) / 'result.json', result)
+    return result

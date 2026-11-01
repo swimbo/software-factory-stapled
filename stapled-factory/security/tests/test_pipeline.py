@@ -109,7 +109,7 @@ def test_osv_findings_and_clean_report_remain_distinct(monkeypatch):
         monkeypatch.setattr(pipeline.subprocess, 'run', run)
         report = pipeline.scan('safe change', lockfile='package-lock.json')
         assert report.verdict == ('pass' if code == 0 else 'needs_review')
-        assert report.engines['dependency'] == 'osv-scanner'
+        assert report.engines['dependency'] == 'osv-scanner-incomplete'
 
 
 def test_osv_disappearing_after_discovery_cannot_pass(monkeypatch):
@@ -129,3 +129,16 @@ def test_multiple_lockfiles_are_all_scanned_and_partial_coverage_is_labelled(mon
     report = pipeline.scan('safe', lockfiles=['a/Cargo.lock', 'b/package-lock.json'])
     assert seen == ['a/Cargo.lock', 'b/package-lock.json']
     assert report.engines['dependency'] == 'osv-scanner-incomplete'
+
+
+def test_prebuilt_image_findings_contribute_to_security_verdict(monkeypatch):
+    import pipeline
+    monkeypatch.setattr(pipeline, '_which', lambda tool: 'fixture' if tool == 'osv-scanner' else None)
+    monkeypatch.setattr(pipeline, 'run_osv_scanner', lambda path: [])
+    monkeypatch.setattr(pipeline, 'run_osv_image', lambda path: [pipeline.Finding(
+        'medium', 'dependency', 'TEST-IMAGE', 'fixture-package', 'known vulnerability')])
+    report = pipeline.scan('safe', lockfiles=['package-lock.json'], image_archive='image.tar')
+    assert report.engines['image_dependency'] == 'osv-scanner-image'
+    assert report.engines['dependency'] == 'osv-scanner-incomplete'
+    assert report.verdict == 'needs_review'
+    assert any(f.rule == 'TEST-IMAGE' for f in report.findings)

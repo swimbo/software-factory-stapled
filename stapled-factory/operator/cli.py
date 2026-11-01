@@ -446,7 +446,8 @@ def application_validation(run, plan, result):
         raise ValueError('validation source archive differs from collected revision')
     engines = proof.get('security_engines') or {}
     if any(engines.get(k) != v for k, v in {'sast': 'semgrep+diff-regex',
-            'secret': 'gitleaks+diff-regex', 'dependency': 'osv-scanner'}.items()):
+            'secret': 'gitleaks+diff-regex', 'dependency': 'osv-scanner',
+            'image_dependency': 'osv-scanner-image'}.items()):
         raise ValueError('complete application security engines required')
     return proof
 

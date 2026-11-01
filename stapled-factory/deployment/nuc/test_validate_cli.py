@@ -148,3 +148,26 @@ def test_cli_refuses_external_signing_destination_before_key_access(tmp_path):
     values['ingress'] = 'http://external.invalid:18080'
     with pytest.raises(ValueError, match='loopback'):
         cli.main(arguments(values))
+
+
+def test_unstarted_resume_requires_matching_original_outer_intent(tmp_path, monkeypatch):
+    cli = load_cli();values = inputs(tmp_path)
+    values['session-dir'] = str(tmp_path/'validation-session')
+    release = tmp_path/'release';release.mkdir()
+    manifest = release/'release-manifest.json';manifest.write_bytes(b'frozen release')
+    digest = hashlib.sha256(Path(values['scenarios']).read_bytes()).hexdigest()
+    original = {'unit': values['unit'], 'attempt_id': values['attempt'], 'revision': values['revision'],
+                'baseline': values['baseline'], 'image_id': values['prebuilt-image'], 'scenario_sha256': digest,
+                'release': str(release), 'release_manifest_sha256': hashlib.sha256(manifest.read_bytes()).hexdigest(),
+                'validator_sha256': hashlib.sha256(Path(cli.__file__).read_bytes()).hexdigest()}
+    intent = tmp_path/'evaluation-intent.json';intent.write_text(json.dumps(original));intent.chmod(0o600)
+    monkeypatch.setattr(cli, 'post', lambda *args: {'receipt_storage': 'atomic-v1'})
+    calls = []
+    monkeypatch.setattr(cli, 'validate_session', lambda *args, **kwargs: calls.append(kwargs) or {'accepted': True})
+    extra = ['--resume-only', '--resume-unstarted', '--expected-scenario-digest', digest]
+    assert cli.main(arguments(values) + extra)['accepted'] is True
+    assert calls == [{'observe_only': False, 'resume_only': True, 'resume_unstarted': True}]
+    original['revision'] = 'f'*40;intent.write_text(json.dumps(original));intent.chmod(0o600)
+    with pytest.raises(ValueError, match='intent differs'):
+        cli.main(arguments(values) + extra)
+    assert len(calls) == 1

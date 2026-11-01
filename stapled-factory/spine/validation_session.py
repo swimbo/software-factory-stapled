@@ -92,14 +92,14 @@ def evidence(result, binding):
     return proof
 
 
-def validate_session(directory, binding, read_state, evaluate, submit, key, *, observe_only=False, resume_only=False):
+def validate_session(directory, binding, read_state, evaluate, submit, key, *, observe_only=False, resume_only=False, resume_unstarted=False):
     """Persist checks and envelope before one signed acceptance submission.
 
     Readback can prove a lost response succeeded. An unresolved submission or
     interrupted evaluation stays attached to its original intent; observation
     cannot create another target, submit another acceptance, or invoke a model.
     """
-    if observe_only and resume_only:
+    if observe_only and resume_only or resume_unstarted and not resume_only:
         raise ValueError('observation and continuation are mutually exclusive')
     validate_binding(binding)
     if not isinstance(key, bytes) or not 32 <= len(key) <= 4096:
@@ -119,8 +119,11 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
         state = read_state()
         selected(state, binding)
         if not original:
-            if observe_only or resume_only:
+            if observe_only or resume_only and not resume_unstarted:
                 raise ValueError('no original validation to observe')
+            if resume_unstarted and any(os.path.lexists(root / name) for name in
+                                        ('target', 'checks.json', 'envelope.json', 'submission.json', 'accepted.json')):
+                raise ValueError('original target exists without journal; do not recreate')
             if state['stage'] != 'needs_validation' or state.get('validation'):
                 raise ValueError('selected build already has different validation authority')
             record(intent, binding)
@@ -131,7 +134,12 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
                 result = read(retained)
                 evidence(result, binding)
                 record(checks_path, result)
-            elif original or observe_only or resume_only:
+            elif resume_unstarted and not any(os.path.lexists(root / name) for name in
+                                               ('target', 'envelope.json', 'submission.json', 'accepted.json')):
+                result = evaluate()
+                evidence(result, binding)
+                record(checks_path, result)
+            elif original or observe_only or resume_only and not resume_unstarted:
                 raise ValueError('original evaluation incomplete; inspect retained target, never recreate')
             else:
                 result = evaluate()

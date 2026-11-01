@@ -452,6 +452,31 @@ def test_operator_prepare_observation_does_not_reclone_or_accept_other_image(tmp
         cli.prepare_validation_source(tmp_path, observe_only=True)
 
 
+def test_scanner_bundle_verifies_exact_files_and_rejects_tampering(tmp_path, monkeypatch):
+    import hashlib
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    root = tmp_path/'scanners';root.mkdir(mode=0o700)
+    package = root/'fixture';package.mkdir(mode=0o700)
+    scan = package/'scanner';(scan/'bin').mkdir(parents=True)
+    for name in ('semgrep', 'pysemgrep', 'gitleaks', 'osv-scanner', 'cosign'):
+        path = scan/'bin'/name;path.write_bytes(b'fixture-scanner');path.chmod(0o755)
+    manifest = package/'files-final.json'
+    manifest.write_text(json.dumps({'bin/'+name: hashlib.sha256(b'fixture-scanner').hexdigest()
+                                    for name in ('semgrep', 'pysemgrep', 'gitleaks', 'osv-scanner', 'cosign')}))
+    selection = root/'selection.json'
+    selection.write_text(json.dumps({'bundle': 'fixture', 'manifest_sha256': hashlib.sha256(manifest.read_bytes()).hexdigest()}))
+    selection.chmod(0o600)
+    result = nuc.scanner_bundle()
+    assert result['bin'] == str(scan/'bin')
+    (scan/'bin'/'semgrep').write_bytes(b'tampered')
+    with pytest.raises(ValueError, match='scanner'):
+        nuc.scanner_bundle()
+    (scan/'bin'/'semgrep').write_bytes(b'fixture-scanner')
+    (scan/'untracked.py').write_text('unexpected code')
+    with pytest.raises(ValueError, match='scanner'):
+        nuc.scanner_bundle()
+
+
 @pytest.mark.parametrize('capable', [False, True])
 def test_evaluation_preflight_and_lost_response_never_repeat(tmp_path, monkeypatch, capable):
     import subprocess
@@ -472,6 +497,7 @@ def test_evaluation_preflight_and_lost_response_never_repeat(tmp_path, monkeypat
     (approval/'operator.json').write_text(json.dumps({'release': str(release)}))
     monkeypatch.setattr(nuc, 'release', lambda: release)
     monkeypatch.setattr(nuc, 'verify_release', lambda path: Path(path))
+    monkeypatch.setattr(nuc, 'scanner_bundle', lambda selected=None: {'bundle': 'fixture', 'manifest_sha256': 'f'*64, 'bin': '/fixture/bin'})
     monkeypatch.setattr(nuc, 'validation_capabilities', lambda unit: {'receipt_storage': 'atomic-v1'} if capable else {})
     prepared = {'prepared': True, 'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
                 'baseline': 'b'*40, 'image_id': 'sha256:'+'c'*64}
@@ -497,6 +523,20 @@ def test_evaluation_preflight_and_lost_response_never_repeat(tmp_path, monkeypat
         with pytest.raises(ValueError, match='original evaluation'):
             nuc.main('validation_execute', {'unit': 'unit-1', 'validator_sha256': validator_sha256})
         assert len(calls) == 1
+        # Model a crash between the durable outer intent and frozen holdout.
+        (target/'frozen-scenarios.json').write_bytes(b'partial')
+        proof = {'unit_id': 'unit-1', 'checks_digest': 'd'*64}
+        def resumed_route(action, data):
+            if action == 'validation_status':return {'accepted': True, 'validation': proof}
+            return route(action, data)
+        monkeypatch.setattr(nuc, 'main', resumed_route)
+        def resume(args, **kwargs):
+            assert '--resume-only' in args and '--resume-unstarted' in args
+            assert (target/'frozen-scenarios.json').read_bytes() == b'partial'
+            assert Path(args[args.index('--scenarios')+1]).read_bytes() == b'{}'
+            return subprocess.CompletedProcess(args, 0, json.dumps({'accepted': True, 'evidence': proof}), '')
+        monkeypatch.setattr(nuc.subprocess, 'run', resume)
+        assert nuc.main('validation_execute_resume', {'unit': 'unit-1'})['accepted'] is True
 
 
 def test_evaluation_uses_frozen_holdout_and_observes_same_receipt(tmp_path, monkeypatch):
@@ -520,6 +560,7 @@ def test_evaluation_uses_frozen_holdout_and_observes_same_receipt(tmp_path, monk
     monkeypatch.setattr(nuc, 'release', lambda: release)
     verified = []
     monkeypatch.setattr(nuc, 'verify_release', lambda path: verified.append(path) or Path(path))
+    monkeypatch.setattr(nuc, 'scanner_bundle', lambda selected=None: {'bundle': 'fixture', 'manifest_sha256': 'f'*64, 'bin': '/fixture/bin'})
     monkeypatch.setattr(nuc, 'validation_capabilities', lambda unit: {'receipt_storage': 'atomic-v1'})
     prepared = {'prepared': True, 'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
                 'baseline': 'b'*40, 'image_id': 'sha256:'+'c'*64}
@@ -646,7 +687,7 @@ def test_application_publication_requires_exact_accepted_artifact_and_security(t
     proof = {'unit_id': 'unit-1', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40,
              'source_archive_digest': digest,
              'security_engines': {'sast': 'semgrep+diff-regex', 'secret': 'gitleaks+diff-regex',
-                                  'dependency': 'osv-scanner'}}
+                                  'dependency': 'osv-scanner', 'image_dependency': 'osv-scanner-image'}}
     observed = {'accepted': True, 'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'validation': proof}
     monkeypatch.setattr(cli, 'remote', lambda action, data: observed)
     monkeypatch.setattr(cli.subprocess, 'check_output', lambda args: archive)
@@ -657,7 +698,8 @@ def test_application_publication_requires_exact_accepted_artifact_and_security(t
         with pytest.raises(ValueError, match='validation'):
             cli.application_validation(tmp_path, plan, result)
     for changed_proof in ({**proof, 'source_archive_digest': 'c'*64},
-                          {**proof, 'security_engines': {'sast': 'regex-fallback'}}):
+                          {**proof, 'security_engines': {'sast': 'regex-fallback'}},
+                          {**proof, 'security_engines': {k: v for k, v in proof['security_engines'].items() if k != 'image_dependency'}}):
         monkeypatch.setattr(cli, 'remote', lambda action, data: {**observed, 'validation': changed_proof})
         with pytest.raises(ValueError, match='validation|security'):
             cli.application_validation(tmp_path, plan, result)
@@ -696,7 +738,7 @@ def test_publish_includes_matching_receipt_in_pr(tmp_path, monkeypatch):
     archive = b'archive'; proof = {'unit_id': 'unit-1', 'attempt_id': 'unit-1:0', 'git_revision': 'b'*40,
         'source_archive_digest': hashlib.sha256(archive).hexdigest(), 'artifact_digest': 'sha256:'+'c'*64,
         'checks_digest': 'd'*64, 'scenario_digest': 'e'*64,
-        'security_engines': {'sast': 'semgrep+diff-regex', 'secret': 'gitleaks+diff-regex', 'dependency': 'osv-scanner'}}
+        'security_engines': {'sast': 'semgrep+diff-regex', 'secret': 'gitleaks+diff-regex', 'dependency': 'osv-scanner', 'image_dependency': 'osv-scanner-image'}}
     monkeypatch.setattr(cli, 'remote', lambda action, data: {'accepted': True, 'revision': 'b'*40,
                         'attempt_id': 'unit-1:0', 'validation': proof})
     monkeypatch.setattr(cli.subprocess, 'check_output', lambda args: archive)

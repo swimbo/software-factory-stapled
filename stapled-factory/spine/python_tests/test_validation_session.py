@@ -88,6 +88,52 @@ def test_continuation_without_completed_checks_never_restarts_target(tmp_path):
     assert runtime.evaluations == 0 and runtime.submissions == 0
 
 
+def test_explicit_prejournal_continuation_claims_exactly_one_original_run(tmp_path):
+    runtime = Runtime(); folder = tmp_path/'session'
+    accepted = runtime.run(folder, resume_only=True, resume_unstarted=True)
+    assert accepted['accepted'] is True
+    assert runtime.evaluations == 1 and runtime.submissions == 1
+    assert runtime.run(folder, resume_only=True, resume_unstarted=True) == accepted
+    assert runtime.evaluations == 1 and runtime.submissions == 1
+
+
+def test_prejournal_continuation_never_recreates_existing_target(tmp_path):
+    runtime = Runtime(); folder = tmp_path/'session'; folder.mkdir(mode=0o700)
+    (folder/'target').mkdir(mode=0o700)
+    with pytest.raises(ValueError, match='original'):
+        runtime.run(folder, resume_only=True, resume_unstarted=True)
+    assert runtime.evaluations == 0 and runtime.submissions == 0
+
+
+def test_resume_can_claim_journal_intent_when_no_target_was_created(tmp_path):
+    runtime = Runtime(); folder = tmp_path/'session'; folder.mkdir(mode=0o700)
+    m.record(folder/'intent.json', binding())
+    assert runtime.run(folder, resume_only=True, resume_unstarted=True)['accepted'] is True
+    assert runtime.evaluations == 1 and runtime.submissions == 1
+
+
+def test_prejournal_continuation_serializes_against_original_start(tmp_path):
+    import threading
+    runtime = Runtime(); folder = tmp_path/'session'
+    started = threading.Event(); release = threading.Event(); outcomes = []
+    def evaluate():
+        runtime.evaluations += 1
+        started.set()
+        assert release.wait(5)
+        return result()
+    runtime.evaluate = evaluate
+    thread = threading.Thread(target=lambda: outcomes.append(runtime.run(folder)))
+    thread.start()
+    try:
+        assert started.wait(5)
+        with pytest.raises(BlockingIOError):
+            runtime.run(folder, resume_only=True, resume_unstarted=True)
+    finally:
+        release.set(); thread.join(5)
+    assert not thread.is_alive() and outcomes[0]['accepted'] is True
+    assert runtime.evaluations == 1 and runtime.submissions == 1
+
+
 class Runtime:
     def __init__(self):
         self.state = {'stage': 'needs_validation', 'build': {

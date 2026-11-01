@@ -5,6 +5,7 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sqlite3
 import stat
@@ -73,6 +74,46 @@ def verify_release(path):
         if hashlib.sha256((path / name).read_bytes()).hexdigest() != digest:
             raise ValueError('frozen release changed')
     return path
+
+
+def scanner_bundle(selected=None):
+    """Bind validation to an owner-selected, fully verified scanner tree."""
+    root = ROOT/'scanners'
+    if selected is None:
+        selection = root/'selection.json'
+        st = selection.lstat()
+        if selection.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077:
+            raise ValueError('owner-only scanner selection required')
+        selected = json.loads(selection.read_text())
+    if (not isinstance(selected, dict) or set(selected) != {'bundle', 'manifest_sha256'} or
+            not isinstance(selected['bundle'], str) or not re.fullmatch(r'[A-Za-z0-9_-]+', selected['bundle']) or
+            not isinstance(selected['manifest_sha256'], str) or not re.fullmatch(r'[a-f0-9]{64}', selected['manifest_sha256'])):
+        raise ValueError('invalid scanner selection')
+    package = root/selected['bundle'];tree = package/'scanner';manifest = package/'files-final.json'
+    for directory in (root, package, tree):
+        st = directory.lstat()
+        if directory.is_symlink() or not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+            raise ValueError('unsafe scanner directory')
+    st = manifest.lstat()
+    if manifest.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+        raise ValueError('unsafe scanner manifest')
+    data = manifest.read_bytes()
+    if hashlib.sha256(data).hexdigest() != selected['manifest_sha256']:
+        raise ValueError('scanner manifest differs')
+    expected = json.loads(data)
+    if not isinstance(expected, dict) or not all('bin/'+n in expected for n in ('semgrep', 'pysemgrep', 'gitleaks', 'osv-scanner', 'cosign')):
+        raise ValueError('incomplete scanner manifest')
+    actual = {}
+    for path in tree.rglob('*'):
+        st = path.lstat()
+        if path.is_symlink() or st.st_uid != os.getuid() or st.st_mode & 0o022:
+            raise ValueError('unsafe scanner file')
+        if stat.S_ISREG(st.st_mode):
+            with path.open('rb') as stream:actual[str(path.relative_to(tree))] = hashlib.file_digest(stream, 'sha256').hexdigest()
+        elif not stat.S_ISDIR(st.st_mode):raise ValueError('unsafe scanner file')
+    if actual != expected or any(not os.access(tree/'bin'/n, os.X_OK) for n in ('semgrep', 'pysemgrep', 'gitleaks', 'osv-scanner', 'cosign')):
+        raise ValueError('scanner files differ')
+    return {'bundle': selected['bundle'], 'manifest_sha256': selected['manifest_sha256'], 'bin': str(tree/'bin')}
 
 
 def release():
@@ -173,9 +214,11 @@ def main(action, data):
         plan = json.loads((approval/'operator.json').read_text())
         if action == 'validation_execute':
             rel = release()
+            scanners = scanner_bundle()
         else:
             recorded = json.loads(intent_path.read_text())
             rel = verify_release(recorded['release'])
+            scanners = scanner_bundle({k: recorded['scanners'][k] for k in ('bundle', 'manifest_sha256')})
         manifest_bytes = (rel/'release-manifest.json').read_bytes()
         manifest = json.loads(manifest_bytes)
         required = ('stapled-factory/deployment/nuc/validate.py', 'stapled-factory/spine/validation_session.py',
@@ -214,6 +257,7 @@ def main(action, data):
                     'baseline': prepared['baseline'], 'image_id': prepared['image_id'],
                     'release': str(rel), 'build_release': plan['release'],
                     'release_manifest_sha256': hashlib.sha256(manifest_bytes).hexdigest(),
+                    'scanners': scanners,
                     'scenario_sha256': scenario_sha256, 'validator_sha256': script_sha256}
         if action == 'validation_execute':
             try:capabilities = validation_capabilities(unit)
@@ -235,12 +279,34 @@ def main(action, data):
         else:
             if recorded != original:
                 raise ValueError('original evaluation binding differs')
+            scenario_matches = (not scenarios.is_symlink() and scenarios.is_file() and
+                                hashlib.sha256(scenarios.read_bytes()).hexdigest() == scenario_sha256)
+            if action == 'validation_execute_resume' and not scenario_matches:
+                source = approval/'holdouts/scenarios.json'
+                holdout = main('validation_holdout_status', {'unit': unit})
+                if (holdout.get('complete') is not True or holdout.get('sha256') != scenario_sha256 or
+                        holdout.get('attempt_id') != original['attempt_id'] or holdout.get('revision') != original['revision']):
+                    raise ValueError('original private holdout unavailable')
+                scenario_bytes = source.read_bytes()
+                if hashlib.sha256(scenario_bytes).hexdigest() != scenario_sha256:
+                    raise ValueError('original private holdout changed')
+                scenarios = target/'recovery-scenarios.json'
+                try:
+                    fd = os.open(scenarios, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+                except FileExistsError:
+                    pass  # A previous continuation may have frozen this holdout.
+                else:
+                    with os.fdopen(fd, 'wb') as stream:
+                        stream.write(scenario_bytes);stream.flush();os.fsync(stream.fileno())
+                    fd = os.open(target, os.O_RDONLY)
+                    try:os.fsync(fd)
+                    finally:os.close(fd)
             if scenarios.is_symlink() or not scenarios.is_file():
                 return {'status': 'unresolved', 'reason': 'original frozen holdout unavailable'}
             with scenarios.open('rb') as stream:
                 if hashlib.file_digest(stream, 'sha256').hexdigest() != scenario_sha256:
                     raise ValueError('original frozen holdout differs')
-            if not (session/'intent.json').is_file():
+            if action == 'validation_execute_status' and not (session/'intent.json').is_file():
                 return {'status': 'unresolved', 'reason': 'original evaluation journal not established'}
         args = ['python3', str(script), '--repo', str(target/'source-repo'), '--revision', original['revision'],
                 '--baseline', original['baseline'], '--scenarios', str(scenarios), '--unit', unit,
@@ -251,8 +317,9 @@ def main(action, data):
                 '--build-signature', str(target/'build.sig'), '--session-dir', str(session),
                 '--ingress', f'http://127.0.0.1:{RAW_INGRESS_PORT}']
         if action == 'validation_execute_status':args.append('--observe-only')
-        if action == 'validation_execute_resume':args.append('--resume-only')
+        if action == 'validation_execute_resume':args.extend(['--resume-only', '--resume-unstarted'])
         env = {k: v for k, v in os.environ.items() if not k.startswith('FACTORY_')}
+        env['PATH'] = scanners['bin'] + os.pathsep + env.get('PATH', os.defpath)
         env['FACTORY_BUILD_APPROVAL_PUBLIC_KEY'] = str(ROOT/'operator-build-public.pem')
         completed = subprocess.run(args, capture_output=True, text=True, timeout=900, env=env)
         try:result = json.loads(completed.stdout)

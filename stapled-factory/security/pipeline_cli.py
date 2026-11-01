@@ -19,10 +19,11 @@ def main() -> None:
     ap.add_argument("--paths", nargs="*", default=[], help="changed file paths (for relevance classification)")
     ap.add_argument("--target", default=None, help="explicit target dir for Semgrep/Gitleaks")
     ap.add_argument("--lockfile", action="append", default=[], help="lockfile for OSV-Scanner; repeat for multiple files")
+    ap.add_argument("--image-archive", default=None, help="verified Docker archive for OSV image scan")
     args = ap.parse_args()
 
     diff_text = Path(args.diff_file).read_text() if args.diff_file else sys.stdin.read()
-    report = scan(diff_text, args.paths, target=args.target, lockfiles=args.lockfile)
+    report = scan(diff_text, args.paths, target=args.target, lockfiles=args.lockfile, image_archive=args.image_archive)
     print(json.dumps(report.to_dict()))
 
 
