@@ -41,8 +41,6 @@ export const gate = restate.service({
     resolve: async (ctx: restate.Context, req: ResolveApproval): Promise<void> => {
       validateApprovalRequestId(req?.requestId);
       const store = ctx.objectClient(approvalStore, req.requestId);
-      // The atomic decision returns its original handle, including on a retry
-      // after a crash between committing the decision and resolving the waiter.
       const approval = await store.resolve({ decision: req.decision, approver: req.approver });
       ctx.resolveAwakeable(approval.awakeableId, approval.decision);
     },

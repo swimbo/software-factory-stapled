@@ -30,8 +30,9 @@ function validateReceipt(result: ValidationEvidence): void {
     throw Error('Invalid revision-bound wall receipt');
   }
   const usage = receipt.usage;
-  if (!usage || !['tokens_in', 'tokens_out', 'requests', 'retries', 'wall_clock_ms'].every(key => {
-    const value = usage[key as keyof typeof usage];
+  const counters = ['tokens_in', 'tokens_out', 'requests', 'retries', 'wall_clock_ms'] as const;
+  if (!usage || !counters.every(key => {
+    const value = usage[key];
     return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
   }) || typeof usage.tier !== 'string' || !['subscription', 'metered'].includes(usage.pricing_mode) ||
       usage.ceiling_violation !== '' ||

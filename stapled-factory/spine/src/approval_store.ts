@@ -1,9 +1,5 @@
 // ApprovalStore — the durable store backing the human gates.
 //
-// A Virtual Object keyed by requestId. Each key holds one approval record
-// (gate type, status, decision, the awakeable handle, timestamps). This is the
-// durable decision record. The planned append-only Postgres audit projection
-// and authenticated operator API are separate from this private Restate object.
 import * as restate from "@restatedev/restate-sdk";
 
 import { Approval, GateType } from "./types.js";

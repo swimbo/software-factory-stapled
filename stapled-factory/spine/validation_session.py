@@ -121,7 +121,6 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
             if original or observe_only:
                 raise ValueError('original evaluation incomplete; inspect retained target, never recreate')
             result = evaluate()
-            # Reject substituted or internally inconsistent results before sealing.
             evidence(result, binding)
             record(checks_path, result)
         result = read(checks_path)
