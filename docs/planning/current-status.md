@@ -16,6 +16,8 @@ Updated: November 1, 2026. **Paused at the user's request.** The full delivery o
 - Durable original-only disposable validation lifecycle, independent deadline enforcement, crash/uncertain-start observation and bounded candidate transport output.
 - Exact-build validation session binding, signed aggregate receipts, acceptance readback reconciliation and receipt storage code.
 - Approval identity/decision integrity and conflict rejection. Authenticated dashboard identity and PostgreSQL audit persistence remain outstanding.
+- Reconciled checkpoint `858df4e586d588112c2c131410c28b6ccf67fa2a` hardens operator recovery: collection is restricted to the exact selected completed original/successor and its durable allocation binding; an unknown selection performs no worker or host effect; a saved export is reused after interruption; and the previous endpoint binding is restored only after identity/scope checks.
+- Local checkpoint qualification passed the operator workflow suite (65 tests) and the full `deployment/nuc` suite (127 tests, 6 subtests). These fixture-backed tests qualify source behavior only; they do not contact or authorize the NUC, Docker, GitHub, a provider, or production approval.
 - Four confirmed foundation review findings were fixed and independently checked. The latest deadline retirement fix received a separate review with no actionable findings.
 - These local checks and code changes do not establish live end-to-end delivery or production readiness.
 
@@ -38,6 +40,10 @@ Private evidence/checkpoint directory on the Mac:
 First live probe evidence on the NUC:
 
 `/home/bo/.local/share/stapled-factory-control/probe-delivery-validation-20261101/attempt-1`
+
+## Remaining live operator approval gates
+
+The reconciled checkpoint does not consume or bypass any live gate. Before any runtime activation or delivery claim, an operator must explicitly authorize and observe: the corrected original unpaid lifecycle probe; exact-source prebuilt wall/security and substitution checks; signed matching-receipt acceptance and response-loss recovery; review/activation of an exact locally built release; operator source review before external publication; and separately signed application validation, merge, and deployment where those outcomes are in scope. A repository-only PR remains explicitly distinct from application validation and enterprise release approval.
 
 ## Resume order
 
