@@ -120,6 +120,83 @@ def test_cli_validation_status_observes_configured_unit(tmp_path, monkeypatch, c
     assert json.loads(capsys.readouterr().out) == {'accepted': False}
 
 
+def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):
+    import hashlib
+    archive = b'exact candidate archive'
+    digest = hashlib.sha256(archive).hexdigest()
+    plan = {'unit': 'unit-1'}
+    result = {'revision': 'a'*40, 'attempt_id': 'unit-1:0'}
+    proof = {'unit_id': 'unit-1', 'attempt_id': 'unit-1:0', 'git_revision': 'a'*40,
+             'source_archive_digest': digest,
+             'security_engines': {'sast': 'semgrep+diff-regex', 'secret': 'gitleaks+diff-regex',
+                                  'dependency': 'osv-scanner'}}
+    observed = {'accepted': True, 'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'validation': proof}
+    monkeypatch.setattr(cli, 'remote', lambda action, data: observed)
+    monkeypatch.setattr(cli.subprocess, 'check_output', lambda args: archive)
+    assert cli.application_validation(tmp_path, plan, result) == proof
+    for field, value in [('accepted', False), ('revision', 'b'*40), ('attempt_id', 'unit-1:0:successor')]:
+        changed = {**observed, field: value}
+        monkeypatch.setattr(cli, 'remote', lambda action, data: changed)
+        with pytest.raises(ValueError, match='validation'):
+            cli.application_validation(tmp_path, plan, result)
+    for changed_proof in ({**proof, 'source_archive_digest': 'c'*64},
+                          {**proof, 'security_engines': {'sast': 'regex-fallback'}}):
+        monkeypatch.setattr(cli, 'remote', lambda action, data: {**observed, 'validation': changed_proof})
+        with pytest.raises(ValueError, match='validation|security'):
+            cli.application_validation(tmp_path, plan, result)
+
+
+def test_publish_does_not_push_without_application_validation(tmp_path, monkeypatch):
+    import hashlib
+    repo = tmp_path / 'candidate';(repo / 'scripts').mkdir(parents=True)
+    (repo / 'scripts/verify-local.py').write_text('trusted runner')
+    check = tmp_path / 'check.py';check.write_text('operator check')
+    (tmp_path / 'operator.json').write_text(json.dumps({'unit': 'unit-1', 'baseline': 'a'*40,
+        'origin': 'https://github.com/example/repo', 'check_sha256': hashlib.sha256(check.read_bytes()).hexdigest()}))
+    (tmp_path / 'result.json').write_text(json.dumps({'revision': 'b'*40, 'attempt_id': 'unit-1:0'}))
+    def command(*args, **kwargs):
+        assert 'push' not in args and args[0] != 'gh'
+        if 'rev-parse' in args:return 'b'*40
+        if 'show' in args:return 'trusted runner'
+        return ''
+    monkeypatch.setattr(cli, 'command', command)
+    monkeypatch.setattr(cli.subprocess, 'run', lambda *args, **kwargs: None)
+    monkeypatch.setattr(cli, 'remote', lambda action, data: {'accepted': False})
+    with pytest.raises(ValueError, match='validation'):
+        cli.publish(tmp_path)
+
+
+def test_publish_includes_matching_receipt_in_pr(tmp_path, monkeypatch):
+    import hashlib
+    repo = tmp_path / 'candidate';(repo / 'scripts').mkdir(parents=True)
+    (repo / 'scripts/verify-local.py').write_text('trusted runner')
+    check = tmp_path / 'check.py';check.write_text('operator check')
+    plan = {'unit': 'unit-1', 'baseline': 'a'*40, 'origin': 'https://github.com/example/repo',
+            'github': 'example/repo', 'task': 'Add a feature', 'check_sha256': hashlib.sha256(check.read_bytes()).hexdigest()}
+    result = {'revision': 'b'*40, 'attempt_id': 'unit-1:0', 'budget': {}, 'runtime_validation': 'needs_validation'}
+    (tmp_path / 'operator.json').write_text(json.dumps(plan))
+    (tmp_path / 'result.json').write_text(json.dumps(result))
+    archive = b'archive'; proof = {'unit_id': 'unit-1', 'attempt_id': 'unit-1:0', 'git_revision': 'b'*40,
+        'source_archive_digest': hashlib.sha256(archive).hexdigest(), 'artifact_digest': 'sha256:'+'c'*64,
+        'checks_digest': 'd'*64, 'scenario_digest': 'e'*64,
+        'security_engines': {'sast': 'semgrep+diff-regex', 'secret': 'gitleaks+diff-regex', 'dependency': 'osv-scanner'}}
+    monkeypatch.setattr(cli, 'remote', lambda action, data: {'accepted': True, 'revision': 'b'*40,
+                        'attempt_id': 'unit-1:0', 'validation': proof})
+    monkeypatch.setattr(cli.subprocess, 'check_output', lambda args: archive)
+    monkeypatch.setattr(cli.subprocess, 'run', lambda *args, **kwargs: None)
+    def command(*args, **kwargs):
+        if 'rev-parse' in args:return 'b'*40
+        if 'show' in args:return 'trusted runner'
+        if args[:3] == ('gh', 'pr', 'list'):return '[]'
+        if args[:3] == ('gh', 'pr', 'create'):
+            body = (tmp_path / 'pr.md').read_text()
+            assert all(proof[k] in body for k in ('artifact_digest', 'checks_digest', 'scenario_digest'))
+            return 'https://github.com/example/repo/pull/1'
+        return ''
+    monkeypatch.setattr(cli, 'command', command)
+    assert cli.publish(tmp_path)['status'] == 'PR_OPEN'
+
+
 @pytest.mark.parametrize('successor_status', [None, 'completed', 'unknown'])
 def test_collection_exports_only_selected_completed_attempt(tmp_path, monkeypatch, successor_status):
     import sqlite3

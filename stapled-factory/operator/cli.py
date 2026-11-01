@@ -206,7 +206,25 @@ def run_task(run):
             'next': 'Review source and tests before publish executes candidate CI'}
 
 
-def publish(run):
+def application_validation(run, plan, result):
+    observed = remote('validation_status', {'unit': plan['unit']})
+    proof = observed.get('validation') or {}
+    if (observed.get('accepted') is not True or observed.get('revision') != result['revision'] or
+            observed.get('attempt_id') != result.get('attempt_id') or
+            proof.get('unit_id') != plan['unit'] or proof.get('attempt_id') != result.get('attempt_id') or
+            proof.get('git_revision') != result['revision']):
+        raise ValueError('matching accepted application validation required')
+    archive = subprocess.check_output(['git', '-C', str(run / 'candidate'), 'archive', result['revision']])
+    if hashlib.sha256(archive).hexdigest() != proof.get('source_archive_digest'):
+        raise ValueError('validation source archive differs from collected revision')
+    engines = proof.get('security_engines') or {}
+    if any(engines.get(k) != v for k, v in {'sast': 'semgrep+diff-regex',
+            'secret': 'gitleaks+diff-regex', 'dependency': 'osv-scanner'}.items()):
+        raise ValueError('complete application security engines required')
+    return proof
+
+
+def publish(run, *, repository_only=False):
     plan = json.loads((run / 'operator.json').read_text());repo = run / 'candidate'
     result = json.loads((run / 'result.json').read_text())
     if command('git', '-C', repo, 'rev-parse', 'HEAD') != result['revision'] or command('git', '-C', repo, 'status', '--porcelain'):
@@ -223,21 +241,30 @@ def publish(run):
     if (repo / path).read_text().strip() != original.strip():
         raise ValueError('local CI runner changed; manual verification required')
     subprocess.run([sys.executable, str(repo / path)], check=True)
+    proof = None if repository_only else application_validation(run, plan, result)
     branch = 'codex/' + plan['unit']
+    prs = json.loads(command('gh', 'pr', 'list', '-R', plan['github'], '--head', branch,
+                            '--state', 'open', '--json', 'url,headRefOid,body'))
+    if prs:
+        if len(prs) != 1 or prs[0]['headRefOid'] != result['revision']:
+            raise ValueError('ambiguous existing PR')
+        if proof and any(proof[k] not in (prs[0].get('body') or '')
+                         for k in ('artifact_digest', 'checks_digest', 'scenario_digest')):
+            raise ValueError('existing PR lacks matching application validation evidence')
     command('git', '-C', repo, 'push', 'origin', result['revision'] + ':refs/heads/' + branch)
     command('gh', 'api', 'repos/' + plan['github'] + '/statuses/' + result['revision'],
             '-f', 'state=success', '-f', 'context=local-ci/verified',
             '-f', 'description=Operator acceptance and exact local CI passed', '--silent')
-    prs = json.loads(command('gh', 'pr', 'list', '-R', plan['github'], '--head', branch,
-                            '--state', 'open', '--json', 'url,headRefOid'))
     if prs:
-        if len(prs) != 1 or prs[0]['headRefOid'] != result['revision']:raise ValueError('ambiguous existing PR')
         url = prs[0]['url']
     else:
+        validation_note = ('Repository-only publication; signed application validation was not established.' if repository_only else
+            'Signed application validation: artifact ' + proof['artifact_digest'] +
+            ', checks SHA-256 ' + proof['checks_digest'] + ', scenario SHA-256 ' + proof['scenario_digest'] + '.')
         (run / 'pr.md').write_text('## Outcome\n\n' + plan['task'] + '\n\n## Verification\n\n'
             'Produced by the real NUC Restate/OpenHands factory. Operator acceptance checks and exact local CI passed. '
             'No GitHub runners. Reservations are estimates; actual charges unknown.\n\n'
-            'Restate state: ' + result['runtime_validation'] + '. Local repository checks do not establish signed app validation.\n\n'
+            'Restate state: ' + result['runtime_validation'] + '. ' + validation_note + '\n\n'
             '## Release gate\n\nMerge and deployment remain explicit operator actions. Neither was performed.\n')
         url = command('gh', 'pr', 'create', '-R', plan['github'], '--base', 'main', '--head', branch,
                       '--title', plan['task'].splitlines()[0][:70], '--body-file', run / 'pr.md')
@@ -268,7 +295,7 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'publish', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     a = p.parse_args()
@@ -282,6 +309,7 @@ def main():
                  'next': 'Inspect preserved run and NUC binding; rerun run only to observe same intent'})
             raise
     elif a.action == 'publish':result = publish(a.path.resolve())
+    elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)
     elif a.action == 'validation-status':
         plan = json.loads((a.path.resolve() / 'operator.json').read_text())
         result = remote('validation_status', {'unit': plan['unit']})
