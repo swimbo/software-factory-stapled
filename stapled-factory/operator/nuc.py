@@ -131,6 +131,49 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action in ('validation_prepare', 'validation_prepare_status'):
+        target = approval / 'validation-inputs'
+        intent_path, repo = target / 'prepare-intent.json', target / 'source-repo'
+        if action == 'validation_prepare' and (intent_path.exists() or repo.exists()):
+            raise ValueError('original preparation exists; observe without repeating')
+        verified = main('validation_verify_transfer', {'unit': unit})
+        loaded = main('validation_load_status', {'unit': unit})
+        transfer = json.loads((target/'transfer-intent.json').read_text())
+        if (loaded.get('loaded') is not True or loaded.get('attempt_id') != verified['attempt_id'] or
+                loaded.get('revision') != verified['revision'] or loaded.get('config_digest') != verified['config_digest']):
+            raise ValueError('original verified image is not loaded')
+        original = {'unit': unit, 'attempt_id': verified['attempt_id'], 'revision': verified['revision'],
+                    'baseline': transfer['baseline'], 'image_id': loaded['image_id'],
+                    'source_sha256': transfer['files']['source.tar'], 'diff_sha256': transfer['files']['diff'],
+                    'bundle_sha256': transfer['files']['result.bundle']}
+        env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+        env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL='/dev/null', GIT_TERMINAL_PROMPT='0')
+        if action == 'validation_prepare':
+            fd = os.open(intent_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                json.dump(original, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+            subprocess.run(['git', '-c', 'core.hooksPath=/dev/null', 'clone', '--no-checkout', '--',
+                            str(target/'result.bundle'), str(repo)], check=True, capture_output=True, timeout=120, env=env)
+        elif json.loads(intent_path.read_text()) != original:
+            raise ValueError('original preparation binding differs')
+        for key in ('revision', 'baseline'):
+            actual = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', original[key]+'^{commit}'],
+                                             timeout=30, env=env).decode().strip()
+            if actual != original[key]:raise ValueError('prepared Git revision differs')
+        subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', original['baseline'], original['revision']],
+                       check=True, capture_output=True, timeout=30, env=env)
+        archive = subprocess.check_output(['git', '-C', str(repo), 'archive', original['revision']], timeout=120, env=env)
+        diff = subprocess.check_output(['git', '-C', str(repo), 'diff', '--no-ext-diff', '--no-textconv',
+                                        original['baseline'], original['revision']], timeout=120, env=env)
+        for name, raw, expected in [('source.tar', archive, original['source_sha256']), ('diff', diff, original['diff_sha256'])]:
+            with (target/name).open('rb') as stream:transferred_hash = hashlib.file_digest(stream, 'sha256').hexdigest()
+            if hashlib.sha256(raw).hexdigest() != expected or transferred_hash != expected:
+                raise ValueError('prepared ' + name + ' differs')
+        return {'prepared': True, 'unit': unit, 'attempt_id': original['attempt_id'],
+                'revision': original['revision'], 'baseline': original['baseline'], 'image_id': original['image_id']}
     if action in ('validation_load', 'validation_load_status'):
         target = approval / 'validation-inputs'
         intent_path = target / 'load-intent.json'

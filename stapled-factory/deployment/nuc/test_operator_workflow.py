@@ -401,6 +401,57 @@ def test_operator_load_status_never_sends_load_and_checks_image_identity(tmp_pat
         cli.validation_image_load(tmp_path, observe_only=True)
 
 
+def test_prepare_validation_repo_binds_bundle_without_recloning(tmp_path, monkeypatch):
+    import hashlib
+    import subprocess
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    target = tmp_path/'approvals/unit-1/validation-inputs';target.mkdir(parents=True)
+    source = tmp_path/'source';source.mkdir()
+    def git(*args):return subprocess.check_output(['git', '-C', str(source), *args]).strip()
+    git('init', '-q');git('config', 'user.name', 'Fixture');git('config', 'user.email', 'fixture@example.invalid')
+    (source/'app').write_text('before');git('add', 'app');git('commit', '-qm', 'base')
+    baseline = git('rev-parse', 'HEAD').decode()
+    (source/'app').write_text('after');git('commit', '-qam', 'candidate');revision = git('rev-parse', 'HEAD').decode()
+    git('bundle', 'create', str(target/'result.bundle'), '--all')
+    (target/'source.tar').write_bytes(subprocess.check_output(['git', '-C', str(source), 'archive', revision]))
+    (target/'diff').write_bytes(subprocess.check_output(['git', '-C', str(source), 'diff', baseline, revision]))
+    intent = {'unit': 'unit-1', 'attempt_id': 'unit-1:0', 'revision': revision, 'baseline': baseline,
+              'files': {name: hashlib.sha256((target/name).read_bytes()).hexdigest() for name in ('result.bundle', 'source.tar', 'diff')}}
+    (target/'transfer-intent.json').write_text(json.dumps(intent))
+    verified = {'verified': True, 'attempt_id': 'unit-1:0', 'revision': revision,
+                'config_digest': 'sha256:'+'b'*64, 'tag': 'fixture:tag'}
+    loaded = {'loaded': True, 'attempt_id': 'unit-1:0', 'revision': revision,
+              'config_digest': verified['config_digest'], 'tag': verified['tag'], 'image_id': 'sha256:'+'c'*64}
+    original = nuc.main
+    def route(action, data):
+        if action == 'validation_verify_transfer':return verified
+        if action == 'validation_load_status':return loaded
+        return original(action, data)
+    monkeypatch.setattr(nuc, 'main', route)
+    prepared = nuc.main('validation_prepare', {'unit': 'unit-1'})
+    assert prepared['prepared'] and prepared['revision'] == revision
+    assert nuc.main('validation_prepare_status', {'unit': 'unit-1'}) == prepared
+    with pytest.raises(ValueError, match='original preparation'):
+        nuc.main('validation_prepare', {'unit': 'unit-1'})
+    (target/'diff').write_bytes(b'changed')
+    with pytest.raises(ValueError, match='diff'):
+        nuc.main('validation_prepare_status', {'unit': 'unit-1'})
+
+
+def test_operator_prepare_observation_does_not_reclone_or_accept_other_image(tmp_path, monkeypatch):
+    intent = {'unit': 'unit-1', 'revision': 'a'*40, 'attempt_id': 'unit-1:0', 'baseline': 'b'*40}
+    (tmp_path/'transfer-intent.json').write_text(json.dumps(intent))
+    monkeypatch.setattr(cli, 'validation_image_load', lambda run, **kw: {'loaded': True, 'image_id': 'sha256:'+'c'*64})
+    prepared = {'prepared': True, **intent, 'image_id': 'sha256:'+'c'*64}
+    calls = []
+    monkeypatch.setattr(cli, 'remote', lambda action, data: calls.append(action) or prepared)
+    assert cli.prepare_validation_source(tmp_path, observe_only=True) == prepared
+    assert calls == ['validation_prepare_status']
+    prepared['image_id'] = 'sha256:'+'d'*64
+    with pytest.raises(ValueError, match='differs'):
+        cli.prepare_validation_source(tmp_path, observe_only=True)
+
+
 def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):
     import hashlib
     archive = b'exact candidate archive'
