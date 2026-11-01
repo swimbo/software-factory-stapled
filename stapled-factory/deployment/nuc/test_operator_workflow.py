@@ -1167,3 +1167,115 @@ def test_remote_transport_forwards_only_remote_settings(tmp_path, monkeypatch):
         'control_dir': '/srv/other-factory', 'ingress_port': 29081, 'raw_ingress_port': 28080}}
     assert settings['signer'] not in json.dumps(sent)
     assert settings['runs_dir'] not in json.dumps(sent)
+
+
+def make_preflight_repo(tmp_path):
+    import subprocess
+    repo = tmp_path / 'source';repo.mkdir()
+    def git(*args):
+        return subprocess.check_output(['git', '-C', str(repo), *args], text=True).strip()
+    git('init', '-q');git('config', 'user.email', 'fixture@example.invalid');git('config', 'user.name', 'Fixture')
+    (repo/'package.json').write_text('{"name":"fixture"}\n')
+    git('add', 'package.json');git('commit', '-qm', 'fixture')
+    return repo, git
+
+
+def test_source_preflight_is_read_only_and_reports_missing_locks(tmp_path, monkeypatch):
+    import hashlib
+    import subprocess
+    repo, git = make_preflight_repo(tmp_path)
+    revision = git('rev-parse', 'HEAD')
+    expected = hashlib.sha256(subprocess.check_output(['git', '-C', str(repo), 'archive', revision])).hexdigest()
+    monkeypatch.setattr(cli, 'remote', lambda *args: pytest.fail('preflight must not contact NUC'))
+    monkeypatch.setattr(cli, 'sign', lambda *args: pytest.fail('preflight must not sign'))
+    result = cli.source_preflight(repo, revision)
+    assert result['status'] == 'held' and result['revision'] == revision
+    assert result['source_archive_sha256'] == expected
+    assert result['source_inventory']['missing_locks'] == ['package.json']
+    assert result['source_inventory']['coverage'] == 'incomplete'
+    (repo/'package-lock.json').write_text('{}')
+    result = cli.source_preflight(repo, revision)
+    assert result['source_inventory']['missing_locks'] == ['package.json']
+    git('add', 'package-lock.json');git('commit', '-qm', 'lock')
+    complete_looking = cli.source_preflight(repo, 'HEAD')
+    assert complete_looking['source_inventory']['missing_locks'] == []
+    assert complete_looking['status'] == 'held'
+
+
+def test_source_preflight_does_not_execute_git_fsmonitor(tmp_path):
+    repo, git = make_preflight_repo(tmp_path)
+    marker = tmp_path/'marker';hook = tmp_path/'hook'
+    hook.write_text('#!/bin/sh\ntouch "' + str(marker) + '"\n');hook.chmod(0o700)
+    git('config', 'core.fsmonitor', str(hook))
+    cli.source_preflight(repo, 'HEAD')
+    assert not marker.exists()
+
+
+def test_source_preflight_ignores_git_replacement_refs(tmp_path):
+    repo, git = make_preflight_repo(tmp_path)
+    first = git('rev-parse', 'HEAD')
+    (repo/'package-lock.json').write_text('{}');git('add', 'package-lock.json');git('commit', '-qm', 'replacement')
+    second = git('rev-parse', 'HEAD');git('replace', first, second)
+    result = cli.source_preflight(repo, first)
+    assert result['revision'] == first
+    assert result['source_inventory']['missing_locks'] == ['package.json']
+
+
+def test_source_preflight_rejects_over_limit_archive(tmp_path, monkeypatch):
+    repo, _ = make_preflight_repo(tmp_path)
+    monkeypatch.setattr(cli, 'MAX_SOURCE_ARCHIVE_BYTES', 1024, raising=False)
+    with pytest.raises(ValueError, match='archive.*limit'):
+        cli.source_preflight(repo, 'HEAD')
+
+
+def test_source_preflight_rejects_too_many_archive_members(tmp_path, monkeypatch):
+    repo, git = make_preflight_repo(tmp_path)
+    (repo/'second').write_text('x');git('add', 'second');git('commit', '-qm', 'second')
+    monkeypatch.setattr(cli, 'MAX_SOURCE_ARCHIVE_ENTRIES', 1, raising=False)
+    with pytest.raises(ValueError, match='archive.*entries'):
+        cli.source_preflight(repo, 'HEAD')
+
+
+def test_source_preflight_cli_does_not_load_config_or_contact_nuc(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(cli, 'source_preflight', lambda path, revision: {'status': 'held', 'revision': revision})
+    monkeypatch.setattr(cli, 'load_config', lambda *args: pytest.fail('preflight is local'))
+    monkeypatch.setattr(sys, 'argv', ['cli.py', 'preflight-source', str(tmp_path), '--revision', 'HEAD'])
+    cli.main()
+    assert json.loads(capsys.readouterr().out) == {'status': 'held', 'revision': 'HEAD'}
+
+
+def test_source_preflight_does_not_lazily_fetch_missing_objects(tmp_path):
+    import subprocess
+    repo, git = make_preflight_repo(tmp_path)
+    origin = tmp_path/'origin.git'
+    subprocess.run(['git', 'clone', '--bare', '-q', str(repo), str(origin)], check=True)
+    subprocess.run(['git', '-C', str(origin), 'config', 'uploadpack.allowFilter', 'true'], check=True)
+    partial = tmp_path/'partial'
+    subprocess.run(['git', 'clone', '-q', '--filter=blob:none', '--no-checkout', origin.as_uri(), str(partial)], check=True)
+    marker = tmp_path/'upload-marker';hook = tmp_path/'upload-hook'
+    hook.write_text('#!/bin/sh\ntouch "' + str(marker) + '"\nexit 1\n');hook.chmod(0o700)
+    subprocess.run(['git', '-C', str(partial), 'config', 'remote.origin.uploadpack', str(hook)], check=True)
+    with pytest.raises(ValueError, match='archive failed'):
+        cli.source_preflight(partial, 'HEAD')
+    assert not marker.exists()
+
+
+def test_source_preflight_ignores_external_attributes_and_rejects_info_attributes(tmp_path):
+    repo, git = make_preflight_repo(tmp_path)
+    external = tmp_path/'attributes';external.write_text('package.json export-ignore\n')
+    git('config', 'core.attributesFile', str(external))
+    result = cli.source_preflight(repo, 'HEAD')
+    assert result['source_inventory']['missing_locks'] == ['package.json']
+    info = repo/'.git/info/attributes';info.write_text('package.json export-ignore\n')
+    with pytest.raises(ValueError, match='info attributes'):
+        cli.source_preflight(repo, 'HEAD')
+
+
+def test_source_preflight_never_promotes_export_ignored_manifests(tmp_path):
+    repo, git = make_preflight_repo(tmp_path)
+    (repo/'.gitattributes').write_text('package.json export-ignore\n')
+    (repo/'keep.txt').write_text('fixture\n')
+    git('add', '.gitattributes', 'keep.txt');git('commit', '-qm', 'attributes')
+    result = cli.source_preflight(repo, 'HEAD')
+    assert result['status'] == 'held'
+    assert result['source_inventory']['coverage'] == 'incomplete'

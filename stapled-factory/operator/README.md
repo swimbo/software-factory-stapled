@@ -48,6 +48,21 @@ exact filenames, not wildcards. This version publishes to that GitHub repo's
 `main` branch via a new `codex/<unit>` PR and uses its existing
 `scripts/verify-local.py` gate.
 
+## Local dependency preflight
+
+Before a task or image build, inspect the committed source locally:
+
+```sh
+python3 stapled-factory/operator/cli.py preflight-source /absolute/path/to/repository --revision main
+```
+
+This reads the exact Git archive and reports obvious manifests without nearby
+lockfiles. It does not assess uncommitted changes, load operator settings,
+contact the NUC, sign, build, or dispatch. The result remains `held`: source
+inspection alone does not establish dependency provenance. Committed Git
+attributes can exclude files from the archive; repositories with local info
+attributes are rejected. Repeat it on the collected candidate revision; a baseline inspection cannot predict later edits.
+
 ## Explicit operator steps
 
 ```sh

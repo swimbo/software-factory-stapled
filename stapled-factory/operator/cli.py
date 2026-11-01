@@ -3,14 +3,17 @@
 import argparse
 import base64
 import hashlib
+import io
 import json
 import os
 from pathlib import Path
 import re
+import selectors
 import shlex
 import stat
 import subprocess
 import sys
+import tarfile
 import time
 
 HOST = CONTROL = SIGNER = RUNS = None
@@ -101,6 +104,79 @@ def validate_spec(spec):
             any(p in ('', '.', '..', '.git') for p in x.split('/')) for x in paths):
         raise ValueError('explicit safe repository-relative allowed_paths required')
     return spec
+
+
+
+MAX_SOURCE_ARCHIVE_BYTES = 64 * 1024 * 1024
+MAX_SOURCE_ARCHIVE_ENTRIES = 20000
+SOURCE_ARCHIVE_TIMEOUT = 60
+
+
+def _preflight_archive(repo, revision, env):
+    args = ['git', '--no-replace-objects', '--no-lazy-fetch', '--no-optional-locks',
+            '-c', 'core.attributesFile=' + os.devnull, '-c', 'tar.umask=0002',
+            '-C', str(repo), 'archive', '--format=tar', revision]
+    process = subprocess.Popen(args, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=env)
+    output = bytearray();deadline = time.monotonic() + SOURCE_ARCHIVE_TIMEOUT
+    try:
+        with selectors.DefaultSelector() as selector:
+            selector.register(process.stdout, selectors.EVENT_READ)
+            while True:
+                remaining = deadline - time.monotonic()
+                if remaining <= 0 or not selector.select(remaining):
+                    raise ValueError('source archive timed out')
+                data = os.read(process.stdout.fileno(), min(1024 * 1024, MAX_SOURCE_ARCHIVE_BYTES - len(output) + 1))
+                if not data:break
+                output.extend(data)
+                if len(output) > MAX_SOURCE_ARCHIVE_BYTES:
+                    raise ValueError('source archive exceeds byte limit')
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:raise ValueError('source archive timed out')
+        try:code = process.wait(timeout=remaining)
+        except subprocess.TimeoutExpired as exc:raise ValueError('source archive timed out') from exc
+        if code:raise ValueError('source archive failed')
+        return bytes(output)
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.wait()
+        process.stdout.close()
+
+
+def source_preflight(repo, revision):
+    """Inspect one committed source archive without remote calls or side effects."""
+    import importlib.util
+    repo = Path(repo).resolve()
+    env = {key: value for key, value in os.environ.items() if not key.startswith('GIT_')}
+    env.update(GIT_NO_REPLACE_OBJECTS='1', GIT_NO_LAZY_FETCH='1', GIT_OPTIONAL_LOCKS='0',
+               GIT_TERMINAL_PROMPT='0', GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL=os.devnull,
+               GIT_ATTR_NOSYSTEM='1')
+    prefix = ['git', '--no-replace-objects', '--no-lazy-fetch', '--no-optional-locks',
+              '-c', 'core.attributesFile=' + os.devnull, '-C', str(repo)]
+    info_path = subprocess.check_output(prefix + ['rev-parse', '--git-path', 'info/attributes'],
+                                        env=env, text=True, stderr=subprocess.DEVNULL, timeout=15).rstrip('\n')
+    info = Path(info_path)
+    if not info.is_absolute():info = repo / info
+    try:info.lstat()
+    except FileNotFoundError:pass
+    else:raise ValueError('repository info attributes must be absent')
+    args = prefix + ['rev-parse', '--verify', '--end-of-options', str(revision) + '^{commit}']
+    selected = subprocess.check_output(args, env=env, text=True, stderr=subprocess.DEVNULL, timeout=15).strip()
+    if not re.fullmatch(r'[a-f0-9]{40}', selected):
+        raise ValueError('exact committed revision required')
+    archive = _preflight_archive(repo, selected, env)
+    with tarfile.open(fileobj=io.BytesIO(archive), mode='r:') as tar:
+        for count, _ in enumerate(tar, 1):
+            if count > MAX_SOURCE_ARCHIVE_ENTRIES:
+                raise ValueError('source archive has too many entries')
+    path = Path(__file__).resolve().parents[1] / 'spine/prebuilt_validation.py'
+    spec = importlib.util.spec_from_file_location('factory_prebuilt_preflight', path)
+    module = importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    inventory = module.archive_dependency_inventory(archive)
+    return {'status': 'held', 'revision': selected,
+            'source_archive_sha256': hashlib.sha256(archive).hexdigest(),
+            'source_inventory': inventory,
+            'reason': 'Source inspection alone cannot establish complete dependency provenance.'}
 
 
 def prepare(spec_file):
@@ -523,13 +599,18 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'transfer-holdout', 'holdout-status', 'validate', 'validate-status', 'validate-resume', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['preflight-source', 'prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'prepare-validation', 'prepare-validation-status', 'transfer-holdout', 'holdout-status', 'validate', 'validate-status', 'validate-resume', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
+    p.add_argument('--revision', help='committed revision for preflight-source')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
     p.add_argument('--build-signing-key', type=Path, help='owner-only build attestation key')
     p.add_argument('--holdout', type=Path, help='owner-only scenarios outside the candidate repository')
     a = p.parse_args()
+    if a.action == 'preflight-source':
+        if not a.revision:p.error('preflight-source requires --revision')
+        print(json.dumps(source_preflight(a.path, a.revision), indent=2))
+        return
     try:configure(load_config(a.config))
     except (OSError, ValueError) as exc:p.error('Cannot load operator config: ' + str(exc))
     if a.action == 'prepare':result = prepare(a.path)
