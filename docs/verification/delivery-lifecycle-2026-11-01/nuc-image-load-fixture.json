@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "real_ssh": true,
+  "real_nuc_docker_load": true,
+  "saved_image_config_verified": true,
+  "synthetic_workunit": true,
+  "model_calls": 0,
+  "live_runtime_activated": false,
+  "revision": "b5aa1f1a7970b0766fd66245bda7a675a6ab85de",
+  "image_id": "sha256:4a1f146a14e254df4c8a25272a357a30ab56af817287576afcb025c2deea728f",
+  "config_digest": "sha256:9ace8927971666d4f72bc7dd036f5b8f1de868aece2c71ecb07a6da8b6328626",
+  "repeat_rejected": true,
+  "observe_unchanged": true,
+  "scope": "Actual fixture image load and observation on NUC; synthetic WorkUnit; no target was started.",
+  "private_evidence_sha256": "61a1ef49b88617073307175c2359d0f61164350df5f58e0b471bd0ed92536303"
+}

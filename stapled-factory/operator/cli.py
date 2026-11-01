@@ -338,6 +338,23 @@ def verify_validation_transfer(run):
     return result
 
 
+def validation_image_load(run, *, observe_only=False):
+    intent = json.loads((run / 'transfer-intent.json').read_text())
+    verified = verify_validation_transfer(run)
+    action = 'validation_load_status' if observe_only else 'validation_load'
+    result = remote(action, {'unit': intent['unit']})
+    if (type(result.get('loaded')) is not bool or result.get('revision') != intent['revision'] or
+            result.get('attempt_id') != intent['attempt_id'] or result.get('tag') != verified['tag']):
+        raise ValueError('loaded image observation differs from original transfer')
+    if result['loaded']:
+        if (not isinstance(result.get('image_id'), str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', result['image_id']) or
+                result.get('config_digest') != verified['config_digest']):
+            raise ValueError('loaded image identity differs')
+    elif result.get('uncertain') is not True:
+        raise ValueError('original image load outcome unavailable')
+    return result
+
+
 def application_validation(run, plan, result):
     observed = remote('validation_status', {'unit': plan['unit']})
     proof = observed.get('validation') or {}
@@ -427,7 +444,7 @@ def main():
     p.add_argument('--config', type=Path, default=os.environ.get('FACTORY_OPERATOR_CONFIG',
         str(Path(__file__).resolve().parents[2] / 'operator.local.json')),
         help='private operator settings (default: FACTORY_OPERATOR_CONFIG or repository operator.local.json)')
-    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
+    p.add_argument('action', choices=['prepare', 'run', 'build-candidate', 'build-status', 'transfer-validation', 'transfer-status', 'verify-transfer', 'load-validation', 'load-status', 'publish', 'publish-repository', 'status', 'validation-status', 'abandon'])
     p.add_argument('path', type=Path, help='task JSON for prepare; private run directory otherwise')
     p.add_argument('--reason', help='required for abandon; recorded in durable evidence')
     p.add_argument('--dockerfile', type=Path, help='operator-owned image recipe for build-candidate')
@@ -450,6 +467,8 @@ def main():
     elif a.action == 'transfer-validation':result = transfer_validation_inputs(a.path.resolve())
     elif a.action == 'transfer-status':result = observe_validation_transfer(a.path.resolve())
     elif a.action == 'verify-transfer':result = verify_validation_transfer(a.path.resolve())
+    elif a.action == 'load-validation':result = validation_image_load(a.path.resolve())
+    elif a.action == 'load-status':result = validation_image_load(a.path.resolve(), observe_only=True)
     elif a.action == 'publish-repository':result = publish(a.path.resolve(), repository_only=True)
     elif a.action == 'validation-status':
         plan = json.loads((a.path.resolve() / 'operator.json').read_text())

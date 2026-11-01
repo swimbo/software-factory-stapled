@@ -326,6 +326,23 @@ def test_verify_transferred_image_checks_real_signature_and_image_config(tmp_pat
         'build': {'status': 'completed', 'attempt_id': unit+':0', 'git_revision': revision}})
     result = nuc.main('validation_verify_transfer', {'unit': unit})
     assert result['verified'] and result['config_digest'] == binding['config_digest']
+    import shutil
+    real_run = subprocess.run
+    loaded = []
+    def docker_run(args, **kwargs):
+        if args[:3] == ['docker', 'image', 'ls']:
+            return subprocess.CompletedProcess(args, 0, ('factory-candidate-unit-1:'+revision+'\n') if loaded else '', '')
+        if args[:2] == ['docker', 'load']:
+            loaded.append(True);return subprocess.CompletedProcess(args, 0, b'', b'')
+        if args[:2] == ['docker', 'save']:
+            shutil.copyfile(target/'image.tar', args[args.index('-o')+1]);return subprocess.CompletedProcess(args, 0)
+        return real_run(args, **kwargs)
+    monkeypatch.setattr(nuc.subprocess, 'run', docker_run)
+    monkeypatch.setattr(nuc.subprocess, 'check_output', lambda args, **kwargs: json.dumps([{'Id': 'sha256:'+'f'*64}]).encode())
+    loaded_result = nuc.main('validation_load', {'unit': unit})
+    assert loaded_result['loaded'] and loaded_result['config_digest'] == binding['config_digest']
+    assert nuc.main('validation_load_status', {'unit': unit}) == loaded_result and len(loaded) == 1
+    with pytest.raises(ValueError, match='original image load'):nuc.main('validation_load', {'unit': unit})
     wrong_tag = json.dumps([{'Config': 'config.json', 'RepoTags': ['existing:tag'], 'Layers': []}]).encode()
     with tarfile.open(target/'image.tar', 'w') as tar:
         for name, raw in [('manifest.json', wrong_tag), ('config.json', config)]:
@@ -337,6 +354,51 @@ def test_verify_transferred_image_checks_real_signature_and_image_config(tmp_pat
     intent['files']['build.sig'] = hashlib.sha256(b'forged').hexdigest()
     (target/'transfer-intent.json').write_text(json.dumps(intent))
     with pytest.raises(subprocess.CalledProcessError):nuc.main('validation_verify_transfer', {'unit': unit})
+
+
+def test_image_load_uncertainty_never_repeats_original(tmp_path, monkeypatch):
+    import subprocess
+    monkeypatch.setattr(nuc, 'ROOT', tmp_path)
+    target = tmp_path/'approvals/unit-1/validation-inputs';target.mkdir(parents=True)
+    verified = {'verified': True, 'loaded': False, 'attempt_id': 'unit-1:0', 'revision': 'a'*40,
+                'config_digest': 'sha256:'+'b'*64, 'image_tar_sha256': 'c'*64,
+                'manifest_sha256': 'd'*64, 'tag': 'factory-candidate-unit-1:'+'a'*40}
+    original = nuc.main
+    def route(action, data):
+        if action == 'validation_verify_transfer':return verified
+        if action == 'validation_status':return {'accepted': False, 'stage': 'needs_validation'}
+        return original(action, data)
+    monkeypatch.setattr(nuc, 'main', route)
+    calls = []
+    def run(args, **kwargs):
+        calls.append(args)
+        if args[:3] == ['docker', 'image', 'ls']:
+            return subprocess.CompletedProcess(args, 0, '', '')
+        assert (target/'load-intent.json').is_file()
+        raise subprocess.TimeoutExpired(args, 180)
+    monkeypatch.setattr(nuc.subprocess, 'run', run)
+    with pytest.raises(subprocess.TimeoutExpired):nuc.main('validation_load', {'unit': 'unit-1'})
+    observation = nuc.main('validation_load_status', {'unit': 'unit-1'})
+    assert observation['loaded'] is False and observation['uncertain'] is True
+    with pytest.raises(ValueError, match='original image load'):
+        nuc.main('validation_load', {'unit': 'unit-1'})
+    assert sum(args[:2] == ['docker', 'load'] for args in calls) == 1
+
+
+def test_operator_load_status_never_sends_load_and_checks_image_identity(tmp_path, monkeypatch):
+    intent = {'unit': 'unit-1', 'revision': 'a'*40, 'attempt_id': 'unit-1:0'}
+    (tmp_path/'transfer-intent.json').write_text(json.dumps(intent))
+    verified = {'tag': 'factory-candidate-unit-1:'+'a'*40, 'config_digest': 'sha256:'+'b'*64}
+    monkeypatch.setattr(cli, 'verify_validation_transfer', lambda run: verified)
+    result = {'loaded': True, 'image_id': 'sha256:'+'c'*64, 'config_digest': verified['config_digest'],
+              'revision': intent['revision'], 'attempt_id': intent['attempt_id'], 'tag': verified['tag']}
+    calls = []
+    monkeypatch.setattr(cli, 'remote', lambda action, data: calls.append(action) or result)
+    assert cli.validation_image_load(tmp_path, observe_only=True) == result
+    assert calls == ['validation_load_status']
+    result['config_digest'] = 'sha256:'+'d'*64
+    with pytest.raises(ValueError, match='identity differs'):
+        cli.validation_image_load(tmp_path, observe_only=True)
 
 
 def test_application_publication_requires_exact_accepted_artifact_and_security(tmp_path, monkeypatch):

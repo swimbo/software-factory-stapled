@@ -89,6 +89,8 @@ python3 stapled-factory/operator/cli.py build-status /absolute/private/run
 python3 stapled-factory/operator/cli.py transfer-validation /absolute/private/run
 python3 stapled-factory/operator/cli.py transfer-status /absolute/private/run
 python3 stapled-factory/operator/cli.py verify-transfer /absolute/private/run
+python3 stapled-factory/operator/cli.py load-validation /absolute/private/run
+python3 stapled-factory/operator/cli.py load-status /absolute/private/run
 python3 stapled-factory/operator/cli.py validation-status /absolute/private/run
 ```
 
@@ -100,6 +102,9 @@ intent; it never resends files. Isolated validation and signed acceptance still
 require separate operator steps; full security coverage remains incomplete.
 `verify-transfer` checks the trusted build signature, exact transferred source,
 image configuration, platform and image tag without loading or running it.
+`load-validation` records one original load intent, refuses an existing tag,
+and verifies the loaded image's saved configuration. After an uncertain load,
+use `load-status` to observe it; do not repeat the load or delete the image.
 
 `publish` requires matching accepted application validation and complete
 scanner coverage. `publish-repository` is explicitly repository-only. Each is

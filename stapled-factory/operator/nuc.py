@@ -131,12 +131,58 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action in ('validation_load', 'validation_load_status'):
+        target = approval / 'validation-inputs'
+        intent_path = target / 'load-intent.json'
+        if action == 'validation_load' and intent_path.exists():
+            raise ValueError('original image load exists; observe without repeating')
+        verified = main('validation_verify_transfer', {'unit': unit})
+        if action == 'validation_load':
+            selected = main('validation_status', {'unit': unit})
+            if selected.get('accepted') is not False or selected.get('stage') != 'needs_validation':
+                raise ValueError('selected build no longer awaiting validation')
+        else:
+            original = json.loads(intent_path.read_text())
+            if original != verified:
+                raise ValueError('original image load binding differs')
+        listed = subprocess.run(['docker', 'image', 'ls', '--format', '{{.Repository}}:{{.Tag}}'],
+                                check=True, capture_output=True, text=True, timeout=30).stdout.splitlines()
+        if action == 'validation_load':
+            if verified['tag'] in listed:
+                raise ValueError('image tag already exists; do not overwrite')
+            fd = os.open(intent_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                json.dump(verified, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+            subprocess.run(['docker', 'load', '--input', str(target/'image.tar')], check=True,
+                           capture_output=True, timeout=180)
+            return main('validation_load_status', {'unit': unit})
+        if verified['tag'] not in listed:
+            return {'loaded': False, 'uncertain': True, 'tag': verified['tag'],
+                    'revision': verified['revision'], 'attempt_id': verified['attempt_id']}
+        metadata = json.loads(subprocess.check_output(['docker', 'image', 'inspect', verified['tag']], timeout=30))
+        if len(metadata) != 1 or not re.fullmatch(r'sha256:[a-f0-9]{64}', metadata[0].get('Id', '')):
+            raise ValueError('loaded image identity unavailable')
+        with tempfile.TemporaryDirectory(prefix='factory-loaded-image-') as temp:
+            saved = Path(temp)/'image.tar'
+            subprocess.run(['docker', 'save', '-o', str(saved), metadata[0]['Id']], check=True, timeout=180)
+            with tarfile.open(saved) as tar:
+                entries = json.load(tar.extractfile('manifest.json'))
+                if len(entries) != 1:raise ValueError('loaded image metadata ambiguous')
+                config = tar.extractfile(entries[0]['Config']).read()
+        if 'sha256:' + hashlib.sha256(config).hexdigest() != verified['config_digest']:
+            raise ValueError('loaded image configuration differs from signed original')
+        return {'loaded': True, 'image_id': metadata[0]['Id'], 'tag': verified['tag'],
+                'revision': verified['revision'], 'attempt_id': verified['attempt_id'],
+                'config_digest': verified['config_digest']}
     if action == 'validation_verify_transfer':
         target = approval / 'validation-inputs'
         transfer = main('validation_transfer_status', {'unit': unit})
         selected = main('validation_status', {'unit': unit})
-        if (not transfer['complete'] or selected.get('accepted') is not False or
-                selected.get('stage') != 'needs_validation' or
+        if (not transfer['complete'] or selected.get('accepted') not in (True, False) or
+                selected.get('stage') not in ('needs_validation', 'validated', 'gated', 'merged', 'deployed') or
                 selected.get('attempt_id') != transfer['attempt_id'] or
                 selected.get('revision') != transfer['revision']):
             raise ValueError('original transfer or selected build incomplete')
