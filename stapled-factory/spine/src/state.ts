@@ -178,6 +178,10 @@ export const workUnit = restate.object({
       ctx.set(KEY, s);
     },
 
+    getValidationCapabilities: async (_ctx: restate.ObjectContext): Promise<{receipt_storage: string}> => {
+      return {receipt_storage: 'atomic-v1'};
+    },
+
     getState: async (ctx: restate.ObjectContext): Promise<WorkUnitState> => {
       return (await ctx.get<WorkUnitState>(KEY)) ?? empty();
     },

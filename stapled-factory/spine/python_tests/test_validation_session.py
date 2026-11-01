@@ -55,7 +55,8 @@ class Runtime:
         self.submissions += 1
         payload = envelope['payload']
         assert hmac.compare_digest(envelope['signature'], hmac.new(KEY, payload.encode(), hashlib.sha256).hexdigest())
-        self.state.update(stage='validated', validation=json.loads(payload))
+        proof = json.loads(payload)
+        self.state.update(stage='validated', validation=proof, receipt=proof['receipt'])
         if self.lose_response:
             raise TimeoutError('accepted response lost')
         return True
@@ -77,6 +78,22 @@ def test_accepted_response_loss_and_reobservation_never_revalidate(tmp_path):
     assert first['evidence']['checks_digest'] == hashlib.sha256(canonical).hexdigest()
     assert first['evidence']['receipt']['usage']['requests'] == 3
     assert first['evidence']['receipt']['verdict']['per_scenario'] == {}
+
+
+@pytest.mark.parametrize('stored_receipt', [None, {'git_revision': '0'*40}])
+def test_receipt_must_be_durably_stored_before_acceptance(tmp_path, stored_receipt):
+    runtime = Runtime()
+    def submit(envelope):
+        runtime.submissions += 1
+        runtime.state.update(stage='validated', validation=json.loads(envelope['payload']), receipt=stored_receipt)
+        return True
+    runtime.submit = submit
+    with pytest.raises(ValueError, match='acceptance unresolved'):
+        runtime.run(tmp_path/'session')
+    with pytest.raises(ValueError, match='acceptance unresolved'):
+        runtime.run(tmp_path/'session', observe_only=True)
+    assert runtime.evaluations == runtime.submissions == 1
+    assert not (tmp_path/'session/accepted.json').exists()
 
 
 def test_passing_aggregate_keeps_failed_holdout_feedback_private(tmp_path):

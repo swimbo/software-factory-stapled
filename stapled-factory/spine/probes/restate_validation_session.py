@@ -168,6 +168,7 @@ createServer(restate.createEndpointHandler({services:[workUnit]})).listen(Number
             request(admin + '/deployments', {'uri': 'http://127.0.0.1:' + str(port)})
             def call(method, value):
                 return request(ingress + '/WorkUnit/' + unit + '/' + method, value)
+            assert call('getValidationCapabilities', {}) == {'receipt_storage': 'atomic-v1'}
             assert call('claim', 'isolated-receipt-probe') is True
             call('transition', 'building')
             call('recordRecoveryContext', {'request': {'unitId': unit}, 'attemptDb': str(root / 'unused-attempts.db')})
@@ -242,6 +243,7 @@ createServer(restate.createEndpointHandler({services:[workUnit]})).listen(Number
             assert call('acceptValidation', sign(proof)) is False
             record(root / 'result.json', {'passed': True, 'fixture_unit': unit,
                 'real_restate': True, 'signed_receipt_stored': True, 'stale_bindings_rejected': True,
+                'atomic_receipt_capability': True,
                 'tamper_rejected': True, 'client_crash_after_acceptance': True,
                 'endpoint_crash_recovery': True, 'original_journal_reconciled_without_resubmit': True,
                 'repeated_observation_unchanged': True, 'duplicate_acceptance_rejected': True,

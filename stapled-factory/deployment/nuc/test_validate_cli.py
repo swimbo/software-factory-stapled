@@ -63,7 +63,10 @@ def test_actual_http_response_loss_reconciles_without_second_validation(tmp_path
         def do_POST(self):
             raw = self.rfile.read(int(self.headers['Content-Length']))
             assert self.path.startswith('/WorkUnit/factory-unit/')
-            if self.path.endswith('/getState'):
+            if self.path.endswith('/getValidationCapabilities'):
+                self.send_response(200);self.end_headers()
+                self.wfile.write(json.dumps({'receipt_storage': 'atomic-v1'}).encode())
+            elif self.path.endswith('/getState'):
                 self.send_response(200)
                 self.end_headers()
                 self.wfile.write(json.dumps(state).encode())
@@ -73,7 +76,8 @@ def test_actual_http_response_loss_reconciles_without_second_validation(tmp_path
                 assert hmac.compare_digest(envelope['signature'],
                     hmac.new(key, envelope['payload'].encode(), hashlib.sha256).hexdigest())
                 calls['submit'] += 1
-                state.update(stage='validated', validation=json.loads(envelope['payload']))
+                proof = json.loads(envelope['payload'])
+                state.update(stage='validated', validation=proof, receipt=proof['receipt'])
                 self.close_connection = True  # Commit, then lose the HTTP response.
         def log_message(self, *args):
             pass
@@ -110,11 +114,22 @@ def test_actual_http_response_loss_reconciles_without_second_validation(tmp_path
 def test_cli_cannot_validate_caller_selected_stale_attempt(tmp_path, monkeypatch):
     cli = load_cli()
     values = inputs(tmp_path)
-    monkeypatch.setattr(cli, 'post', lambda *args: {'stage': 'needs_validation', 'successor': {
-        'attempt_id': values['attempt'] + ':successor', 'git_revision': values['revision'], 'status': 'completed'}})
+    monkeypatch.setattr(cli, 'post', lambda ingress, unit, method, value: (
+        {'receipt_storage': 'atomic-v1'} if method == 'getValidationCapabilities' else
+        {'stage': 'needs_validation', 'successor': {
+        'attempt_id': values['attempt'] + ':successor', 'git_revision': values['revision'], 'status': 'completed'}}))
     monkeypatch.setattr(cli, 'validate_prebuilt', lambda *a, **k: pytest.fail('stale source must not execute'))
     with pytest.raises(ValueError, match='selected build'):
         cli.main(arguments(values))
+
+
+def test_old_runtime_is_rejected_before_validation_effect(tmp_path, monkeypatch):
+    cli = load_cli();values = inputs(tmp_path)
+    monkeypatch.setattr(cli, 'post', lambda *args: {})
+    monkeypatch.setattr(cli, 'validate_prebuilt', lambda *a, **kw: pytest.fail('legacy runtime must not evaluate'))
+    with pytest.raises(ValueError, match='receipt capability'):
+        cli.main(arguments(values))
+    assert not (tmp_path/'session').exists()
 
 
 def test_cli_refuses_external_signing_destination_before_key_access(tmp_path):

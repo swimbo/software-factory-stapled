@@ -43,6 +43,13 @@ def main(argv=None):
             address.username or address.password or address.path or address.query or
             address.fragment or address.port is None):
         raise ValueError('private loopback Restate ingress with explicit port required')
+    if not args.observe_only:
+        try:
+            capabilities = post(args.ingress, args.unit, 'getValidationCapabilities', {})
+        except (OSError, ValueError) as error:
+            raise ValueError('runtime receipt capability unavailable') from error
+        if capabilities != {'receipt_storage': 'atomic-v1'}:
+            raise ValueError('runtime receipt capability unavailable')
     keyfile = Path(args.key_file)
     st = keyfile.lstat()
     if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077:

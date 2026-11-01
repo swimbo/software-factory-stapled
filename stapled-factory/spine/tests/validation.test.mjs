@@ -5,6 +5,9 @@ import {mkdtemp,writeFile,chmod,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {workUnit} from '../dist/state.js';
+test('validation capability advertises atomic receipt storage', async () => {
+  assert.deepEqual(await workUnit.object.getValidationCapabilities({}), {receipt_storage: 'atomic-v1'});
+});
 test('signed validation rejects substitution, tamper, failed verdict and replay',async()=>{
 const dir=await mkdtemp(path.join(os.tmpdir(),'validation-'));const old=process.env.FACTORY_VALIDATION_KEY_FILE;
 try{const key=randomBytes(32),file=path.join(dir,'key');await writeFile(file,key,{mode:0o600});process.env.FACTORY_VALIDATION_KEY_FILE=file;

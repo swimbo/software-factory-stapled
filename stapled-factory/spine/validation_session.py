@@ -146,7 +146,7 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
         def accepted(current):
             selected(current, binding)
             return (current.get('stage') in ('validated', 'gated', 'merged', 'deployed') and
-                    current.get('validation') == proof)
+                    current.get('validation') == proof and current.get('receipt') == proof['receipt'])
 
         submission = root / 'submission.json'
         envelope_digest = hashlib.sha256(canonical(envelope).encode()).hexdigest()
