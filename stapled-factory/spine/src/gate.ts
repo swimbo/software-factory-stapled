@@ -6,7 +6,7 @@
 // the audit record.
 import * as restate from "@restatedev/restate-sdk";
 
-import { approvalStore } from "./approval_store.js";
+import { approvalStore, validateApprovalRequest, validateApprovalRequestId } from "./approval_store.js";
 import { Approval, GateType } from "./types.js";
 
 export interface RequestApproval {
@@ -26,6 +26,7 @@ export const gate = restate.service({
 
   handlers: {
     request: async (ctx: restate.Context, req: RequestApproval): Promise<string> => {
+      validateApprovalRequest(req);
       const store = ctx.objectClient(approvalStore, req.requestId);
       const { id, promise } = ctx.awakeable<string>();
       await store.register({
@@ -38,16 +39,16 @@ export const gate = restate.service({
     },
 
     resolve: async (ctx: restate.Context, req: ResolveApproval): Promise<void> => {
+      validateApprovalRequestId(req?.requestId);
       const store = ctx.objectClient(approvalStore, req.requestId);
-      const awakeableId = await store.getAwakeableId();
-      if (!awakeableId) {
-        throw new Error(`no pending approval for ${req.requestId}`);
-      }
-      await store.resolve({ decision: req.decision, approver: req.approver });
-      ctx.resolveAwakeable(awakeableId, req.decision);
+      // The atomic decision returns its original handle, including on a retry
+      // after a crash between committing the decision and resolving the waiter.
+      const approval = await store.resolve({ decision: req.decision, approver: req.approver });
+      ctx.resolveAwakeable(approval.awakeableId, approval.decision);
     },
 
     get: async (ctx: restate.Context, requestId: string): Promise<Approval | null> => {
+      validateApprovalRequestId(requestId);
       return ctx.objectClient(approvalStore, requestId).get();
     },
   },
