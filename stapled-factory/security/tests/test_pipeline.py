@@ -1,10 +1,35 @@
 """Tests for the deterministic security pipeline."""
 import sys
+import shutil
 from pathlib import Path
+import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from pipeline import scan  # noqa: E402
+
+
+@pytest.mark.skipif(not shutil.which('semgrep'), reason='semgrep is not installed')
+def test_semgrep_ignores_candidate_suppression(tmp_path):
+    import pipeline
+    target = tmp_path/'candidate'; target.mkdir()
+    (target/'.semgrepignore').write_text('*\n')
+    (target/'app.py').write_text('dangerous_call()  # nosemgrep\n')
+    rules = tmp_path/'rules.yml'
+    rules.write_text('rules:\n- id: fixture-rule\n  languages: [python]\n  message: fixture\n  severity: ERROR\n  pattern: dangerous_call()\n')
+    findings = pipeline.run_semgrep(str(target), str(rules))
+    assert findings is not None and any(f.rule.endswith('fixture-rule') for f in findings)
+
+
+@pytest.mark.skipif(not shutil.which('gitleaks'), reason='gitleaks is not installed')
+def test_gitleaks_ignores_candidate_suppression(tmp_path):
+    import pipeline
+    target = tmp_path/'candidate'; target.mkdir()
+    (target/'.gitleaks.toml').write_text('[allowlist]\npaths = [".*"]\n')
+    (target/'.gitleaksignore').write_text('*\n')
+    (target/'app.txt').write_text('aws_access_key_id = "' + 'AKIA' + 'ABCDEFGHIJKLMNOP' + '" # gitleaks:allow\n')
+    findings = pipeline.run_gitleaks(str(target))
+    assert findings is not None and any('aws' in f.rule.lower() for f in findings)
 
 
 def test_secret_in_diff_fails():

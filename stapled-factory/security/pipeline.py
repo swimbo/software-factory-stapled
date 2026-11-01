@@ -15,6 +15,7 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -64,7 +65,8 @@ def run_semgrep(target: str, ruleset: str = "auto") -> list[Finding] | None:
     if not _which("semgrep"):
         return None
     r = subprocess.run(
-        ["semgrep", "--config", ruleset, "--json", "--quiet", target],
+        ["semgrep", "--config", ruleset, "--json", "--quiet", "--disable-nosem",
+         "--no-git-ignore", "--x-ignore-semgrepignore-files", "--max-target-bytes", "0", target],
         capture_output=True, text=True,
     )
     # semgrep exit codes: 0 = clean, 1 = findings, >=2 = error. But a crash
@@ -76,6 +78,8 @@ def run_semgrep(target: str, ruleset: str = "auto") -> list[Finding] | None:
         data = json.loads(r.stdout)
     except json.JSONDecodeError:
         return None
+    if not isinstance(data, dict) or data.get('errors'):
+        raise ValueError('Semgrep scan incomplete')
     out = []
     for res in data.get("results", []):
         extra = res.get("extra", {})
@@ -102,10 +106,14 @@ def run_gitleaks(target: str) -> list[Finding] | None:
         report_path = tmp.name
     original_error = None
     try:
-        result = subprocess.run(
-            ["gitleaks", "dir", "--report-format", "json", "--report-path", report_path, target],
-            capture_output=True, text=True, timeout=180,
-        )
+        with tempfile.TemporaryDirectory(prefix='factory-gitleaks-policy-') as policy:
+            config = Path(policy) / 'config.toml'
+            config.write_text('[extend]\nuseDefault = true\n')
+            result = subprocess.run(
+                ["gitleaks", "dir", "--config", str(config), "--gitleaks-ignore-path", policy,
+                 "--ignore-gitleaks-allow", "--report-format", "json", "--report-path", report_path, target],
+                capture_output=True, text=True, timeout=180,
+            )
         if result.returncode not in (0, 1):
             raise ValueError('Gitleaks scan failed')
         try:
