@@ -271,6 +271,36 @@ def test_acknowledged_start_and_stopped_original_close_enforcer(tmp_path, monkey
     assert stops[1][-1].endswith('.service')
 
 
+@pytest.mark.parametrize('load,active,accepted', [
+    ('not-found', 'inactive', True),
+    ('loaded', 'active', False),
+    ('loaded', 'inactive', False),
+    ('not-found', 'active', False),
+])
+def test_retirement_accepts_only_verified_unloaded_unit(tmp_path, monkeypatch, load, active, accepted):
+    docker = Docker()
+    def system(*args, **kwargs):
+        if args[:3] == ('systemctl', '--user', 'stop') and args[-1].endswith('.service'):
+            raise subprocess.CalledProcessError(5, args)
+        if args[:3] == ('systemctl', '--user', 'show') and '--property=LoadState' in args:
+            return 'LoadState=' + load + '\nActiveState=' + active
+        return docker(*args, **kwargs)
+    monkeypatch.setattr(m, 'command', system)
+    evidence = tmp_path / 'evidence'
+    def run():
+        with m.candidate_lifecycle(evidence, 'sha256:' + 'b' * 64):
+            pass
+    if accepted:
+        run()
+        assert m.observe_candidate(evidence, contain=True)['stopped']
+    else:
+        with pytest.raises(subprocess.CalledProcessError):
+            run()
+    assert not docker.state['State']['Running']
+    assert (evidence / 'closed.json').is_file()
+    assert sum(c[:2] == ('docker', 'start') for c in docker.calls) == 1
+
+
 def test_late_start_after_expiry_is_repeatedly_stopped_without_observer(tmp_path, monkeypatch):
     """Execute the production loop with a file-backed fake Docker executable.
 

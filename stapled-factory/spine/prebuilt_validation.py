@@ -227,8 +227,17 @@ def _close_candidate_deadline(evidence, container):
         record(closed, proof)
     elif json.loads(closed.read_text()) != proof:
         raise ValueError('original validation closure evidence differs')
-    command('systemctl', '--user', 'stop', deadline['unit'] + '.timer')
-    command('systemctl', '--user', 'stop', deadline['unit'] + '.service')
+    for suffix in ('.timer', '.service'):
+        unit = deadline['unit'] + suffix
+        try:
+            command('systemctl', '--user', 'stop', unit)
+        except subprocess.CalledProcessError:
+            # Stopping the timer can garbage-collect its unused transient
+            # service. Accept only independently verified absence/inactivity.
+            state = command('systemctl', '--user', 'show', unit,
+                            '--property=LoadState', '--property=ActiveState')
+            if set(state.splitlines()) != {'LoadState=not-found', 'ActiveState=inactive'}:
+                raise
 
 
 def observe_candidate(evidence_dir, *, contain=False):
