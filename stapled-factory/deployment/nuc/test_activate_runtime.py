@@ -124,3 +124,45 @@ def test_missing_admission_fence_fails_before_changes(tmp_path):
     with pytest.raises(RuntimeError,match='no verified admission fence'):m.activate(**args)
     assert not args['journal'].exists() and h.calls==0
     for n in m.SERVICES:assert (args['service_dir']/(n+'.service')).read_bytes()==original[n]
+
+
+def test_activation_and_rollback_restart_failure_preserve_original_evidence(tmp_path):
+    args, host, original = fixture(tmp_path)
+    def fail_both(names):
+        assert host.fenced and names == m.SERVICES
+        host.calls += 1
+        raise RuntimeError('restart unavailable')
+    host.restart_services = fail_both
+    with pytest.raises(m.ManualRecoveryRequired, match='uncertain'):
+        m.activate(**args)
+    assert host.calls == 2
+    assert (args['journal'] / 'intent.json').is_file()
+    assert not (args['journal'] / 'activated.json').exists()
+    assert not (args['journal'] / 'rolled-back.json').exists()
+    for name in m.SERVICES:
+        assert (args['service_dir'] / (name + '.service')).read_bytes() == original[name]
+        assert (args['journal'] / (name + '.previous')).read_bytes() == original[name]
+    with pytest.raises(ValueError, match='original activation exists'):
+        m.activate(**args)
+    assert host.calls == 2
+
+
+def test_partial_activation_receipt_cannot_be_reported_as_success(tmp_path, monkeypatch):
+    args, host, original = fixture(tmp_path)
+    write = m._write_new
+    def interrupted(path, raw):
+        if path.name == 'activated.json':
+            path.write_bytes(b'{"activated":')
+            path.chmod(0o600)
+            raise OSError('simulated incomplete receipt')
+        return write(path, raw)
+    monkeypatch.setattr(m, '_write_new', interrupted)
+    with pytest.raises(OSError, match='incomplete receipt'):
+        m.activate(**args)
+    assert host.calls == 2
+    assert (args['journal'] / 'rolled-back.json').is_file()
+    assert m.observe(args['control'], args['service_dir'], args['journal'])['state'] == 'manual-reconciliation'
+    for name in m.SERVICES:
+        assert (args['service_dir'] / (name + '.service')).read_bytes() == original[name]
+    with pytest.raises(m.ManualRecoveryRequired, match='terminal evidence'):
+        m.recover(control=args['control'], service_dir=args['service_dir'], journal=args['journal'], host=host)

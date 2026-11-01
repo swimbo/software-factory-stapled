@@ -240,9 +240,28 @@ def observe(control, service_dir, journal):
             raw,_=_regular(service_dir/(name+'.service'));digest=_sha(raw)
             files[name] = ('original' if digest==intent['services'][name]['original_sha256'] else
                            'candidate' if digest==intent['services'][name]['candidate_sha256'] else 'foreign')
-        if 'foreign' in files.values():state='manual-reconciliation'
-        elif (journal/'activated.json').exists():state='activation-recorded'
-        elif (journal/'rolled-back.json').exists():state='rollback-recorded'
+        terminal = {}
+        for name in ('activated', 'rolled-back'):
+            path = journal / (name + '.json')
+            if not os.path.lexists(path):continue
+            try:
+                raw, _ = _regular(path, private=True)
+                terminal[name] = json.loads(raw)
+            except (OSError, ValueError):
+                terminal[name] = None
+        activated = {'activated': True, 'revision': intent['candidate_revision'],
+                     'stable_sha256': intent['stable_sha256']}
+        rolled_back = {'restored': True, 'stable_sha256': intent['stable_sha256']}
+        if 'foreign' in files.values() or len(terminal) > 1:
+            state = 'manual-reconciliation'
+        elif 'activated' in terminal:
+            state = ('activation-recorded' if terminal['activated'] == activated and
+                     type(terminal['activated'].get('activated')) is bool and
+                     set(files.values()) == {'candidate'} else 'manual-reconciliation')
+        elif 'rolled-back' in terminal:
+            state = ('rollback-recorded' if terminal['rolled-back'] == rolled_back and
+                     type(terminal['rolled-back'].get('restored')) is bool and
+                     set(files.values()) == {'original'} else 'manual-reconciliation')
         else:state='interrupted-or-unresolved'
         return {'state':state,'service_files':files,'source_revision':intent['source_revision'],
                 'candidate_revision':intent['candidate_revision']}
@@ -315,8 +334,8 @@ def recover(*,control,service_dir,journal,host):
     control,service_dir,journal=_paths(control,service_dir,journal)
     with _lock(control), host.admission_fence():
         intent=_load_journal(journal)
-        if (journal/'activated.json').exists() or (journal/'rolled-back.json').exists():
-            raise ValueError('original attempt already terminal; observe only')
+        if os.path.lexists(journal/'activated.json') or os.path.lexists(journal/'rolled-back.json'):
+            raise ManualRecoveryRequired('terminal evidence exists; observe and reconcile the original journal')
         if os.path.lexists(control/'operator-active.json'):
             raise ValueError('operator active; preserve original work')
         _verify_release(control,intent['source_revision'],intent['source_manifest_sha256'])
