@@ -151,6 +151,7 @@ export const workUnit = restate.object({
           evidence.unit_id !== ctx.key || evidence.attempt_id !== selected.attempt_id ||
           evidence.git_revision !== selected.git_revision) return false;
       s.validation = evidence;
+      if (evidence.receipt) s.receipt = evidence.receipt;
       s.stage = "validated";
       ctx.set(KEY, s);
       return true;
