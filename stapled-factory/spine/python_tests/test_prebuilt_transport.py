@@ -10,14 +10,15 @@ import urllib.parse
 
 import pytest
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 spec = importlib.util.spec_from_file_location(
     'prebuilt_transport', Path(__file__).resolve().parents[1] / 'prebuilt_validation.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
 
 
-@pytest.fixture
-def bridge():
+@pytest.fixture(params=['stream', 'production'])
+def bridge(request, monkeypatch):
     calls = []
 
     class Candidate(BaseHTTPRequestHandler):
@@ -39,16 +40,26 @@ def bridge():
     # Production CLIENT runs via docker exec in network-none and fixes port8000.
     # Substitute only the ephemeral fixture port to exercise the exact client.
     client = m.CLIENT.replace('8000', str(candidate.server_port))
-    transport = subprocess.Popen([sys.executable, '-u', '-c', client],
-                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
+    if request.param == 'production':
+        launch = subprocess.Popen
+        def docker_exec(args, **kwargs):
+            assert args == ['docker', 'exec', '-i', 'a' * 64, 'python3', '-u', '-c', client]
+            return launch([sys.executable, '-u', '-c', client], **kwargs)
+        monkeypatch.setattr(m, 'CLIENT', client)
+        monkeypatch.setattr(subprocess, 'Popen', docker_exec)
+        transport = m.CandidateTransport('a' * 64)
+    else:
+        transport = subprocess.Popen([sys.executable, '-u', '-c', client],
+                                     stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
     server = ThreadingHTTPServer(('127.0.0.1', 0), m.forwarder_handler(transport, threading.Lock()))
     threading.Thread(target=server.serve_forever, daemon=True).start()
     try:
         yield 'http://127.0.0.1:' + str(server.server_port), calls
     finally:
         server.shutdown();server.server_close()
-        transport.terminate();transport.wait(timeout=5)
-        transport.stdin.close();transport.stdout.close()
+        if request.param == 'stream':
+            transport.terminate();transport.wait(timeout=5)
+            transport.stdin.close();transport.stdout.close()
         candidate.shutdown();candidate.server_close()
 
 

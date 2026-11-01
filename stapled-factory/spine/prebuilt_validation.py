@@ -309,13 +309,11 @@ class CandidateTransport:
         self.container = container
 
     def exchange(self, request):
-        result = subprocess.run(
+        from validation_transport import capture
+        output = capture(
             ['docker', 'exec', '-i', self.container, 'python3', '-u', '-c', CLIENT],
-            input=json.dumps(request) + '\n', capture_output=True, text=True,
-            timeout=15, check=True)
-        if len(result.stdout) > 1500000:
-            raise ValueError('validation transport response too large')
-        return json.loads(result.stdout)
+            (json.dumps(request) + '\n').encode(), timeout=15)
+        return json.loads(output)
 
 
 @contextmanager
