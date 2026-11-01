@@ -1,0 +1,112 @@
+{
+  "date": "2026-11-01",
+  "scope": "Private dependency-material and scanner controls; no factory candidate or runtime deployment",
+  "nuc_capacity": {
+    "filesystem": "/",
+    "available_gib_rounded_by_df": 96
+  },
+  "npm_diagnostic": {
+    "source": "Previously prepared private agents fixture using SDK 0.3.316 and Zod 4; not the original template",
+    "lock_sha256": "1bbe20a99dbc768a57f1ef200d88ff2406925bfac0625dcbac075c712a06f6ff",
+    "locked_package_entries": 170,
+    "unique_archives_from_local_cache": 135,
+    "unique_archives_fetched_from_registry": 32,
+    "all_archive_bytes_match_lock_integrity": true,
+    "changed_express_archive_rejected_with_lock_unchanged": true,
+    "private_cache_offline_npm_ci": "passed; 138 installed; lifecycle scripts disabled",
+    "limitations": "No isolated image builder, publisher signatures or released template is established by this diagnostic; materials remained mutable.",
+    "reconstructed_cache_offline_npm_ci": "passed; 138 installed from a private cache assembled from the 167 unique previously hashed archives; lifecycle scripts disabled",
+    "linux_fixture_build": "passed network-disabled build, using local Node image and private reconstructed cache; 137 packages installed for Linux amd64, scripts disabled; no application source or signed receipt"
+  },
+  "cargo_diagnostic": {
+    "source": "Existing fullstack backend Cargo.lock",
+    "lock_sha256": "1bd85c2ee33a37c5a8227149a5f0e3475b0d3740dd8d004184fc2ac36f75763a",
+    "locked_registry_entries": 315,
+    "archives_from_local_cache": 278,
+    "archives_fetched_from_registry": 37,
+    "all_archive_bytes_match_lock_checksums": true,
+    "local_source_entries": 1,
+    "offline_vendor": "passed for 315 entries after a separate networked cargo fetch populated missing registry metadata",
+    "limitations": "No Rust binary was built or verified, and Cargo offline mode is not proof of OS-level network isolation.",
+    "offline_metadata": "passed; 315 external package manifest paths resolved within the private vendor directory; no build scripts executed",
+    "vendor_archive_comparison": "315 of 315 crate trees matched their locked archives; 123 Git metadata files intentionally omitted by cargo vendor",
+    "linux_fixture_build": "passed network-disabled synthetic single-crate Rust build from vendor tree; no application source or signed receipt",
+    "vendor_tampering_control": "Cargo rejected changed source with original checksum metadata, but accepted it after that metadata was forged; the independent archive comparison rejected both.",
+    "actual_template_toolchain": {
+      "dockerfile_base": "rust:1.83-slim",
+      "manifest_edition": "2024",
+      "rust_1_83_network_none_cargo_check": "failed before compilation: edition2024 is not stabilized in Cargo 1.83",
+      "linux_dependency_graph_examples": [
+        "time 0.3.47 requires Rust 1.88",
+        "home 0.5.12 requires Rust 1.88",
+        "uuid 1.21.0 requires Rust 1.85"
+      ],
+      "scope": "isolated read-only diagnostic; exact feature/platform graph was inspected; no template edit or release",
+      "rust_1_99_1_network_none_cargo_check": "passed for the original lock and source in 6m09s, using a private read-only vendor tree",
+      "limitations": "cargo check only; no release binary, runtime tests, signed materials, or private JWT upgrade tested"
+    },
+    "private_refresh": {
+      "updated_lock_sha256": "2d10dccf5c720be56cfa54ee165013e166903bd119fdceb099af228d7a843585",
+      "osv_findings": 2,
+      "remaining_ids": [
+        "GHSA-h395-gr6q-cpjc",
+        "RUSTSEC-2023-0071"
+      ],
+      "scope": "private lock refresh; no shared template change or compatibility proof"
+    },
+    "private_jwt_diagnostic": {
+      "change": "jsonwebtoken 10.4.0, aws_lc_rs backend, default features disabled",
+      "updated_lock_sha256": "04908a0ceffa0a5f5ad88bdcd2c4180aed53407ec05be545355dce0258bab8b3",
+      "osv_findings": 1,
+      "remaining_ids": [
+        "RUSTSEC-2023-0071"
+      ],
+      "scope": "private experimental major upgrade; cargo check only; not adopted, behavior-tested, release-built, or publisher-verified",
+      "vendor_archive_comparison": "293 of 293 registry crate trees matched their locked archives; 110 Git metadata files omitted by cargo vendor",
+      "linux_target_rsa_inverse_tree": "no active RSA package selected by cargo tree for x86_64-unknown-linux-gnu; this is not an exploitability or publisher assessment",
+      "linux_cargo_check": "passed with Rust 1.99.1 and network disabled after a 420-second timeout followed by a continuation using the original build cache",
+      "linux_feature_graph": "jsonwebtoken 10.4.0 selected aws_lc_rs only; RSA not selected by the target-specific inverse tree"
+    }
+  },
+  "unchanged_package_metadata_control": {
+    "scope": "Two locally built scratch images, each with one synthetic npm package metadata file",
+    "original_image_archive_sha256": "a9da0d06f0d7c23b4a807d8aa3000bb7f7bbeecbc0cec76a801cb734f0acece0",
+    "altered_image_archive_sha256": "75c718a2514c224ac31fa5511e470ed8a37b1364b6a467c4e4e2a5f1c938561f",
+    "original_code_sha256": "6e66e366f0aefb84ad8110afcd9b2245702c643c831edf8316ff048fec739d2e",
+    "altered_code_sha256": "0178ebe33198629bc345d7410d644ab4991518d537db5fd04912d281df792928",
+    "trivy_version": "0.76.1",
+    "identical_reported_package_identity": true,
+    "interpretation": "Package identity equality does not prove equality or origin of installed code."
+  },
+  "preserved_failed_probes": [
+    "Python registry fetch failed certificate validation before fallback to system-trust curl; no TLS verification was disabled.",
+    "The first Cargo offline vendor attempt lacked crates.io index metadata and failed before vendoring."
+  ],
+  "overall_coverage": "incomplete",
+  "runtime_deployed": false,
+  "network_control": {
+    "scope": "Synthetic Docker runtime, not a production namespace",
+    "none_connection_exit": 1,
+    "bridge_connection_exit": 0,
+    "interpretation": "Connection refused or failed on none; connected on bridge."
+  },
+  "build_tool_limitations": [
+    "Fixtures used the deprecated Docker legacy builder and a temporary anonymous Docker configuration; this is not a supported factory builder or proof of publisher authenticity.",
+    "An initial BuildKit probe attempted remote base metadata resolution before its network-disabled RUN; it was stopped.",
+    "The original credential helper stalled; it was stopped and the fixture used a temporary no-helper configuration."
+  ],
+  "private_material_inventory": {
+    "sha256": "bac5890a3bac8367b454f6e436b0ad165f633641570fc29b07f56c087b441590",
+    "cargo_crates": 315,
+    "npm_entries": 170,
+    "scope": "unsigned point-in-time checks; file inventory excludes directories, ownership, ACLs and extended attributes; not bound to a builder or release"
+  },
+  "node_jwt_fixture": {
+    "scope": "network-none fixture using private diagnostic middleware and dummy key; no real tokens or credentials",
+    "valid_signed_claims_accepted": true,
+    "signed_token_without_subject_accepted_by_middleware": true,
+    "expired_by_30_seconds_rejected": true,
+    "wrong_key_rejected": true,
+    "interpretation": "The Node type assertion does not enforce the full application claim shape; no unauthorized-token exploitability is established."
+  }
+}
