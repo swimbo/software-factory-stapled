@@ -1283,3 +1283,18 @@ def test_source_preflight_never_promotes_export_ignored_manifests(tmp_path):
     result = cli.source_preflight(repo, 'HEAD')
     assert result['status'] == 'held'
     assert result['source_inventory']['coverage'] == 'incomplete'
+
+
+def test_v2_validation_evidence_must_match_original_manifest(tmp_path):
+    import hashlib
+    directory = tmp_path/'attested-build'; directory.mkdir()
+    manifest = directory/'build.json'; manifest.write_text(json.dumps({'schema': 'factory.build.v2'}))
+    digest = hashlib.sha256(manifest.read_bytes()).hexdigest()
+    (tmp_path/'transfer-intent.json').write_text(json.dumps({'files': {'build.json': digest}}))
+    cli.check_validation_manifest(tmp_path, {'build_manifest_digest': digest})
+    for proof in ({}, {'build_manifest_digest': '0'*64}):
+        with pytest.raises(ValueError, match='manifest differs'):
+            cli.check_validation_manifest(tmp_path, proof)
+    manifest.write_text(json.dumps({'schema': 'factory.build.v2', 'changed': True}))
+    with pytest.raises(ValueError, match='manifest differs'):
+        cli.check_validation_manifest(tmp_path, {'build_manifest_digest': digest})

@@ -494,6 +494,28 @@ def observe_holdout(run):
     return status
 
 
+def check_validation_manifest(run, proof):
+    """Join v2 signed evidence to the original transferred manifest."""
+    manifest_path = run / 'attested-build' / 'build.json'
+    claimed = proof.get('build_manifest_digest')
+    if not os.path.lexists(manifest_path):
+        if claimed is not None:
+            raise ValueError('signed validation manifest unavailable')
+        return  # Existing legacy receipts did not bind a manifest.
+    if manifest_path.is_symlink() or not manifest_path.is_file():
+        raise ValueError('unsafe validation manifest')
+    raw = manifest_path.read_bytes()
+    manifest = json.loads(raw)
+    schema = manifest.get('schema')
+    if schema == 'factory.build.v2':
+        transfer = json.loads((run / 'transfer-intent.json').read_text())
+        digest = hashlib.sha256(raw).hexdigest()
+        if transfer.get('files', {}).get('build.json') != digest or claimed != digest:
+            raise ValueError('signed validation manifest differs from original transfer')
+    elif schema is not None or claimed is not None:
+        raise ValueError('unsupported or mismatched validation manifest')
+
+
 def execute_validation(run, *, observe_only=False, resume_only=False):
     if observe_only and resume_only:raise ValueError('observation and continuation are mutually exclusive')
     intent = json.loads((run/'transfer-intent.json').read_text())
@@ -513,6 +535,7 @@ def execute_validation(run, *, observe_only=False, resume_only=False):
             proof.get('artifact_digest') != prepared['image_id'] or
             proof.get('source_archive_digest') != intent['files']['source.tar']):
         raise ValueError('accepted validation differs from original prepared build')
+    check_validation_manifest(run, proof)
     return result
 
 
@@ -524,6 +547,7 @@ def application_validation(run, plan, result):
             proof.get('unit_id') != plan['unit'] or proof.get('attempt_id') != result.get('attempt_id') or
             proof.get('git_revision') != result['revision']):
         raise ValueError('matching accepted application validation required')
+    check_validation_manifest(run, proof)
     archive = subprocess.check_output(['git', '-C', str(run / 'candidate'), 'archive', result['revision']])
     if hashlib.sha256(archive).hexdigest() != proof.get('source_archive_digest'):
         raise ValueError('validation source archive differs from collected revision')
