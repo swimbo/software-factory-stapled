@@ -6,5 +6,7 @@
   "remote_archive_sha256": "ed4797e9700cc0a7a44b458310acb47ea7b70f4e86f7f21a8c576f225b032f58",
   "prior_pr": 15,
   "prior_merge_commit": "e95273f7616468daa3c56904dce99cb09a6a04dc",
-  "deployed_profiles_changed": false
+  "deployed_profiles_changed": false,
+  "probe_source_commit": "5035fee",
+  "measurement_source_at_original_probe": "f7ba3d4"
 }

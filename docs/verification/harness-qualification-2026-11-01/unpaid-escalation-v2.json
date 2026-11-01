@@ -1,0 +1,26 @@
+{
+  "calls": {
+    "create": 1,
+    "diagnostic": 1,
+    "read": 70,
+    "run": 0
+  },
+  "checkpoint_files": 28,
+  "fence_confirmed": true,
+  "image": "sha256:569b184e8c4b1f8015633628dba0b451b6e24618c6f533e0bec1758d0acdb99c",
+  "journal_sha256": "e1f3835a7490803029503ba196cd0c994798415dc262d5cbf5a688a998f82227",
+  "limits": [
+    "Scripted-model integration only; no routed-model efficacy or task acceptance.",
+    "No actual-charge accounting; no production isolation or replay proof.",
+    "Durable-claim crash and productive-control coverage remains separate."
+  ],
+  "originals_stopped": true,
+  "paid_requests": 0,
+  "passed": true,
+  "proxy_boundary": "network-none lifecycle sentinel, not gateway",
+  "qualifying_post_intervention_samples": 3,
+  "reservation_retained": true,
+  "resources_retained": true,
+  "same_journal_reopen_no_resend": true,
+  "schema": "factory.unpaid-stall-escalation/v1"
+}

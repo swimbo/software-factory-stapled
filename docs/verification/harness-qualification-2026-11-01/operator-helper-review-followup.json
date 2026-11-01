@@ -1,0 +1,59 @@
+{
+  "schema": "factory.private-operator-helper-review-followup/v1",
+  "status": "complete",
+  "verdict": "Ready for scoped preparation after remaining operational gates",
+  "approved": true,
+  "scope": "Bounded validation of the privileged mount-helper timeout finding; no whole review rerun or live operation",
+  "original_receipt_preserved": true,
+  "epoch1_source_preserved": true,
+  "only_changed_files": [
+    "prepare_campaign.py",
+    "storage_bind.py"
+  ],
+  "source_sha256": {
+    "common.py": "11c61f387803fa14c9fecc299542d173f21d4ba2716adfc44a70a29b78a0d6f8",
+    "prepare_campaign.py": "dd4c634c538f9e2bb269d5f5be71b0d61989603e2856bf0466333f4e52fb76e5",
+    "freeze_approvals.py": "1540003165f1a27b8e63c7f5f4de26db3586d63feb9569769fc7f16c08c66a21",
+    "preservation.py": "f815b4e3919c1a45e288f22f8cbc8ff39f4e4047deb7cd1d34745dab26049476",
+    "launch.py": "5c93181fafe0de83a75bcd7ef75d3a6e7a144e08f41b874767718b8c61bd7453",
+    "observe.py": "8c39860c06fea7f8304519f31520372202a9e462316c58e99df888f13015490d",
+    "storage_bind.py": "0a576a55c20af4155590894afe17c0bab724ac9bf7ffc972a0bb4ecd49bd3f85",
+    "config-template.json": "7ac388ec37a14674071538f6951522fb8b5bf8e8bb163e5a76bdcef92785c8c1",
+    "README.md": "b5c7a4e2eb16774c5d268e0a35771263b7c4dd79ecffdcba109d543ec5f3aa32"
+  },
+  "finding_followup": [
+    {
+      "id": 1,
+      "status": "resolved",
+      "evidence": "docker create cannot start a process; the returned full ID is checked against immutable image, exact name, operation/unit labels and restart=no, then durably recorded in an exclusive fsynced intent before docker start. Start/wait uncertainty checks that same owned ID and kills it if still running. Completion requires wait exit0 and stopped/nonrestarting state. Mount state and workspace preimages are retained; no rm/unmount/retry is introduced."
+    }
+  ],
+  "validation": {
+    "syntax_compiled_python_files": 7,
+    "actual_bind_workspace_mock_controls_passed": 7,
+    "cases": [
+      "unacknowledged create remains stopped without start",
+      "accepted start timeout retains intent and contains original helper",
+      "wait timeout contains original helper",
+      "exit0/stopped helper writes intent/completion and verified bounded-storage receipt",
+      "foreign ownership before start refuses without start/kill",
+      "ownership drift after start refuses unsafe containment and preserves uncertainty",
+      "nonzero mount exit refuses completion receipt"
+    ],
+    "preimages_retained_all_cases": true,
+    "docker_run_or_rm_used": false,
+    "prepare_freezes_new_intent_and_completion_receipts": true,
+    "other_five_python_helpers_unchanged": true,
+    "config_and_readme_unchanged": true
+  },
+  "limits": [
+    "Mocks establish client/daemon outcome ordering and identity refusal, not real Docker/nsenter/mount behavior.",
+    "If current identity inspection or Docker containment itself is unavailable, the operation remains uncertain and retained for operator reconciliation; no automatic retry is authorized.",
+    "Actual final approval sizes, signatures, Linux oracle controls, source deployment and owned stopped-resource checks remain operator execution gates.",
+    "Pricing horizon is planned at12hours and approvals24hours before preparation, never extended during the active campaign."
+  ],
+  "remote_actions": false,
+  "signing_performed": false,
+  "paid_requests": 0,
+  "completed_at": "2026-11-01T13:09:44.696646+00:00"
+}

@@ -1,0 +1,31 @@
+{
+  "schema": "factory.sdk-truncation-audit/v1",
+  "revision": "d0d9d81324210414462fb676b377e0563a08a0cb",
+  "retrieval": "Official pinned GitHub source archive fetched with verified HTTPS; no SDK execution",
+  "archive_url": "https://codeload.github.com/OpenHands/software-agent-sdk/tar.gz/d0d9d81324210414462fb676b377e0563a08a0cb",
+  "archive_sha256": "1828b895a94cc695db1bc029e2650e6b596d33c25d4ba878a11f3a29160cce41",
+  "files": {
+    "openhands-sdk/openhands/sdk/hooks/conversation_hooks.py": "73014bcccc9cf6ff7c02e34aa268f640ae611b02d0f44ec6419bf0384b0aa6aa",
+    "openhands-sdk/openhands/sdk/utils/truncate.py": "2d8440e3908147b75a482d3782cf349eeecf61d44e87de37fe788ea5aa2ab8a5",
+    "openhands-tools/openhands/tools/terminal/impl.py": "60e668d8b75d52907568eff55f9ef81bac1f62727a37c9c722979dc45bb16245",
+    "openhands-tools/openhands/tools/terminal/definition.py": "a978161b8512762607288fe1e3459dfd9b9d3ed79f46b6495cda9d5d2da6e3a3",
+    "openhands-tools/openhands/tools/terminal/terminal/terminal_session.py": "72504a4d34aa571ded0e56ff2c765cc09acab23df789d0fa9237a86ae5d8e1e0",
+    "openhands-tools/openhands/tools/terminal/terminal/tmux_terminal.py": "ca75e97694ade4284d9a95bbb19983d106320336fbed578e120374231eb0eb86",
+    "openhands-tools/openhands/tools/terminal/terminal/subprocess_terminal.py": "ca67ff05fed0a0bcd992a91e05e7abdb8b89419b97c28a5a607674b385a71461",
+    "openhands-tools/openhands/tools/file_editor/editor.py": "a777eb0357bc0cd4af4166fb63e64a14771ce0aa4bde014a9462ccd0bf6f2187"
+  },
+  "findings": [
+    "Supported PostToolUse sees observations after terminal/editor pre-event clipping.",
+    "Terminal LLM rendering can clip after PostToolUse.",
+    "Native tmux bounded history can evict before SDK capture; no exact discarded-row counter is exposed.",
+    "Subprocess fallback uses bounded deque without eviction telemetry.",
+    "Wrapping maybe_truncate or matching textual markers cannot establish complete backend coverage."
+  ],
+  "decision": "User selected native execution, fresh trials with explicit unknown telemetry, and promotion hold. No gate weakened.",
+  "options": [
+    "Keep native execution and report explicit unknown coverage; promotion remains held.",
+    "Extend terminal instrumentation, freeze a new measurement baseline, and requalify behavior before held-out trials."
+  ],
+  "private_model_content_exported": false,
+  "paid_requests": 0
+}

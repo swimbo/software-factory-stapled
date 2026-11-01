@@ -1,0 +1,59 @@
+{
+  "schema": "factory.private-operator-helper-review/v1",
+  "status": "complete",
+  "verdict": "Ready with fixes",
+  "reviewed_files_sha256": {
+    "common.py": "11c61f387803fa14c9fecc299542d173f21d4ba2716adfc44a70a29b78a0d6f8",
+    "prepare_campaign.py": "e8883b675bfcb85c6e67029b49257601b8ba82af6d73afd768c067d8af5d1e3f",
+    "freeze_approvals.py": "1540003165f1a27b8e63c7f5f4de26db3586d63feb9569769fc7f16c08c66a21",
+    "preservation.py": "f815b4e3919c1a45e288f22f8cbc8ff39f4e4047deb7cd1d34745dab26049476",
+    "launch.py": "5c93181fafe0de83a75bcd7ef75d3a6e7a144e08f41b874767718b8c61bd7453",
+    "observe.py": "8c39860c06fea7f8304519f31520372202a9e462316c58e99df888f13015490d",
+    "storage_bind.py": "4e80877311a47a577aa8c262810cceb73ca0bb4b1590da64bc4463f001d28e50",
+    "config-template.json": "7ac388ec37a14674071538f6951522fb8b5bf8e8bb163e5a76bdcef92785c8c1",
+    "README.md": "b5c7a4e2eb16774c5d268e0a35771263b7c4dd79ecffdcba109d543ec5f3aa32"
+  },
+  "reviewed_source_unchanged": true,
+  "findings": [
+    {
+      "id": 1,
+      "severity": "P2",
+      "file": "storage_bind.py",
+      "line": 24,
+      "title": "Record and contain the privileged mount helper before starting it",
+      "evidence": "subprocess.run(argv,check=True,timeout=30) invokes docker run --rm; no full container ID is retained and no finally/timeout containment follows. The receipt is written only after that call succeeds.",
+      "consequence": "If the Docker client times out after daemon acceptance, the privileged host-namespace nsenter/mount helper can remain running after preparation exits. The campaign prepare intent prevents a repeat, but does not contain that original helper or establish whether its mount happened.",
+      "validation": {
+        "method": "Executed the actual bind_workspace() against a canonical temporary private workspace, sparse size-bound image fixture and mocked losetup/Docker acceptance; no Docker or privileged operations occurred.",
+        "result": {
+          "helper_started": true,
+          "helper_stopped": false,
+          "command_timeout": true,
+          "workspace_preimage_retained": true,
+          "receipt_written": false,
+          "running_helper_left_uncontained": true
+        }
+      },
+      "suggested_fix": "Separate docker create from start, validate and durably retain the full image/label/name-bound ID before start, and contain only that original helper after start/wait uncertainty. Preserve the mount state and workspace preimage for reconciliation; never automatically unmount, retry or recreate an ambiguous operation."
+    }
+  ],
+  "checked": [
+    "72 immutable unit/task/repeat/profile identities and fresh-only dispatch checks",
+    "Preparation intent precedes mutations and refuses partial repetition",
+    "Final runtime approval paths established before runtime hashes",
+    "Three signed groups checked against 65536-byte verifier limit before any approval document write",
+    "Source/cohort/CI/review pins and frozen input digests revalidated before run",
+    "Existing dispatch intents use separate observe-only flow, never model redispatch",
+    "Original worker/proxy image/label/lifecycle and stopped/completed-or-fenced checks precede network removal",
+    "Durable network removal intent prevents automatic retry; absent network can be reconciled",
+    "Prior WorkUnit states, volume identities and guarded row subsets retained; store identity/generation cannot rewind",
+    "Promotion held and unknown native truncation coverage preserved"
+  ],
+  "limits": [
+    "No SSH, Docker, signing, real service, credential or inference actions occurred.",
+    "No private oracle answers or raw model messages were read/exported.",
+    "Expiry remains unset in the template. common.load refuses observe/final preservation after pricing expiry, so the frozen horizon must include worst-case trial startup and final audit.",
+    "Live topology, timing, isolated Linux oracle controls and actual final signature size/provenance remain operator execution gates."
+  ],
+  "completed_at": "2026-11-01T13:04:46.693210+00:00"
+}
