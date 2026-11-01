@@ -1,6 +1,6 @@
 # Software factory current status
 
-Updated: November 1, 2026. **Paused at the user's request.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
+Updated: November 1, 2026. **Resumed at the user's request.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
 
 ## Repository and verification
 
@@ -50,7 +50,7 @@ First live probe evidence on the NUC:
 ## Resume order
 
 1. Preserve the passed original lifecycle proof and retained candidates. Do not repeat or replace those original operations. Recheck Git, runtime and any currently running verification before taking the next step.
-2. Independently review the current runtime candidate and close real security-engine/provenance coverage and production signed endpoint/receipt integration. The active endpoint lacks the receipt capability; the new runtime has not been activated. Preserve the passed wall/substitution and isolated receipt proofs. Prepare any necessary exact-source, locally built runtime release before activation; preserve shared services and all prior resources.
+2. Resolve the runtime candidate review's six confirmed findings: build-context symlink substitution; false-passing empty holdouts; recovery before an acceptance submission; validation-release pinning across upgrades; complete dependency coverage; and candidate-controlled scanner suppression. Local fixes for all but dependency coverage have targeted tests, including local scanner suppression controls; they still need independent review and release verification. Complete dependency coverage and NUC scanner provisioning remain open. The active endpoint lacks the receipt capability; the new runtime has not been activated. Preserve the passed wall/substitution and isolated receipt proofs. Prepare and review the exact-source runtime release before activation; preserve shared services and all prior resources.
 3. Complete the reusable operator join from selected factory output to attested local image build, immutable transfer, isolated validation, accepted matching receipt and validation-gated application publication.
 4. Complete Phases 10–11 acceptance, rejection, crash recovery and approval paths without duplicate dispatch.
 5. Run one real small fullstack dogfood feature through model build, validation and a reviewed remote PR. Preserve failed consumption; no automatic paid reruns.
