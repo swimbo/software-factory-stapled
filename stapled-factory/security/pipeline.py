@@ -11,6 +11,7 @@ Verdicts:
   "needs_review" — security-relevant or medium findings → human escalation.
   "fail"         — critical/high findings → block merge.
 """
+import hashlib
 import json
 import re
 import shutil
@@ -37,12 +38,16 @@ class ScanReport:
     security_relevant: bool = False
     verdict: str = "pass"
     engines: dict = field(default_factory=dict)  # category -> "semgrep" | "regex" | ...
+    dependency_inventories: list = field(default_factory=list)
+    inventory_reconciliation: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
             "verdict": self.verdict,
             "security_relevant": self.security_relevant,
             "engines": self.engines,
+            "dependency_inventories": self.dependency_inventories,
+            "inventory_reconciliation": self.inventory_reconciliation,
             "findings": [f.__dict__ for f in self.findings],
         }
 
@@ -189,6 +194,42 @@ def _verify_locked_inventory(lockfile: str, data: dict) -> None:
         raise ValueError('OSV scanner omitted locked packages')
 
 
+class OSVFindings(list):
+    def __init__(self, findings, data):
+        super().__init__(findings)
+        packages = set()
+        for result in data['results']:
+            for entry in result.get('packages', []):
+                package = entry.get('package', {})
+                fields = [package.get(k) for k in ('ecosystem', 'name', 'version', 'purl')]
+                if any(value is not None and not isinstance(value, str) for value in fields):
+                    raise ValueError('OSV scan returned invalid package identity')
+                identity = tuple(value or '' for value in fields[:3])
+                purl_hash = hashlib.sha256((fields[3] or '').encode()).hexdigest()
+                packages.add((*identity, purl_hash))
+        encoded = json.dumps(sorted(packages), separators=(',', ':'), ensure_ascii=True).encode()
+        self.inventory = {'package_count': len(packages), 'packages': [list(item) for item in sorted(packages)],
+                          'unversioned_count': sum(not item[1] or not item[2] for item in packages),
+                          'sha256': hashlib.sha256(encoded).hexdigest()}
+
+
+def reconcile_inventories(inventories):
+    """Report differences; this comparison alone never establishes completeness."""
+    locked, image = set(), set()
+    for inventory in inventories:
+        target = locked if inventory['kind'] == 'lockfile' else image if inventory['kind'] == 'image' else None
+        if target is not None:
+            target.update(tuple(item[:3]) for item in inventory['packages'])
+    ecosystems = {item[0] for item in locked}
+    comparable = {item for item in image if item[0] in ecosystems}
+    return {'coverage': 'incomplete',
+            'image_scanned': any(item['kind'] == 'image' for item in inventories),
+            'lockfiles_scanned': sum(item['kind'] == 'lockfile' for item in inventories),
+            'lock_only': [list(item) for item in sorted(locked - comparable)],
+            'image_only': [list(item) for item in sorted(comparable - locked)],
+            'image_ecosystems_without_locks': sorted({item[0] for item in image if item[0] not in ecosystems})}
+
+
 def _run_osv(target_args: list[str], *, lockfile: str | None = None) -> list[Finding] | None:
     if not _which("osv-scanner"):
         return None
@@ -223,7 +264,7 @@ def _run_osv(target_args: list[str], *, lockfile: str | None = None) -> list[Fin
                 ))
     if r.returncode == 1 and not out:
         raise ValueError('OSV scan reported findings without parseable vulnerabilities')
-    return out
+    return OSVFindings(out, data)
 
 
 def run_cosign_verify(image: str, identity: str) -> list[Finding] | None:
@@ -323,6 +364,7 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
     paths = paths or []
     findings: list[Finding] = []
     engines: dict = {}
+    dependency_inventories = []
 
     # SAST
     semgrep_findings = run_semgrep(target) if target else None
@@ -352,6 +394,9 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
             if dependency_findings is None:
                 raise ValueError('OSV scanner became unavailable')
             findings += dependency_findings
+            if hasattr(dependency_findings, 'inventory'):
+                with Path(selected).open('rb') as stream:source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                dependency_inventories.append({'kind': 'lockfile', 'source_sha256': source_digest, **dependency_findings.inventory})
         # A selected lockfile alone cannot prove every dependency is represented.
         engines["dependency"] = "osv-scanner-incomplete"
     else:
@@ -365,6 +410,9 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
         else:
             findings += image_findings
             engines['image_dependency'] = 'osv-scanner-image'
+            if hasattr(image_findings, 'inventory'):
+                with Path(image_archive).open('rb') as stream:source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                dependency_inventories.append({'kind': 'image', 'source_sha256': source_digest, **image_findings.inventory})
 
     security_relevant = classify_security_relevance(paths, diff_text)
     return ScanReport(
@@ -372,4 +420,6 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
         security_relevant=security_relevant,
         verdict=_verdict(findings, security_relevant),
         engines=engines,
+        dependency_inventories=dependency_inventories,
+        inventory_reconciliation=reconcile_inventories(dependency_inventories),
     )

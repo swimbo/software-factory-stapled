@@ -127,7 +127,15 @@ def test_osv_cannot_silently_omit_a_locked_package(monkeypatch, tmp_path):
         pipeline.run_osv_scanner(str(lock))
     report = json.dumps({'results': [{'packages': [{'package': {'name': 'example', 'version': '1.2.3'}}]}]})
     monkeypatch.setattr(pipeline.subprocess, 'run', lambda args, **kw: subprocess.CompletedProcess(args, 0, report, ''))
-    assert pipeline.run_osv_scanner(str(lock)) == []
+    found = pipeline.run_osv_scanner(str(lock))
+    assert found == []
+    assert found.inventory['package_count'] == 1
+    assert len(found.inventory['sha256']) == 64
+    import hashlib
+    assert found.inventory['packages'] == [['', 'example', '1.2.3', hashlib.sha256(b'').hexdigest()]]
+    scan = pipeline.scan('safe', lockfiles=[str(lock)])
+    assert scan.dependency_inventories[0]['source_sha256'] == hashlib.sha256(lock.read_bytes()).hexdigest()
+    assert scan.dependency_inventories[0]['sha256'] == found.inventory['sha256']
 
 
 def test_osv_cannot_silently_omit_registry_crates(monkeypatch, tmp_path):
@@ -171,3 +179,15 @@ def test_prebuilt_image_findings_contribute_to_security_verdict(monkeypatch):
     assert report.engines['dependency'] == 'osv-scanner-incomplete'
     assert report.verdict == 'needs_review'
     assert any(f.rule == 'TEST-IMAGE' for f in report.findings)
+
+
+def test_dependency_inventory_reconciliation_reports_unmatched_components():
+    import pipeline
+    inventories = [
+        {'kind': 'lockfile', 'packages': [['npm', 'present', '1', 'a'], ['npm', 'not-installed', '2', 'b']]},
+        {'kind': 'image', 'packages': [['npm', 'present', '1', 'c'], ['npm', 'image-only', '3', 'd']]},
+    ]
+    result = pipeline.reconcile_inventories(inventories)
+    assert result['coverage'] == 'incomplete'
+    assert result['lock_only'] == [['npm', 'not-installed', '2']]
+    assert result['image_only'] == [['npm', 'image-only', '3']]

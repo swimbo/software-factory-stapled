@@ -9,6 +9,7 @@
     "lock_package_entries": 220,
     "osv_spdx_packages_emitted": 2,
     "osv_all_packages_emitted": 219,
+    "osv_inventory_sha256": "dfab0bf35ad7492b07edbc1eb131df45aaec21c256d6325077d00ff9f7d95ca5",
     "osv_lock_inventory_comparison": "passed for npm package entries",
     "osv_findings": 1,
     "affected_packages": 1,
@@ -24,6 +25,7 @@
       "npm_ci_ignore_scripts": "passed",
       "typescript_build": "passed",
       "osv_extracted_packages": 167,
+      "osv_inventory_sha256": "2c117e3b0f566d889a3e34ed82bdfacc79a6c6b6ab3913f61cf69d25051b46a9",
       "osv_lock_inventory_comparison": "passed for npm package entries",
       "osv_findings": 0
     }
@@ -31,8 +33,15 @@
   "backend": {
     "lock_sha256": "1bd85c2ee33a37c5a8227149a5f0e3475b0d3740dd8d004184fc2ac36f75763a",
     "osv_lock_inventory_comparison": "passed for 315 registry crates",
+    "osv_inventory_sha256": "200f5d09196ce8f90423b9c805a42a044e56356c4a279a38863d988351b69d95",
     "osv_findings": 34,
     "affected_packages": 11
+  },
+  "unrelated_fixture_image_reconciliation": {
+    "coverage": "incomplete",
+    "lock_only_components": 535,
+    "image_ecosystems_without_locks": ["Debian:13", "PyPI"],
+    "scope": "Negative control using an unrelated retained fixture image; not a candidate build"
   },
   "limitations": [
     "The generated frontend lock was not present in or applied to the original template.",

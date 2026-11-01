@@ -24,6 +24,8 @@
     "osv_vulnerability_count": 5,
     "osv_retained_fixture_image_scan_completed": true,
     "osv_retained_fixture_image_findings": 208,
+    "osv_retained_fixture_image_unique_packages": 108,
+    "osv_retained_fixture_image_inventory_sha256": "5d610c864eb43dd4f359ddc0e872fbdc0e21af166ed1c5048a49cad90d51f603",
     "cosign_version_only": true
   },
   "limitations": [
