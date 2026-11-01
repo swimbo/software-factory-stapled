@@ -290,7 +290,7 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
     if raw!=derived:raise ValueError('archive differs from exact commit')
     diff=subprocess.check_output(['git','-C',str(repo),'diff',baseline,revision])
     if Path(diff_file).read_bytes().rstrip(b'\n')!=diff.rstrip(b'\n'):raise ValueError('diff differs from selected commits')
-    subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public_key),'-rawin','-in',str(manifest),'-sigfile',str(signature)],check=True,stdout=subprocess.DEVNULL)
+    subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public_key),'-rawin','-in',str(manifest),'-sigfile',str(signature)],check=True,capture_output=True,timeout=15)
     binding=json.loads(Path(manifest).read_text())
     if hashlib.sha256(Path(manifest).with_name('Dockerfile').read_bytes()).hexdigest()!=binding['dockerfile_sha256']:raise ValueError('signed Dockerfile mismatch')
     if binding['revision']!=revision or binding['baseline']!=baseline or binding['archive_sha256']!=digest or binding['diff_sha256']!=hashlib.sha256(diff).hexdigest():raise ValueError('signed build source mismatch')
