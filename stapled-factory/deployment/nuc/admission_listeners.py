@@ -13,7 +13,7 @@ PORT_OWNERS = {5122: 'restate', 18080: 'restate', 19070: 'restate',
                19080: 'endpoint', 19081: 'ingress'}
 
 
-def _listeners(tcp, tcp6):
+def _listeners(tcp, tcp6, absent=None):
     result = {}
     for family, content in (('ipv4', tcp), ('ipv6', tcp6)):
         lines = content.splitlines()
@@ -26,25 +26,29 @@ def _listeners(tcp, tcp6):
                 state = int(fields[3], 16); inode = int(fields[9])
             except (ValueError, IndexError) as exc: raise ValueError('invalid listener entry') from exc
             if port not in PORT_OWNERS or state != 10: continue
+            if PORT_OWNERS[port] == absent: raise ValueError('restarting service still has a listener')
             if family != 'ipv4' or address != '0100007F' or inode <= 0:
                 raise ValueError('factory listener is not IPv4 loopback')
             if port in result: raise ValueError('duplicate factory listener')
             result[port] = inode
-    if set(result) != set(PORT_OWNERS): raise ValueError('factory listeners incomplete')
+    if set(result) != {port for port, owner in PORT_OWNERS.items() if owner != absent}:
+        raise ValueError('factory listeners incomplete')
     return result
 
 
-def verify_listeners(processes, *, proc=Path('/proc'), uid=None):
+def verify_listeners(processes, *, proc=Path('/proc'), uid=None, absent=None):
     """Bind each protected listener to its expected stable service process."""
     if (not isinstance(processes, dict) or set(processes) != {'restate', 'endpoint', 'ingress'} or
             any(type(pid) is not int or pid <= 0 for pid in processes.values()) or len(set(processes.values())) != 3):
         raise ValueError('expected listener processes required')
     if uid is None: uid = os.getuid()
+    if absent not in (None, 'endpoint', 'ingress'): raise ValueError('invalid restarting service')
     proc = Path(proc)
-    def identities(): return {name: read_identity(pid, uid, proc_root=proc) for name, pid in processes.items()}
-    def tables(): return _listeners((proc/'net/tcp').read_text(), (proc/'net/tcp6').read_text())
+    def identities(): return {name: read_identity(pid, uid, proc_root=proc) for name, pid in processes.items() if name != absent}
+    def tables(): return _listeners((proc/'net/tcp').read_text(), (proc/'net/tcp6').read_text(), absent)
     before = identities(); listeners = tables(); observed = {}
     for name, pid in processes.items():
+        if name == absent: continue
         try:
             sockets = set()
             for fd in (proc/str(pid)/'fd').iterdir():
@@ -57,4 +61,4 @@ def verify_listeners(processes, *, proc=Path('/proc'), uid=None):
     if any(inode not in observed[PORT_OWNERS[port]] for port, inode in listeners.items()):
         raise ValueError('factory listener process differs')
     if tables() != listeners or identities() != before: raise ValueError('listener evidence changed')
-    return {'verified': True, 'ports': sorted(listeners), 'scope': 'point-in-time-ipv4-loopback'}
+    return {'verified': True, 'ports': sorted(listeners), 'scope': 'point-in-time-ipv4-loopback', 'identities': before}

@@ -23,6 +23,11 @@ def test_loopback_listener_ownership_and_changed_bindings(tmp_path, monkeypatch)
             if owner==name:(fds/str(port)).symlink_to(f'socket:[{entries[port]}]')
     monkeypatch.setattr(listeners,'read_identity',lambda pid,uid,**kwargs:{'pid':pid,'start_ticks':1})
     assert listeners.verify_listeners(pids,proc=tmp_path,uid=1000)['verified'] is True
+    with pytest.raises(ValueError,match='still has a listener'):
+        listeners.verify_listeners(pids,proc=tmp_path,uid=1000,absent='endpoint')
+    tcp.write_text(header+''.join(row(port,inode) for port,inode in entries.items() if port!=19080))
+    result=listeners.verify_listeners(pids,proc=tmp_path,uid=1000,absent='endpoint')
+    assert 19080 not in result['ports'] and 'endpoint' not in result['identities']
     tcp.write_text(header+''.join(row(port,inode,address='00000000' if port==19070 else '0100007F') for port,inode in entries.items()))
     with pytest.raises(ValueError,match='not IPv4 loopback'):
         listeners.verify_listeners(pids,proc=tmp_path,uid=1000)

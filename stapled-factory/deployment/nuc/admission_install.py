@@ -16,7 +16,7 @@ import subprocess
 
 UNITS = ('factory-restate', 'factory-endpoint', 'factory-ingress')
 DROPIN = '90-factory-admission.conf'
-MODULES = frozenset(('admission_live.py','admission_identity.py','admission_nft.py',
+MODULES = frozenset(('admission_live.py','admission_identity.py','admission_listeners.py','admission_nft.py',
                      'admission_effective.py','admission_install.py'))
 
 

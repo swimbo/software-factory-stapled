@@ -15,6 +15,7 @@ import sys
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE))
 from admission_identity import read_identity, require_protected_cgroup
+from admission_listeners import verify_listeners
 from admission_nft import verify_live_evidence, verify_snapshot, verify_hook_order
 
 DOCKER=Path('/usr/bin/docker')
@@ -47,7 +48,7 @@ def _run(args):
     return result.stdout.decode('utf-8')
 
 
-def _verify(identifier, expected_identities, *, helper_image, docker_sha256, nft_sha256, observe_ingress):
+def _verify(identifier, expected_identities, *, expected_endpoint, helper_image, docker_sha256, nft_sha256, observe_ingress, stopping_unit):
     names=('probe','ingress','restate')
     if (not isinstance(identifier,str) or not re.fullmatch(r'[a-f0-9]{16}',identifier) or
             not isinstance(helper_image,str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',helper_image) or
@@ -57,6 +58,19 @@ def _verify(identifier, expected_identities, *, helper_image, docker_sha256, nft
         item=expected_identities[name]
         if not isinstance(item,dict) or type(item.get('pid')) is not int or item['pid']<=0:
             raise ValueError('pinned admission process required')
+    if not isinstance(expected_endpoint,dict) or type(expected_endpoint.get('pid')) is not int or expected_endpoint['pid']<=0:
+        raise ValueError('pinned endpoint process required')
+    absent = {'factory-endpoint':'endpoint','factory-ingress':'ingress',None:None}.get(stopping_unit, 'invalid')
+    if absent == 'invalid':raise ValueError('invalid restarting service')
+    def listeners():
+        processes={'restate':expected_identities['restate']['pid'], 'ingress':expected_identities['ingress']['pid'],
+                   'endpoint':expected_endpoint['pid']}
+        observed=verify_listeners(processes,absent=absent)
+        expected={'restate':expected_identities['restate'],'ingress':expected_identities['ingress'],'endpoint':expected_endpoint}
+        if (observed.get('verified') is not True or observed.get('identities') !=
+                {name:value for name,value in expected.items() if name != absent}):
+            raise ValueError('factory listener identity differs')
+        return observed
     docker=_tool(DOCKER,docker_sha256);nft=_tool(NFT,nft_sha256)
     if _run([docker,'image','inspect','--format','{{.Id}}',helper_image]).strip()!=helper_image:
         raise ValueError('admission helper image differs')
@@ -71,6 +85,7 @@ def _verify(identifier, expected_identities, *, helper_image, docker_sha256, nft
         return result
     before=identities()
     if before!=expected_identities:raise ValueError('admission process identity differs')
+    listener_before=listeners()
     prefix=[docker,'run','--rm','--pull=never','--network=host','--cgroupns=host',
         '--cap-drop=ALL','--cap-add=NET_ADMIN','--cap-add=SYS_CHROOT','--read-only',
         '--mount=type=bind,src=/,dst=/host,readonly','--security-opt=no-new-privileges',
@@ -83,6 +98,7 @@ def _verify(identifier, expected_identities, *, helper_image, docker_sha256, nft
     second=_run(prefix+['-a']+table_args)
     later_hooks=_run(prefix+['-j','list','ruleset'])
     after=identities()
+    if listeners()!=listener_before:raise ValueError('listener evidence changed during nft readback')
     if second!=snapshot:raise ValueError('nft table changed during readback')
     result=verify_live_evidence(identifier,before,after,snapshot,debug,hooks)
     verify_snapshot(second,identifier,*[after[name]['cgroup'] for name in names])
@@ -95,17 +111,17 @@ def _verify(identifier, expected_identities, *, helper_image, docker_sha256, nft
             'helper_image':helper_image,'nft_sha256':nft_sha256,'ingress_observed':observe_ingress}
 
 
-def verify_live(identifier, expected_identities, *, helper_image, docker_sha256, nft_sha256):
+def verify_live(identifier, expected_identities, *, expected_endpoint, helper_image, docker_sha256, nft_sha256):
     """Independently check the live table and all three original processes."""
-    return _verify(identifier,expected_identities,helper_image=helper_image,docker_sha256=docker_sha256,
-                   nft_sha256=nft_sha256,observe_ingress=True)
+    return _verify(identifier,expected_identities,expected_endpoint=expected_endpoint,helper_image=helper_image,docker_sha256=docker_sha256,
+                   nft_sha256=nft_sha256,observe_ingress=True,stopping_unit=None)
 
 
-def verify_restart_fence(identifier, expected_identities, *, helper_image, docker_sha256, nft_sha256):
+def verify_restart_fence(identifier, expected_identities, *, expected_endpoint, helper_image, docker_sha256, nft_sha256, stopping_unit):
     """Check a retained ingress rule while that process may be stopped for restart.
 
     The caller must bind the ingress identity to an earlier successful full
     live verification and must rebind and reverify the new ingress afterward.
     """
-    return _verify(identifier,expected_identities,helper_image=helper_image,docker_sha256=docker_sha256,
-                   nft_sha256=nft_sha256,observe_ingress=False)
+    return _verify(identifier,expected_identities,expected_endpoint=expected_endpoint,helper_image=helper_image,docker_sha256=docker_sha256,
+                   nft_sha256=nft_sha256,observe_ingress=False,stopping_unit=stopping_unit)

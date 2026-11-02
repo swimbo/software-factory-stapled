@@ -15,7 +15,7 @@ import sys
 import types
 
 RESTARTABLE = frozenset(('factory-endpoint', 'factory-ingress'))
-MODULES = ('admission_identity','admission_nft','admission_install','admission_live','admission_effective')
+MODULES = ('admission_identity','admission_listeners','admission_nft','admission_install','admission_live','admission_effective')
 
 
 def _unsafe_unit_mode(info):
@@ -151,7 +151,7 @@ def _authorizations(value):
 
 
 def _network(value):
-    keys={'identifier','expected_identities','helper_image','docker_sha256','nft_sha256'}
+    keys={'identifier','expected_identities','expected_endpoint','helper_image','docker_sha256','nft_sha256'}
     if not isinstance(value,dict) or set(value)!=keys:raise ValueError('complete network fence identity required')
     return value
 
@@ -209,7 +209,7 @@ def _verified_prestart(directory, hold, permit, unit, unit_file, permit_name, pe
     live,effective=modules
     first=effective.capture_effective(unit,permit['service_dir'])
     if not _effective_allowed(first,permit['units'][unit]):raise ValueError('effective service configuration differs')
-    evidence=live.verify_restart_fence(**permit['network'])
+    evidence=live.verify_restart_fence(**permit['network'],stopping_unit=unit)
     if (evidence.get('verified') is not True or evidence.get('ingress_observed') is not False or
             evidence.get('identities_sha256')!=permit['initial_identity_sha256']):
         raise ValueError('live restart fence differs')

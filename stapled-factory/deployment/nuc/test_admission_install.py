@@ -45,7 +45,7 @@ def test_preparation_pins_complete_guard_module_bundle(tmp_path):
     import subprocess
     import sys
     control,units,guard,digest=fixture(tmp_path)
-    names=('admission_live.py','admission_identity.py','admission_nft.py','admission_effective.py','admission_install.py')
+    names=('admission_live.py','admission_identity.py','admission_listeners.py','admission_nft.py','admission_effective.py','admission_install.py')
     sources={name:{'path':HERE/name,'sha256':hashlib.sha256((HERE/name).read_bytes()).hexdigest()} for name in names}
     receipt=module.prepare_install(control,units,guard,digest,module_sources=sources)
     assert set(receipt['modules'])==set(names)

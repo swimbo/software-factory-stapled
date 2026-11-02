@@ -13,10 +13,10 @@ module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
 def test_live_readback_rejects_unpinned_inputs_before_any_command(monkeypatch):
     monkeypatch.setattr(module,'_run',lambda args:pytest.fail('unexpected host command'))
     with pytest.raises(ValueError,match='pinned admission identity'):
-        module.verify_live('bad',{},helper_image='latest',docker_sha256='a'*64,nft_sha256='b'*64)
+        module.verify_live('bad',{},expected_endpoint={},helper_image='latest',docker_sha256='a'*64,nft_sha256='b'*64)
     identities={name:{'pid':index} for name,index in (('probe',1),('ingress',2),('restate',3))}
     with pytest.raises(ValueError,match='pinned tool digest'):
-        module.verify_live('0123456789abcdef',identities,helper_image='sha256:'+'a'*64,
+        module.verify_live('0123456789abcdef',identities,expected_endpoint={'pid':4},helper_image='sha256:'+'a'*64,
                            docker_sha256='invalid',nft_sha256='b'*64)
 
 
@@ -47,11 +47,14 @@ def test_restart_readback_checks_retained_ingress_rule_without_requiring_dead_pi
         return next(value for value in identities.values() if value['pid']==pid)
     monkeypatch.setattr(module,'read_identity',identity)
     monkeypatch.setattr(module,'require_protected_cgroup',lambda path,pid:None)
+    endpoint={'pid':4,'start_ticks':40,'cgroup':'/user/endpoint','inode':68}
+    monkeypatch.setattr(module,'verify_listeners',lambda processes,absent:{'verified':True,'identities':
+        {name:value for name,value in {'restate':identities['restate'],'ingress':identities['ingress'],'endpoint':endpoint}.items() if name!=absent}})
     def run(args):
         if args[1:3]==['image','inspect']:return image+'\n'
         if '--debug' in args:return debug
         if '-j' in args:return hooks
         return snapshot
     monkeypatch.setattr(module,'_run',run)
-    result=module.verify_restart_fence('0123456789abcdef',identities,helper_image=image,docker_sha256='a'*64,nft_sha256='b'*64)
+    result=module.verify_restart_fence('0123456789abcdef',identities,expected_endpoint=endpoint,helper_image=image,docker_sha256='a'*64,nft_sha256='b'*64,stopping_unit='factory-ingress')
     assert result['verified'] is True and result['ingress_observed'] is False
