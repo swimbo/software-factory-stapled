@@ -106,9 +106,10 @@ def test_mismatched_image_preserves_failed_original_and_refuses_replay(tmp_path,
 def test_signed_manifest_binds_registry_policy_and_evidence(tmp_path,monkeypatch):
     values,public=inputs(tmp_path);fake_runners(monkeypatch,values)
     keyid='SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA'
-    key='MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Olb3zMAFFxXKHiIkQO5cJ3Yhl5i6UPp+IhuteBJbuHcA5UogKo0EWtlWwW6KSaKoTNEYL7JlCQiVnkhBktUgg=='
-    manifest=m.build_controlled(profile='npm',registry_policy={keyid:key},**values)
-    assert manifest['controlled']['registry_policy']=={keyid:key}
+    public_der=('MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Olb3zMAFFxXKHiIkQO5cJ3Yh'
+                'l5i6UPp+IhuteBJbuHcA5UogKo0EWtlWwW6KSaKoTNEYL7JlCQiVnkhBktUgg==')
+    manifest=m.build_controlled(profile='npm',registry_policy={keyid:public_der},**values)
+    assert manifest['controlled']['registry_policy']=={keyid:public_der}
     assert manifest['controlled']['registry_evidence_sha256']=='a'*64
     subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public),'-rawin',
         '-in',str(values['output_dir']/'build.json'),'-sigfile',str(values['output_dir']/'build.sig')],check=True,capture_output=True)

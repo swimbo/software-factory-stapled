@@ -1375,14 +1375,15 @@ def test_controlled_build_freezes_preflight_and_reconciles_original(tmp_path,mon
 def test_controlled_npm_config_binds_registry_policy_and_evidence(tmp_path, monkeypatch):
     _,_,_,path,_,_,report=controlled_build_inputs(tmp_path,monkeypatch)
     keyid='SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA'
-    key='MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Olb3zMAFFxXKHiIkQO5cJ3Yhl5i6UPp+IhuteBJbuHcA5UogKo0EWtlWwW6KSaKoTNEYL7JlCQiVnkhBktUgg=='
-    data=json.loads(path.read_text());data['registry_policy']={keyid:key};path.write_text(json.dumps(data))
+    public_der=('MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Olb3zMAFFxXKHiIkQO5cJ3Yh'
+                'l5i6UPp+IhuteBJbuHcA5UogKo0EWtlWwW6KSaKoTNEYL7JlCQiVnkhBktUgg==')
+    data=json.loads(path.read_text());data['registry_policy']={keyid:public_der};path.write_text(json.dumps(data))
     config,_=cli.load_controlled_config(path)
     bound={**report,'registry_policy':data['registry_policy'],'registry_evidence_sha256':'a'*64}
     assert cli.validate_controlled_preflight(config,bound,report['source_sha256'])==bound
     with pytest.raises(ValueError,match='policy'):
         cli.validate_controlled_preflight(config,{**bound,'registry_policy':{}},report['source_sha256'])
-    data['registry_policy']={'SHA256:wrong':key};path.write_text(json.dumps(data))
+    data['registry_policy']={'SHA256:wrong':public_der};path.write_text(json.dumps(data))
     with pytest.raises(ValueError,match='fingerprint'):
         cli.load_controlled_config(path)
 
