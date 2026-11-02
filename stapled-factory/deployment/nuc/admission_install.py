@@ -12,6 +12,7 @@ from pathlib import Path
 import pwd
 import re
 import stat
+import subprocess
 
 UNITS = ('factory-restate', 'factory-endpoint', 'factory-ingress')
 DROPIN = '90-factory-admission.conf'
@@ -97,3 +98,56 @@ def prepare_install(control, service_dir, guard_source, expected_sha256):
     receipt = {'guard_sha256':expected_sha256,'dropins':files,'armed':False,'loaded':False}
     _write(root/'installation.json',json.dumps(receipt,sort_keys=True,separators=(',', ':')).encode())
     return receipt
+
+
+def verify_loaded(control, service_dir, expected_sha256):
+    """Read back the prepared files and each active systemd unit before arming."""
+    control = _directory(control, private=True);service_dir = _directory(service_dir)
+    root = _directory(control/'admission-fence', private=True)
+    hold = _directory(root/'hold', private=True);script = root/'guard.py'
+    if os.path.lexists(hold/'transition'):raise ValueError('existing transition requires observation')
+    if not isinstance(expected_sha256,str) or not re.fullmatch(r'[a-f0-9]{64}',expected_sha256):
+        raise ValueError('exact guard digest required')
+    if hashlib.sha256(_regular(script, private=True)).hexdigest() != expected_sha256:
+        raise ValueError('installed guard differs')
+    def unique(pairs):
+        result={}
+        for key,value in pairs:
+            if key in result:raise ValueError('duplicate installation receipt key')
+            result[key]=value
+        return result
+    receipt=json.loads(_regular(root/'installation.json',private=True),object_pairs_hook=unique)
+    if (not isinstance(receipt,dict) or set(receipt)!={'guard_sha256','dropins','armed','loaded'} or
+            receipt['guard_sha256'] != expected_sha256 or receipt['armed'] is not False or receipt['loaded'] is not False or
+            not isinstance(receipt['dropins'],dict) or set(receipt['dropins']) != set(UNITS)):
+        raise ValueError('installation receipt differs')
+    runtime='/run/user/'+str(os.getuid())
+    env={'PATH':'/usr/bin:/bin','HOME':str(Path.home()),'XDG_RUNTIME_DIR':runtime,
+         'DBUS_SESSION_BUS_ADDRESS':'unix:path='+runtime+'/bus'}
+    result={}
+    for name in UNITS:
+        unit=service_dir/(name+'.service');dropin=service_dir/(name+'.service.d')/DROPIN
+        _directory(dropin.parent)
+        unit_hash=hashlib.sha256(_regular(unit)).hexdigest()
+        if hashlib.sha256(_regular(dropin)).hexdigest() != receipt['dropins'][name]:
+            raise ValueError('admission drop-in differs')
+        command=['/usr/bin/systemctl','--user','show',name,'-p','ExecStartPre','-p','FragmentPath',
+                 '-p','DropInPaths','-p','NeedDaemonReload','-p','ActiveState','-p','MainPID']
+        out=subprocess.run(command,check=True,capture_output=True,text=True,timeout=15,env=env).stdout
+        fields={}
+        for line in out.splitlines():
+            if '=' not in line:raise ValueError('invalid systemd readback')
+            key,value=line.split('=',1)
+            if key in fields:raise ValueError('duplicate systemd property')
+            fields[key]=value
+        argv='/usr/bin/python3 '+str(script)+' prestart '+str(hold)+' '+name+' '+str(unit)
+        expected='{ path=/usr/bin/python3 ; argv[]='+argv+' ; ignore_errors=no ;'
+        pid=fields.get('MainPID','')
+        if (fields.get('FragmentPath')!=str(unit) or str(dropin) not in fields.get('DropInPaths','').split() or
+                fields.get('NeedDaemonReload')!='no' or fields.get('ActiveState')!='active' or
+                not re.fullmatch(r'[1-9][0-9]*',pid) or expected not in fields.get('ExecStartPre','')):
+            raise ValueError('systemd has not loaded the active guard')
+        if hashlib.sha256(_regular(unit)).hexdigest()!=unit_hash or hashlib.sha256(_regular(dropin)).hexdigest()!=receipt['dropins'][name]:
+            raise ValueError('service changed during guard readback')
+        result[name]={'pid':int(pid),'unit_sha256':unit_hash,'dropin_sha256':receipt['dropins'][name]}
+    return {'loaded':True,'guard_sha256':expected_sha256,'units':result}

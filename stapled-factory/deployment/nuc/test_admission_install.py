@@ -37,3 +37,22 @@ def test_preparation_never_overwrites_existing_dropin(tmp_path):
     existing=directory/'90-factory-admission.conf';existing.write_text('original')
     with pytest.raises(FileExistsError):module.prepare_install(control,units,guard,digest)
     assert existing.read_text()=='original' and not (control/'admission-fence').exists()
+
+
+def test_loaded_guard_check_rejects_stale_systemd_state(tmp_path, monkeypatch):
+    control,units,guard,digest=fixture(tmp_path)
+    module.prepare_install(control,units,guard,digest)
+    def show(command, **kwargs):
+        name=command[3]
+        script=control/'admission-fence/guard.py';hold=control/'admission-fence/hold'
+        argv=f'/usr/bin/python3 {script} prestart {hold} {name} {units/name}.service'
+        class Result:stdout=(f'ExecStartPre={{ path=/usr/bin/python3 ; argv[]={argv} ; ignore_errors=no ; }}\n'
+            f'FragmentPath={units/name}.service\nDropInPaths={units/name}.service.d/90-factory-admission.conf\n'
+            'NeedDaemonReload=no\nActiveState=active\nMainPID=123\n')
+        return Result()
+    monkeypatch.setattr(module.subprocess,'run',show)
+    assert module.verify_loaded(control,units,digest)['loaded'] is True
+    target=units/'factory-ingress.service.d/90-factory-admission.conf'
+    target.write_text(target.read_text()+'# changed\n')
+    with pytest.raises(ValueError,match='drop-in'):
+        module.verify_loaded(control,units,digest)
