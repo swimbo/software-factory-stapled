@@ -11,6 +11,14 @@ def test_required_majority_triple_run_is_2_of_3():
     assert required_majority(3) == 2
 
 
+def test_even_run_counts_require_strict_majority():
+    assert required_majority(2) == 2
+    assert required_majority(4) == 3
+    assert gate([ScenarioResult('partial', 1, 2)]).passed is False
+    with pytest.raises(ValueError, match='positive run count'):
+        required_majority(0)
+
+
 def test_all_scenarios_pass():
     results = [
         ScenarioResult("a", runs_passed=1, runs_total=1),

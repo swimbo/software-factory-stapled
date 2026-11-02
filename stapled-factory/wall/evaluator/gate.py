@@ -25,10 +25,10 @@ class Verdict:
 
 
 def required_majority(runs_total: int) -> int:
-    """2-of-3 for triple-run (prod gate); 1-of-1 for a single run (MVP)."""
-    if runs_total >= 3:
-        return (runs_total // 2) + 1
-    return 1
+    """Require a strict majority, including 1-of-1 and 2-of-3."""
+    if type(runs_total) is not int or runs_total < 1:
+        raise ValueError('positive run count required')
+    return runs_total // 2 + 1
 
 
 def gate(

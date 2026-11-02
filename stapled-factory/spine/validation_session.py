@@ -89,6 +89,8 @@ def evidence(result, binding):
             raise ValueError('passing wall receipt must cover every scenario run')
         if not all(scenarios.values()):
             raise ValueError('passing wall receipt requires every scenario quorum')
+        if rate != sum(scenarios.values()) / len(scenarios):
+            raise ValueError('wall aggregate differs from scenario results')
         cost = usage.get('cost_estimate_usd')
         if (not isinstance(usage.get('tier'), str) or
                 usage.get('pricing_mode') not in ('subscription', 'metered') or

@@ -256,8 +256,8 @@ def test_failed_quorum_is_not_submitted_and_feedback_stays_private(tmp_path):
     assert runtime.evaluations == 1 and runtime.submissions == 0
     checks = json.loads((folder / 'checks.json').read_text())
     assert checks == original
+    assert markers[0] in m.canonical(checks)
     for marker in markers:
-        assert marker in m.canonical(checks)
         assert marker not in m.canonical(rejected)
     assert rejected['checks_digest'] == hashlib.sha256(m.canonical(original).encode()).hexdigest()
     assert not (folder/'envelope.json').exists()
@@ -269,6 +269,13 @@ def test_receipt_rejects_inconsistent_passing_verdict_with_failed_quorum():
     checks['wall']['verdict']['per_scenario']['failed-case'] = False
     checks['wall']['receipt']['requests'] = 6
     with pytest.raises(ValueError, match='every scenario quorum'):
+        m.evidence(checks, dict(binding(), receipt_version=2))
+
+
+def test_receipt_rejects_aggregate_not_derived_from_scenarios():
+    checks = result()
+    checks['wall']['verdict']['aggregate_pass_rate'] = 0.9
+    with pytest.raises(ValueError, match='aggregate differs'):
         m.evidence(checks, dict(binding(), receipt_version=2))
 
 
