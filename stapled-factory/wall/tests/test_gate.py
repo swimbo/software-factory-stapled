@@ -35,7 +35,7 @@ def test_broken_diff_rejected_with_one_line_feedback():
     assert v.passed is False
     assert v.aggregate_pass_rate == 0.8
     # feedback is one line, and does not leak scenario text
-    assert v.failure_message == "auth-login-success: POST /login returned 500 (expected 200)"
+    assert v.failure_message == 'A holdout scenario did not meet its quorum'
     assert "\n" not in v.failure_message
 
 
@@ -76,3 +76,9 @@ def test_invalid_or_duplicate_scenario_results_are_rejected():
         gate([ScenarioResult('same', 3, 3), ScenarioResult('same', 3, 3)])
     with pytest.raises(ValueError, match='invalid'):
         gate([ScenarioResult('bad', 4, 3)])
+
+
+def test_failure_feedback_never_includes_private_scenario_data():
+    verdict = gate([ScenarioResult('private-id\nsecret', 0, 1, failure='GET /private expected secret')])
+    assert verdict.failure_message == 'A holdout scenario did not meet its quorum'
+    assert '\n' not in verdict.failure_message

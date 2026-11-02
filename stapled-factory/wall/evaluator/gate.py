@@ -50,8 +50,8 @@ def gate(
         ok = r.runs_passed >= majority
         per_scenario[r.scenario_id] = ok
         if not ok and not first_failure:
-            # One line only — never the scenario text.
-            first_failure = f"{r.scenario_id}: {r.failure or 'failed'}"
+            # Scenario IDs, request paths and expected values are holdout data.
+            first_failure = 'A holdout scenario did not meet its quorum'
 
     passed_count = sum(1 for ok in per_scenario.values() if ok)
     aggregate = passed_count / len(scenario_results)
