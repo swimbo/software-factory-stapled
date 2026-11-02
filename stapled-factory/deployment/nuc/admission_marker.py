@@ -4,13 +4,26 @@ This marker alone is not an admission fence. A verified pre-start installation,
 network fence, drain and explicit recovery procedure are also required.
 """
 import hashlib
+import grp
 import json
 import os
+import pwd
 import re
 import stat
 import sys
 
 RESTARTABLE = frozenset(('factory-endpoint', 'factory-ingress'))
+
+
+def _unsafe_unit_mode(info):
+    if info.st_mode & 0o002:return True
+    if not info.st_mode & 0o020:return False
+    try:
+        user = pwd.getpwuid(os.getuid());group = grp.getgrgid(info.st_gid)
+        members = set(group.gr_mem) | {entry.pw_name for entry in pwd.getpwall() if entry.pw_gid == info.st_gid}
+    except KeyError:
+        return True
+    return group.gr_name != user.pw_name or not members <= {user.pw_name, 'root'}
 
 
 def _open_control(path):
@@ -110,7 +123,7 @@ def prestart(control, unit=None, unit_file=None):
         with os.fdopen(fd, 'rb') as stream:
             info = os.fstat(stream.fileno())
             if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or
-                    info.st_mode & 0o022 or info.st_size > 65536):
+                    _unsafe_unit_mode(info) or info.st_size > 65536):
                 raise ValueError('unsafe service unit')
             digest = hashlib.sha256(stream.read()).hexdigest()
         if digest not in permit['units'][unit]:

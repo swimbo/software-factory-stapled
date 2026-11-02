@@ -5,14 +5,29 @@ guards match these files before arming the hold. Partial preparation is retained
 for observation; this module never replaces or removes existing unit files.
 """
 import hashlib
+import grp
 import json
 import os
 from pathlib import Path
+import pwd
 import re
 import stat
 
 UNITS = ('factory-restate', 'factory-endpoint', 'factory-ingress')
 DROPIN = '90-factory-admission.conf'
+
+
+def _unsafe_mode(info, private):
+    if private:return bool(info.st_mode & 0o077)
+    if info.st_mode & 0o002:return True
+    if not info.st_mode & 0o020:return False
+    try:
+        user = pwd.getpwuid(os.getuid())
+        group = grp.getgrgid(info.st_gid)
+        members = set(group.gr_mem) | {entry.pw_name for entry in pwd.getpwall() if entry.pw_gid == info.st_gid}
+    except KeyError:
+        return True
+    return group.gr_name != user.pw_name or not members <= {user.pw_name, 'root'}
 
 
 def _directory(path, private=False):
@@ -21,7 +36,7 @@ def _directory(path, private=False):
         raise ValueError('unsafe guard installation path')
     info = path.lstat()
     if (not stat.S_ISDIR(info.st_mode) or info.st_uid != os.getuid() or
-            info.st_mode & (0o077 if private else 0o022)):
+            _unsafe_mode(info,private)):
         raise ValueError('unsafe guard installation directory')
     return path
 
@@ -31,7 +46,7 @@ def _regular(path, private=False):
     with os.fdopen(fd, 'rb') as stream:
         info = os.fstat(stream.fileno())
         if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or
-                info.st_mode & (0o077 if private else 0o022) or info.st_size > 1024*1024):
+                _unsafe_mode(info,private) or info.st_size > 1024*1024):
             raise ValueError('unsafe guard input file')
         return stream.read()
 
