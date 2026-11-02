@@ -62,6 +62,54 @@ def _inode(path,root):
         os.close(current)
 
 
+def require_protected_cgroup(path, expected_pid, root=Path('/sys/fs/cgroup')):
+    """Require a root-controlled cgroup subtree occupied only by the named process."""
+    path=_cgroup('0::'+path)
+    if type(expected_pid) is not int or expected_pid<=0:raise ValueError('valid cgroup process required')
+    if os.geteuid()==0:raise ValueError('non-root admission verifier required')
+    current=os.open(root,os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        root_dev=os.fstat(current).st_dev
+        def protected_directory(fd):
+            info=os.fstat(fd)
+            if info.st_dev!=root_dev or info.st_uid!=0 or info.st_mode & 0o022:
+                raise ValueError('cgroup directory is not protected')
+            try:writable=os.access('.',os.W_OK,dir_fd=fd,effective_ids=True)
+            except (NotImplementedError,TypeError) as exc:raise ValueError('cgroup protection unavailable') from exc
+            if writable:raise ValueError('cgroup directory is not protected')
+        protected_directory(current)
+        for part in path[1:].split('/'):
+            child=os.open(part,os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,dir_fd=current)
+            os.close(current);current=child;protected_directory(current)
+        seen=[];count=[0]
+        def visit(directory,depth):
+            count[0]+=1
+            if depth>32 or count[0]>1024:raise ValueError('cgroup subtree too large')
+            protected_directory(directory)
+            fd=os.open('cgroup.procs',os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK,dir_fd=directory)
+            with os.fdopen(fd,'rb') as stream:
+                info=os.fstat(stream.fileno())
+                if not stat.S_ISREG(info.st_mode) or info.st_uid!=0 or info.st_mode & 0o022:
+                    raise ValueError('cgroup membership is not protected')
+                raw=stream.read(LIMIT+1)
+            if len(raw)>LIMIT or any(not x.isdigit() for x in raw.split()):
+                raise ValueError('invalid cgroup membership')
+            seen.extend(int(x) for x in raw.split())
+            try:writable=os.access('cgroup.procs',os.W_OK,dir_fd=directory,effective_ids=True,follow_symlinks=False)
+            except (NotImplementedError,TypeError) as exc:raise ValueError('cgroup protection unavailable') from exc
+            if writable:raise ValueError('cgroup membership is not protected')
+            with os.scandir(directory) as entries:
+                children=[entry.name for entry in entries if entry.is_dir(follow_symlinks=False)]
+            for name in children:
+                child=os.open(name,os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW,dir_fd=directory)
+                try:visit(child,depth+1)
+                finally:os.close(child)
+        visit(current,0)
+        if seen != [expected_pid]:raise ValueError('cgroup membership is not exclusive')
+    finally:
+        os.close(current)
+
+
 def read_identity(pid, expected_uid, proc_root=Path('/proc'), cgroup_root=Path('/sys/fs/cgroup')):
     if type(pid) is not int or pid<=0 or type(expected_uid) is not int or expected_uid<0:
         raise ValueError('valid process identity required')

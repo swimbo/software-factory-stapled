@@ -14,7 +14,7 @@ import sys
 
 HERE=Path(__file__).resolve().parent
 sys.path.insert(0,str(HERE))
-from admission_identity import read_identity
+from admission_identity import read_identity, require_protected_cgroup
 from admission_nft import verify_live_evidence, verify_snapshot, verify_hook_order
 
 DOCKER=Path('/usr/bin/docker')
@@ -61,8 +61,14 @@ def _verify(identifier, expected_identities, *, helper_image, docker_sha256, nft
     if _run([docker,'image','inspect','--format','{{.Id}}',helper_image]).strip()!=helper_image:
         raise ValueError('admission helper image differs')
     def identities():
-        return {name:(dict(expected_identities[name]) if name=='ingress' and not observe_ingress else
-                      read_identity(expected_identities[name]['pid'],os.getuid())) for name in names}
+        result={}
+        for name in names:
+            if name=='ingress' and not observe_ingress:
+                result[name]=dict(expected_identities[name])
+            else:
+                value=read_identity(expected_identities[name]['pid'],os.getuid())
+                require_protected_cgroup(value['cgroup'],value['pid']);result[name]=value
+        return result
     before=identities()
     if before!=expected_identities:raise ValueError('admission process identity differs')
     prefix=[docker,'run','--rm','--pull=never','--network=host','--cgroupns=host',

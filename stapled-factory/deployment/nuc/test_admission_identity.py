@@ -17,8 +17,12 @@ def test_identity_binds_pid_start_and_real_cgroup_inode(tmp_path):
     (pid/'status').write_text(f'Uid:\t{os.getuid()}\t{os.getuid()}\t{os.getuid()}\t{os.getuid()}\n')
     (pid/'cgroup').write_text('0::/user/worker\n')
     target=group/'user/worker';target.mkdir(parents=True)
+    (target/'cgroup.procs').write_text('')
     value=module.read_identity(321,os.getuid(),proc,group)
     assert value=={'pid':321,'start_ticks':456,'cgroup':'/user/worker','inode':target.stat().st_ino}
+    with pytest.raises(ValueError,match='protected'):
+        module.require_protected_cgroup('/user/worker',321,group)
+    (target/'cgroup.procs').unlink()
     target.rmdir();target.symlink_to(group/'user',target_is_directory=True)
     with pytest.raises((ValueError,OSError)):
         module.read_identity(321,os.getuid(),proc,group)

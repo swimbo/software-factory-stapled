@@ -46,6 +46,7 @@ def test_restart_readback_checks_retained_ingress_rule_without_requiring_dead_pi
         if pid==2:pytest.fail('old ingress process must not be required during restart')
         return next(value for value in identities.values() if value['pid']==pid)
     monkeypatch.setattr(module,'read_identity',identity)
+    monkeypatch.setattr(module,'require_protected_cgroup',lambda path,pid:None)
     def run(args):
         if args[1:3]==['image','inspect']:return image+'\n'
         if '--debug' in args:return debug
