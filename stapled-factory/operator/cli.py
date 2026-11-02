@@ -70,7 +70,7 @@ def load_controlled_config(path):
     if not isinstance(config, dict):raise ValueError('controlled config has missing or unexpected fields')
     runtime = {'npm_entrypoint'} if config.get('profile') == 'npm' else {'cargo_binary'}
     required |= runtime
-    optional = {'docker_bin'} | ({'registry_policy'} if config.get('profile') == 'npm' else set())
+    optional = {'docker_bin'} | ({'registry_policy','npm_attestation'} if config.get('profile') == 'npm' else set())
     if not required <= set(config) or set(config) - required - optional:
         raise ValueError('controlled config has missing or unexpected fields')
     if config['profile'] not in ('npm', 'cargo'):
@@ -88,6 +88,18 @@ def load_controlled_config(path):
         if not isinstance(config[name],str) or not re.fullmatch(pattern,config[name]):
             raise ValueError('invalid controlled config '+name)
     if config['profile'] == 'npm':
+        if 'npm_attestation' in config:
+            att = config['npm_attestation']
+            if (not isinstance(att,dict) or set(att) != {'bundle','bundle_sha256','policy','trusted_root',
+                    'trusted_root_sha256','cosign','cosign_sha256'} or not isinstance(att['policy'],dict) or not att['policy']):
+                raise ValueError('complete npm attestation configuration required')
+            for name in ('bundle','trusted_root','cosign'):
+                if (not isinstance(att[name],str) or not Path(att[name]).is_absolute() or '..' in Path(att[name]).parts or
+                        any(c in att[name] for c in ('\n','\r',','))):
+                    raise ValueError('safe absolute npm attestation paths required')
+            for name in ('bundle_sha256','trusted_root_sha256','cosign_sha256'):
+                if not isinstance(att[name],str) or not re.fullmatch(r'[a-f0-9]{64}',att[name]):
+                    raise ValueError('pinned npm attestation digest required')
         if 'registry_policy' in config:
             sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'security'))
             from npm_registry_policy import decode_policy
@@ -121,6 +133,21 @@ def controlled_preflight(config, repo, revision, archive, archive_sha256):
             builder_container_id=config['builder_container_id'], builder_image_id=config['builder_image_id'],
             npm_entrypoint=config.get('npm_entrypoint'), cargo_binary=config.get('cargo_binary'), registry_keys=registry_keys)
         if registry_keys is not None:result['registry_policy'] = config['registry_policy']
+        if 'npm_attestation' in config:
+            from npm_attestation_bundle import verify_attestation_bundle
+            att=config['npm_attestation']
+            checked=verify_attestation_bundle(att['bundle'],att['bundle_sha256'],att['policy'],
+                archive=config['materials_archive'],archive_sha256=config['materials_sha256'],
+                trusted_root=att['trusted_root'],trusted_root_sha256=att['trusted_root_sha256'],
+                cosign=att['cosign'],cosign_sha256=att['cosign_sha256'],registry_keys=registry_keys)
+            policy_sha=hashlib.sha256(json.dumps(att['policy'],sort_keys=True,separators=(',',':')).encode()).hexdigest()
+            if (checked.get('status')!='verified-selected-frozen-npm-attestations' or checked.get('coverage')!='incomplete' or
+                    checked.get('archive_sha256')!=config['materials_sha256'] or checked.get('lock_sha256')!=result.get('lock_sha256') or
+                    checked.get('manifest_sha256')!=result.get('materials_manifest_sha256') or
+                    checked.get('attestation_bundle_sha256')!=att['bundle_sha256'] or checked.get('attestation_policy_sha256')!=policy_sha):
+                raise ValueError('npm attestation differs from controlled preflight')
+            result['npm_attestation']={'bundle_sha256':att['bundle_sha256'],'policy_sha256':policy_sha,'policy':att['policy'],
+                'trusted_root_sha256':att['trusted_root_sha256'],'cosign_sha256':att['cosign_sha256']}
         return result
 
 
@@ -129,6 +156,7 @@ def validate_controlled_preflight(config, report, source_sha256):
               'builder_container_id','builder_image_id','builder_config_sha256','recipe_sha256','docker_bin_sha256','buildx_bin_sha256'}
     fields = common | ({'materials_manifest_sha256','cache_recipe_sha256','npm_entrypoint'} if config['profile'] == 'npm' else {'cargo_binary'})
     if 'registry_policy' in config:fields |= {'registry_policy','registry_evidence_sha256'}
+    if 'npm_attestation' in config:fields.add('npm_attestation')
     if not isinstance(report,dict) or set(report) != fields:
         raise ValueError('controlled preflight report incomplete')
     for name, value in [('profile',config['profile']),('coverage','incomplete'),('source_sha256',source_sha256),
@@ -143,6 +171,11 @@ def validate_controlled_preflight(config, report, source_sha256):
     if 'registry_policy' in config:
         digests += ['registry_evidence_sha256']
         if report.get('registry_policy') != config['registry_policy']:raise ValueError('registry policy differs')
+    if 'npm_attestation' in config:
+        att=config['npm_attestation']
+        expected={'bundle_sha256':att['bundle_sha256'],'policy_sha256':hashlib.sha256(json.dumps(att['policy'],sort_keys=True,separators=(',',':')).encode()).hexdigest(),
+                  'policy':att['policy'],'trusted_root_sha256':att['trusted_root_sha256'],'cosign_sha256':att['cosign_sha256']}
+        if report.get('npm_attestation')!=expected:raise ValueError('npm attestation preflight differs')
     if (any(not isinstance(report.get(name),str) or not re.fullmatch(r'[a-f0-9]{64}',report[name]) for name in digests) or
             not isinstance(report.get('base_config'),str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',report['base_config'])):
         raise ValueError('controlled preflight digest invalid')
@@ -513,7 +546,9 @@ def build_candidate(run, dockerfile, signing_key, *, controlled_config=None):
             raise ValueError('controlled builder differs from pre-dispatch baseline')
         key = signing_key.resolve()
         forbidden = [output.resolve(), Path(config['base_layout']).resolve(), Path(config['docker_config']).resolve()]
-        if any(key.is_relative_to(path) for path in forbidden) or key == Path(config['materials_archive']).resolve():
+        if (any(key.is_relative_to(path) for path in forbidden) or key == Path(config['materials_archive']).resolve() or
+                'npm_attestation' in config and any(key == Path(config['npm_attestation'][name]).resolve()
+                                                     for name in ('bundle','trusted_root','cosign'))):
             raise ValueError('signing key must remain outside controlled inputs and contexts')
         report = controlled_preflight(config, repo, revision, archive, archive_sha256)
         validate_controlled_preflight(config, report, archive_sha256)
@@ -550,6 +585,8 @@ def build_candidate(run, dockerfile, signing_key, *, controlled_config=None):
             args.extend(['--'+name.replace('_','-'), config[name]])
         if 'registry_policy' in config:
             args.extend(['--registry-policy',json.dumps(config['registry_policy'],sort_keys=True,separators=(',',':'))])
+        if 'npm_attestation' in config:
+            args.extend(['--npm-attestation',json.dumps(config['npm_attestation'],sort_keys=True,separators=(',',':'))])
         subprocess.run(args, check=True, timeout=2100)
     return observe_candidate_build(run)
 
@@ -573,6 +610,12 @@ def observe_candidate_build(run):
     if 'controlled' in record:
         if manifest.get('schema') != 'factory.build.v2' or manifest.get('controlled') != record['controlled']:
             raise ValueError('controlled build differs from original preflight intent')
+        if 'npm_attestation' in record['controlled']:
+            evidence = output / 'npm-attestations.json'
+            if evidence.is_symlink() or not evidence.is_file():raise ValueError('original attestation evidence unavailable')
+            with evidence.open('rb') as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != record['controlled']['npm_attestation']['bundle_sha256']:
+                    raise ValueError('original attestation evidence differs')
     elif 'controlled' in manifest:
         raise ValueError('controlled manifest lacks matching original intent')
     if manifest.get('schema') == 'factory.build.v2':
@@ -679,6 +722,11 @@ def verify_validation_transfer(run):
             result.get('manifest_sha256') != intent['files']['build.json'] or
             result.get('config_digest') != build['manifest'].get('config_digest')):
         raise ValueError('verified transfer differs from original local build')
+    att = build['manifest'].get('controlled', {}).get('npm_attestation')
+    if att is not None and (not isinstance(att,dict) or
+            result.get('controlled_attestation_bundle_sha256') != att.get('bundle_sha256') or
+            result.get('controlled_attestation_policy_sha256') != att.get('policy_sha256')):
+        raise ValueError('verified attestation differs from original local build')
     return result
 
 

@@ -1388,6 +1388,50 @@ def test_controlled_npm_config_binds_registry_policy_and_evidence(tmp_path, monk
         cli.load_controlled_config(path)
 
 
+def test_controlled_npm_config_binds_attestation_preflight(tmp_path, monkeypatch):
+    import hashlib
+    _,_,_,path,_,_,report=controlled_build_inputs(tmp_path,monkeypatch)
+    config=json.loads(path.read_text())
+    policy={'node_modules/example':{'workflow':{'identity':'https://example.invalid/workflow','issuer':'https://example.invalid'}}}
+    att={'bundle':'/private/bundle','bundle_sha256':'a'*64,'policy':policy,'trusted_root':'/private/root',
+         'trusted_root_sha256':'b'*64,'cosign':'/private/cosign','cosign_sha256':'c'*64}
+    config['npm_attestation']=att;path.write_text(json.dumps(config));loaded,_=cli.load_controlled_config(path)
+    digest=hashlib.sha256(json.dumps(policy,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    bound={**report,'npm_attestation':{'bundle_sha256':'a'*64,'policy_sha256':digest,'policy':policy,
+             'trusted_root_sha256':'b'*64,'cosign_sha256':'c'*64}}
+    assert cli.validate_controlled_preflight(loaded,bound,report['source_sha256'])==bound
+    with pytest.raises(ValueError,match='attestation preflight'):
+        cli.validate_controlled_preflight(loaded,{**bound,'npm_attestation':{**bound['npm_attestation'],'bundle_sha256':'0'*64}},report['source_sha256'])
+    config['npm_attestation']['cosign']='relative';path.write_text(json.dumps(config))
+    with pytest.raises(ValueError,match='absolute'):
+        cli.load_controlled_config(path)
+
+
+def test_attestation_preflight_requires_matching_frozen_materials(tmp_path, monkeypatch):
+    import hashlib
+    monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[2] / 'security'))
+    import controlled_preflight as preflight_module
+    import npm_attestation_bundle as bundles
+    _,_,_,path,archive,_,report=controlled_build_inputs(tmp_path,monkeypatch)
+    config=json.loads(path.read_text())
+    policy={'node_modules/example':{'workflow':{'identity':'https://example.invalid/workflow','issuer':'https://example.invalid'}}}
+    att={'bundle':'/private/bundle','bundle_sha256':'a'*64,'policy':policy,'trusted_root':'/private/root',
+         'trusted_root_sha256':'b'*64,'cosign':'/private/cosign','cosign_sha256':'c'*64}
+    config['npm_attestation']=att;path.write_text(json.dumps(config));loaded,_=cli.load_controlled_config(path)
+    policy_digest=hashlib.sha256(json.dumps(policy,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    monkeypatch.setattr(preflight_module,'preflight_controlled',lambda **kwargs:dict(report))
+    checked={'status':'verified-selected-frozen-npm-attestations','coverage':'incomplete',
+             'archive_sha256':loaded['materials_sha256'],'lock_sha256':report['lock_sha256'],
+             'manifest_sha256':report['materials_manifest_sha256'],'attestation_bundle_sha256':'a'*64,
+             'attestation_policy_sha256':policy_digest}
+    monkeypatch.setattr(bundles,'verify_attestation_bundle',lambda *args,**kwargs:dict(checked))
+    result=cli.controlled_preflight(loaded,tmp_path,'a'*40,archive,report['source_sha256'])
+    assert cli.validate_controlled_preflight(loaded,result,report['source_sha256'])==result
+    checked['lock_sha256']='0'*64
+    with pytest.raises(ValueError,match='differs from controlled preflight'):
+        cli.controlled_preflight(loaded,tmp_path,'a'*40,archive,report['source_sha256'])
+
+
 def test_controlled_preflight_failure_never_creates_intent(tmp_path,monkeypatch):
     _,_,key,path,_,_,_=controlled_build_inputs(tmp_path,monkeypatch)
     def preflight(*args):raise ValueError('frozen material mismatch')

@@ -130,7 +130,9 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
     key_path = key.resolve()
     forbidden = [repo.resolve(),out.resolve(),Path(base_layout).resolve(),Path(docker_config).resolve()]
     if (any(key_path.is_relative_to(path) for path in forbidden) or
-            key_path == Path(materials_archive).resolve()):
+            key_path == Path(materials_archive).resolve() or
+            npm_attestation is not None and any(key_path == Path(npm_attestation[name]).resolve()
+                                                for name in ('bundle','trusted_root','cosign'))):
         raise ValueError('signing key must remain outside build inputs and contexts')
     docker_original = docker_bin
     forbidden_tools = [repo,out,Path(__file__).resolve().parents[3]]
@@ -275,11 +277,16 @@ def main():
     parser.add_argument('--npm-entrypoint')
     parser.add_argument('--cargo-binary')
     parser.add_argument('--registry-policy')
+    parser.add_argument('--npm-attestation')
     args = vars(parser.parse_args())
     if args['registry_policy'] is not None:
         if len(args['registry_policy']) > 65536:raise ValueError('registry policy too large')
         from npm_materials import _unique_object
         args['registry_policy'] = json.loads(args['registry_policy'], object_pairs_hook=_unique_object)
+    if args['npm_attestation'] is not None:
+        if len(args['npm_attestation']) > 65536:raise ValueError('npm attestation configuration too large')
+        from npm_materials import _unique_object
+        args['npm_attestation'] = json.loads(args['npm_attestation'], object_pairs_hook=_unique_object)
     print(json.dumps(build_controlled(**args),sort_keys=True))
 
 
