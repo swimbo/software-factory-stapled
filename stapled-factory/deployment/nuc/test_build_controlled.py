@@ -49,7 +49,7 @@ def fake_runners(monkeypatch, values, *, wrong_image=False):
     calls=[]
     def npm(**args):
         calls.append('npm');sha,config=fake_image(args['output_tar'],args['tag'],args['revision'],args['source_sha256'],['node','/workspace/'+args['npm_entrypoint']])
-        return {'status':'isolated-npm-ci-image','coverage':'incomplete','revision':args['revision'],
+        result = {'status':'isolated-npm-ci-image','coverage':'incomplete','revision':args['revision'],
             'source_archive_sha256':args['source_sha256'],'materials_archive_sha256':args['materials_sha256'],
             'lock_sha256':'d'*64,'materials_manifest_sha256':'e'*64,'base_manifest':args['base_manifest'],
             'base_config':'sha256:'+'f'*64,'builder_container_id':args['builder_container_id'],
@@ -57,6 +57,8 @@ def fake_runners(monkeypatch, values, *, wrong_image=False):
             'recipe_sha256':hashlib.sha256(m.npm_recipe(args['npm_entrypoint'])).hexdigest(),'cache_recipe_sha256':hashlib.sha256(m.POPULATE).hexdigest(),
             'npm_entrypoint':args['npm_entrypoint'],'docker_bin_sha256':args['docker_bin_sha256'],'buildx_bin_sha256':args['buildx_bin_sha256'],
             'image_tar_sha256':'0'*64 if wrong_image else sha,'config_digest':config}
+        if args.get('registry_keys') is not None:result['registry_evidence_sha256']='a'*64
+        return result
     def cargo(**args):
         calls.append('cargo');out=args['output_dir'];(out/'context').mkdir(parents=True)
         recipe=b'FROM base\n';(out/'context/Dockerfile').write_bytes(recipe)
@@ -99,6 +101,17 @@ def test_mismatched_image_preserves_failed_original_and_refuses_replay(tmp_path,
     assert not (out/'build.sig').exists()
     with pytest.raises(FileExistsError):m.build_controlled(profile='npm',**values)
     assert calls == ['npm']
+
+
+def test_signed_manifest_binds_registry_policy_and_evidence(tmp_path,monkeypatch):
+    values,public=inputs(tmp_path);fake_runners(monkeypatch,values)
+    keyid='SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA'
+    key='MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Olb3zMAFFxXKHiIkQO5cJ3Yhl5i6UPp+IhuteBJbuHcA5UogKo0EWtlWwW6KSaKoTNEYL7JlCQiVnkhBktUgg=='
+    manifest=m.build_controlled(profile='npm',registry_policy={keyid:key},**values)
+    assert manifest['controlled']['registry_policy']=={keyid:key}
+    assert manifest['controlled']['registry_evidence_sha256']=='a'*64
+    subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public),'-rawin',
+        '-in',str(values['output_dir']/'build.json'),'-sigfile',str(values['output_dir']/'build.sig')],check=True,capture_output=True)
 
 
 def test_reject_signing_key_in_candidate_before_build(tmp_path, monkeypatch):

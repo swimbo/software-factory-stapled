@@ -75,8 +75,11 @@ package name, version and integrity; they do not prove publisher identity or
 complete provenance. A frozen npm archive can retain this evidence; a reader
 must supply independently pinned keys to verify it. Controlled npm preflight
 and the isolated build library can verify and report the evidence digest when
-given those keys. The operator and runtime do not yet pass the key policy or
-carry this evidence into a receipt; the release gate is unchanged.
+given those keys. The operator binds a selected policy and evidence digest into
+the signed build manifest, and the NUC material verifier rechecks both against
+the frozen archive. New validation evidence binds the build manifest digest.
+None of these checks establish key lifetime, publisher identity, Cargo or
+base-image provenance, or complete coverage; the release gate is unchanged.
 
 `oci_archive.py` verifies the descriptor graph and linux/amd64 image config of
 a pinned OCI archive and records an archive digest. Its result is deliberately

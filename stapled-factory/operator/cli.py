@@ -70,7 +70,8 @@ def load_controlled_config(path):
     if not isinstance(config, dict):raise ValueError('controlled config has missing or unexpected fields')
     runtime = {'npm_entrypoint'} if config.get('profile') == 'npm' else {'cargo_binary'}
     required |= runtime
-    if set(config) not in (required, required | {'docker_bin'}):
+    optional = {'docker_bin'} | ({'registry_policy'} if config.get('profile') == 'npm' else set())
+    if not required <= set(config) or set(config) - required - optional:
         raise ValueError('controlled config has missing or unexpected fields')
     if config['profile'] not in ('npm', 'cargo'):
         raise ValueError('unsupported controlled profile')
@@ -87,6 +88,10 @@ def load_controlled_config(path):
         if not isinstance(config[name],str) or not re.fullmatch(pattern,config[name]):
             raise ValueError('invalid controlled config '+name)
     if config['profile'] == 'npm':
+        if 'registry_policy' in config:
+            sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'security'))
+            from npm_registry_policy import decode_policy
+            decode_policy(config['registry_policy'])
         entry=config['npm_entrypoint']
         if (not isinstance(entry,str) or not re.fullmatch(r'[A-Za-z0-9._-]+(?:/[A-Za-z0-9._-]+)*\.(?:js|cjs|mjs)',entry) or
                 any(part in ('.','..','.git','node_modules') for part in entry.split('/'))):
@@ -100,23 +105,30 @@ def controlled_preflight(config, repo, revision, archive, archive_sha256):
     """Inspect frozen inputs and the selected builder before a one-shot intent."""
     sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'security'))
     from controlled_preflight import preflight_controlled
+    registry_keys = None
+    if 'registry_policy' in config:
+        from npm_registry_policy import decode_policy
+        registry_keys = decode_policy(config['registry_policy'])
     with tempfile.TemporaryDirectory(prefix='factory-control-preflight-') as temp:
         source = Path(temp) / 'source.tar'
         source.write_bytes(archive)
-        return preflight_controlled(profile=config['profile'], repo=repo, revision=revision,
+        result = preflight_controlled(profile=config['profile'], repo=repo, revision=revision,
             source_tar=source, source_sha256=archive_sha256, materials_archive=config['materials_archive'],
             materials_sha256=config['materials_sha256'], base_layout=config['base_layout'],
             base_manifest=config['base_manifest'], docker_bin=config['docker_bin'], docker_bin_sha256=config['docker_bin_sha256'],
             buildx_bin_sha256=config['buildx_bin_sha256'], docker_config=config['docker_config'],
             docker_host=config['docker_host'], builder_name=config['builder_name'],
             builder_container_id=config['builder_container_id'], builder_image_id=config['builder_image_id'],
-            npm_entrypoint=config.get('npm_entrypoint'), cargo_binary=config.get('cargo_binary'))
+            npm_entrypoint=config.get('npm_entrypoint'), cargo_binary=config.get('cargo_binary'), registry_keys=registry_keys)
+        if registry_keys is not None:result['registry_policy'] = config['registry_policy']
+        return result
 
 
 def validate_controlled_preflight(config, report, source_sha256):
     common = {'profile','coverage','source_sha256','materials_sha256','lock_sha256','base_manifest','base_config',
               'builder_container_id','builder_image_id','builder_config_sha256','recipe_sha256','docker_bin_sha256','buildx_bin_sha256'}
     fields = common | ({'materials_manifest_sha256','cache_recipe_sha256','npm_entrypoint'} if config['profile'] == 'npm' else {'cargo_binary'})
+    if 'registry_policy' in config:fields |= {'registry_policy','registry_evidence_sha256'}
     if not isinstance(report,dict) or set(report) != fields:
         raise ValueError('controlled preflight report incomplete')
     for name, value in [('profile',config['profile']),('coverage','incomplete'),('source_sha256',source_sha256),
@@ -128,6 +140,9 @@ def validate_controlled_preflight(config, report, source_sha256):
         if report.get(name) != value:raise ValueError('controlled preflight identity differs')
     digests = ['source_sha256','materials_sha256','lock_sha256','builder_container_id','builder_config_sha256','recipe_sha256','docker_bin_sha256','buildx_bin_sha256']
     if config['profile'] == 'npm':digests += ['materials_manifest_sha256','cache_recipe_sha256']
+    if 'registry_policy' in config:
+        digests += ['registry_evidence_sha256']
+        if report.get('registry_policy') != config['registry_policy']:raise ValueError('registry policy differs')
     if (any(not isinstance(report.get(name),str) or not re.fullmatch(r'[a-f0-9]{64}',report[name]) for name in digests) or
             not isinstance(report.get('base_config'),str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',report['base_config'])):
         raise ValueError('controlled preflight digest invalid')
@@ -533,6 +548,8 @@ def build_candidate(run, dockerfile, signing_key, *, controlled_config=None):
                      'docker_bin_sha256','buildx_bin_sha256',
                      'npm_entrypoint' if config['profile']=='npm' else 'cargo_binary'):
             args.extend(['--'+name.replace('_','-'), config[name]])
+        if 'registry_policy' in config:
+            args.extend(['--registry-policy',json.dumps(config['registry_policy'],sort_keys=True,separators=(',',':'))])
         subprocess.run(args, check=True, timeout=2100)
     return observe_candidate_build(run)
 

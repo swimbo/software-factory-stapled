@@ -1,5 +1,6 @@
 """Controlled materials bind to a signed original and a frozen verifier release."""
 import hashlib
+import base64
 import importlib.util
 import io
 import json
@@ -23,12 +24,13 @@ spec = importlib.util.spec_from_file_location('controlled_nuc_fixture', BASE/'op
 nuc = importlib.util.module_from_spec(spec);spec.loader.exec_module(nuc)
 
 
-def fixture(tmp_path, monkeypatch, profile):
+def fixture(tmp_path, monkeypatch, profile, registry=False):
     root = tmp_path/'control';root.mkdir(mode=0o700)
     monkeypatch.setattr(nuc, 'ROOT', root)
     release = root/'releases/frozen';security = release/'stapled-factory/security';security.mkdir(parents=True)
     files = {}
-    for name in nuc.MATERIAL_MODULES:
+    modules = nuc.MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if registry else ())
+    for name in modules:
         source = BASE.parent/name; dest = release/name
         shutil.copyfile(source, dest);files[name] = hashlib.sha256(dest.read_bytes()).hexdigest()
     (release/'release-manifest.json').write_text(json.dumps({'files': files}))
@@ -42,7 +44,21 @@ def fixture(tmp_path, monkeypatch, profile):
     material_root = tmp_path/'material-fixture';material_root.mkdir()
     if profile == 'npm':
         lock, store, out = npm_inputs(material_root)
-        report = freeze_npm(lock, store, out); material = out
+        policy = None
+        if registry:
+            private=tmp_path/'registry-key';public=tmp_path/'registry-key.der';signature=tmp_path/'registry.sig'
+            subprocess.run(['openssl','ecparam','-name','prime256v1','-genkey','-noout','-out',str(private)],check=True,capture_output=True)
+            subprocess.run(['openssl','pkey','-in',str(private),'-pubout','-outform','DER','-out',str(public)],check=True,capture_output=True)
+            key=public.read_bytes()
+            from npm_materials import registry_key_fingerprint
+            keyid=registry_key_fingerprint(key);policy={keyid:base64.b64encode(key).decode()}
+            package=json.loads(lock)['packages']['node_modules/example']
+            subprocess.run(['openssl','dgst','-sha256','-sign',str(private),'-out',str(signature)],
+                input=('example@'+package['version']+':'+package['integrity']).encode(),check=True,capture_output=True)
+            evidence={'node_modules/example':{'keyid':keyid,'sig':base64.b64encode(signature.read_bytes()).decode()}}
+            report=freeze_npm(lock,store,out,registry_evidence=evidence,registry_keys={keyid:key})
+        else:report = freeze_npm(lock, store, out)
+        material = out
         lock_name = 'package-lock.json'
     else:
         lock, store, vendor, _ = cargo_inputs(material_root)
@@ -69,7 +85,9 @@ def fixture(tmp_path, monkeypatch, profile):
         'builder_container_id':'e'*64, 'builder_image_id':'sha256:'+'f'*64,
         'builder_config_sha256':'1'*64, 'recipe_sha256':recipe_sha, 'docker_bin_sha256':'3'*64,
         'buildx_bin_sha256':'4'*64, 'unit':unit, 'tag':tag}
-    if profile == 'npm':controlled.update(materials_manifest_sha256=report['manifest_sha256'], cache_recipe_sha256='2'*64, npm_entrypoint='server.js')
+    if profile == 'npm':
+        controlled.update(materials_manifest_sha256=report['manifest_sha256'], cache_recipe_sha256='2'*64, npm_entrypoint='server.js')
+        if registry:controlled.update(registry_policy=policy,registry_evidence_sha256=report['registry_evidence_sha256'])
     else:controlled['cargo_binary']='app'
     binding = {'schema':'factory.build.v2','revision':revision,'baseline':baseline,'archive_sha256':source_sha,
         'diff_sha256':hashlib.sha256((stage/'diff').read_bytes()).hexdigest(),'dockerfile_sha256':recipe_sha,
@@ -100,6 +118,18 @@ def refresh_intent(target, *names):
     path = target/'transfer-intent.json';intent = json.loads(path.read_text())
     for name in names:intent['files'][name] = hashlib.sha256((target/name).read_bytes()).hexdigest()
     path.write_text(json.dumps(intent))
+
+
+def test_signed_registry_policy_and_material_are_verified_on_transfer(tmp_path, monkeypatch):
+    data=fixture(tmp_path,monkeypatch,'npm',registry=True)
+    result=nuc.main('validation_verify_transfer',{'unit':data['unit']})
+    assert result['verified'] is True
+    assert result['controlled_registry_evidence_sha256']==data['binding']['controlled']['registry_evidence_sha256']
+    target=data['target'];intent=json.loads((target/'transfer-intent.json').read_text())
+    altered=json.loads(json.dumps(data['binding']))
+    altered['controlled']['registry_evidence_sha256']='0'*64
+    with pytest.raises(ValueError,match='materials differ'):
+        nuc.verify_controlled_materials(target,intent,altered,data['unit'])
 
 
 @pytest.mark.parametrize('profile', ['npm','cargo'])

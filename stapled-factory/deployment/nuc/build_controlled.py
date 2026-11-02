@@ -20,6 +20,7 @@ SECURITY = Path(__file__).resolve().parents[2] / 'security'
 sys.path.insert(0, str(SECURITY))
 from isolated_npm_build import POPULATE, npm_recipe, verify_docker_tools, isolated_npm_build
 from isolated_cargo_build import build_cargo_candidate, verify_docker_image_archive
+from npm_registry_policy import decode_policy
 
 MAX_SOURCE = 2 * 1024 * 1024 * 1024
 MAX_DIFF = 128 * 1024 * 1024
@@ -87,14 +88,15 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
                      materials_sha256, base_layout, base_manifest, builder_name,
                      builder_container_id, builder_image_id, docker_host, docker_config,
                      signing_key, output_dir, docker_bin_sha256, buildx_bin_sha256,
-                     npm_entrypoint=None, cargo_binary=None, docker_bin='/usr/local/bin/docker'):
+                     npm_entrypoint=None, cargo_binary=None, docker_bin='/usr/local/bin/docker', registry_policy=None):
     """Build and sign one candidate, retaining any partial original operation."""
     if profile not in ('npm', 'cargo'):raise ValueError('unsupported controlled build profile')
     if profile == 'npm':
         if cargo_binary is not None:raise ValueError('unsupported mixed runtime contract')
         npm_recipe(npm_entrypoint)
-    elif npm_entrypoint is not None or not isinstance(cargo_binary,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',cargo_binary):
+    elif registry_policy is not None or npm_entrypoint is not None or not isinstance(cargo_binary,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',cargo_binary):
         raise ValueError('valid Cargo binary required')
+    registry_keys = None if registry_policy is None else decode_policy(registry_policy)
     if (not isinstance(revision,str) or not re.fullmatch(r'[a-f0-9]{40}',revision) or
             not isinstance(baseline,str) or not re.fullmatch(r'[a-f0-9]{40}',baseline) or
             not isinstance(unit,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}',unit) or
@@ -129,9 +131,11 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
     diff_sha = _git_artifact(repo, ['diff','--no-ext-diff','--no-textconv',baseline,revision], out/'diff', MAX_DIFF)
     if diff_sha == hashlib.sha256(b'').hexdigest():raise ValueError('candidate diff is empty')
     tag = 'factory-candidate-'+unit.lower()+':'+revision
-    _write(out/'build-intent.json',json.dumps({'profile':profile,'unit':unit,'revision':revision,
+    intent = {'profile':profile,'unit':unit,'revision':revision,
         'baseline':baseline,'archive_sha256':archive_sha,'diff_sha256':diff_sha,
-        'materials_sha256':materials_sha256,'tag':tag},sort_keys=True,separators=(',',':')).encode())
+        'materials_sha256':materials_sha256,'tag':tag}
+    if registry_policy is not None:intent['registry_policy'] = registry_policy
+    _write(out/'build-intent.json',json.dumps(intent,sort_keys=True,separators=(',',':')).encode())
     _sync_dir(out)
 
     if profile == 'npm':
@@ -141,7 +145,7 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
             docker_bin_sha256=docker_bin_sha256, buildx_bin_sha256=buildx_bin_sha256, npm_entrypoint=npm_entrypoint,
             docker_config=docker_config, docker_host=docker_host, builder=builder_name,
             builder_container_id=builder_container_id, builder_image_id=builder_image_id,
-            tag=tag, output_tar=out/'image.tar')
+            tag=tag, output_tar=out/'image.tar', registry_keys=registry_keys)
         recipe = npm_recipe(npm_entrypoint)
         if (result.get('status') != 'isolated-npm-ci-image' or result.get('revision') != revision or
                 result.get('source_archive_sha256') != archive_sha or result.get('materials_archive_sha256') != materials_sha256 or
@@ -156,6 +160,11 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
             'builder_image_id':builder_image_id, 'builder_config_sha256':result.get('builder_config_sha256'),
             'recipe_sha256':result.get('recipe_sha256'), 'cache_recipe_sha256':result.get('cache_recipe_sha256'),
             'npm_entrypoint':npm_entrypoint,'docker_bin_sha256':docker_bin_sha256,'buildx_bin_sha256':buildx_bin_sha256}
+        if registry_policy is not None:
+            digest = result.get('registry_evidence_sha256')
+            if not isinstance(digest,str) or not re.fullmatch(r'[a-f0-9]{64}',digest):
+                raise ValueError('missing registry evidence digest')
+            controlled.update(registry_policy=registry_policy, registry_evidence_sha256=digest)
         runner_image_sha = result.get('image_tar_sha256');runner_config = result.get('config_digest')
     else:
         result = build_cargo_candidate(source_repo=repo, revision=revision, unit=unit,
@@ -228,7 +237,13 @@ def main():
     parser.add_argument('--docker-bin',default='/usr/local/bin/docker')
     parser.add_argument('--npm-entrypoint')
     parser.add_argument('--cargo-binary')
-    print(json.dumps(build_controlled(**vars(parser.parse_args())),sort_keys=True))
+    parser.add_argument('--registry-policy')
+    args = vars(parser.parse_args())
+    if args['registry_policy'] is not None:
+        if len(args['registry_policy']) > 65536:raise ValueError('registry policy too large')
+        from npm_materials import _unique_object
+        args['registry_policy'] = json.loads(args['registry_policy'], object_pairs_hook=_unique_object)
+    print(json.dumps(build_controlled(**args),sort_keys=True))
 
 
 if __name__ == '__main__':main()

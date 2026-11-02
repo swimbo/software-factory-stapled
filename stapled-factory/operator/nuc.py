@@ -131,7 +131,7 @@ MATERIAL_MODULES = (
 )
 
 
-def material_verifier_release(path, manifest_sha256=None):
+def material_verifier_release(path, manifest_sha256=None, *, registry_policy=False):
     """Validate every verifier module against one original frozen release."""
     path = verify_release(Path(path))
     for directory in (path, path/'stapled-factory', path/'stapled-factory/security'):
@@ -146,9 +146,10 @@ def material_verifier_release(path, manifest_sha256=None):
     if manifest_sha256 is not None and digest != manifest_sha256:
         raise ValueError('original material verifier release changed')
     manifest = json.loads(raw); files = manifest.get('files')
-    if not isinstance(files, dict) or not set(MATERIAL_MODULES).issubset(files):
+    modules = MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if registry_policy else ())
+    if not isinstance(files, dict) or not set(modules).issubset(files):
         raise ValueError('frozen release lacks material verifier modules')
-    for name in MATERIAL_MODULES:
+    for name in modules:
         module = path/name; st = module.lstat()
         if (module.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or
                 st.st_mode & 0o022 or not isinstance(files[name], str) or
@@ -170,9 +171,14 @@ def verify_controlled_materials(target, intent, binding, unit):
         raise ValueError('unsupported controlled material profile')
     if controlled['profile'] == 'npm':names |= {'materials_manifest_sha256', 'cache_recipe_sha256', 'npm_entrypoint'}
     else:names.add('cargo_binary')
+    has_registry_policy = 'registry_policy' in controlled or 'registry_evidence_sha256' in controlled
+    if has_registry_policy:
+        if controlled['profile'] != 'npm':raise ValueError('registry policy requires npm profile')
+        names |= {'registry_policy', 'registry_evidence_sha256'}
     sha_fields = {'source_sha256', 'materials_sha256', 'lock_sha256', 'builder_container_id',
                   'builder_config_sha256', 'recipe_sha256', 'docker_bin_sha256', 'buildx_bin_sha256'}
     if controlled['profile'] == 'npm':sha_fields |= {'materials_manifest_sha256', 'cache_recipe_sha256'}
+    if has_registry_policy:sha_fields.add('registry_evidence_sha256')
     digest_fields = {'base_manifest', 'base_config', 'builder_image_id'}
     if (set(controlled) != names or controlled.get('coverage') != 'incomplete' or
             any(not isinstance(controlled.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', controlled[k]) for k in sha_fields) or
@@ -200,16 +206,24 @@ def verify_controlled_materials(target, intent, binding, unit):
             not isinstance(pin['release'], str) or not isinstance(pin['manifest_sha256'], str) or
             not re.fullmatch(r'[a-f0-9]{64}', pin['manifest_sha256'])):
         raise ValueError('original material verifier release unavailable')
-    material_verifier_release(pin['release'], pin['manifest_sha256'])
+    policy_raw = json.dumps(controlled.get('registry_policy'),sort_keys=True,separators=(',',':'))
+    if len(policy_raw) > 65536:raise ValueError('registry policy too large')
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy)
     # -I ignores current working directory and PYTHONPATH. Disable bytecode to
     # avoid writes to the frozen release, then import only from that release.
     program = r'''import hashlib, importlib, json, sys, tarfile
 sys.dont_write_bytecode = True
 sys.path.insert(0, sys.argv[1])
-profile, archive, expected, source = sys.argv[2:]
+profile, archive, expected, source, policy_raw = sys.argv[2:]
 module = importlib.import_module('controlled_npm' if profile == 'npm' else 'controlled_cargo')
 verify = module.verify_frozen_npm if profile == 'npm' else module.verify_frozen_cargo
-report = verify(archive, expected)
+policy = json.loads(policy_raw)
+if policy is not None:
+    if profile != 'npm': raise ValueError('registry policy requires npm')
+    keys = importlib.import_module('npm_registry_policy').decode_policy(policy)
+    report = verify(archive, expected, registry_keys=keys)
+else:
+    report = verify(archive, expected)
 name = 'package-lock.json' if profile == 'npm' else 'Cargo.lock'
 lock = None
 with open(source, 'rb') as stream, tarfile.open(fileobj=module._BoundedTarInput(stream), mode='r:') as tar:
@@ -224,17 +238,20 @@ print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True)
 '''
     security = Path(pin['release'])/'stapled-factory/security'
     result = subprocess.run([sys.executable, '-I', '-c', program, str(security), controlled['profile'],
-                             str(target/'materials.tar'), controlled['materials_sha256'], str(target/'source.tar')],
+                             str(target/'materials.tar'), controlled['materials_sha256'], str(target/'source.tar'), policy_raw],
                             capture_output=True, text=True, check=True, timeout=600)
     verified = json.loads(result.stdout); report = verified.get('report') or {}
     if (report.get('coverage') != 'incomplete' or report.get('archive_sha256') != controlled['materials_sha256'] or
             report.get('lock_sha256') != controlled['lock_sha256'] or
             verified.get('source_lock_sha256') != controlled['lock_sha256'] or
-            controlled['profile'] == 'npm' and report.get('manifest_sha256') != controlled['materials_manifest_sha256']):
+            controlled['profile'] == 'npm' and report.get('manifest_sha256') != controlled['materials_manifest_sha256'] or
+            has_registry_policy and report.get('registry_evidence_sha256') != controlled['registry_evidence_sha256']):
         raise ValueError('verified controlled materials differ from signed inputs')
-    material_verifier_release(pin['release'], pin['manifest_sha256'])
-    return {'controlled_profile': controlled['profile'], 'controlled_materials_sha256': controlled['materials_sha256'],
-            'controlled_lock_sha256': controlled['lock_sha256'], 'material_verifier': pin}
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy)
+    result = {'controlled_profile': controlled['profile'], 'controlled_materials_sha256': controlled['materials_sha256'],
+              'controlled_lock_sha256': controlled['lock_sha256'], 'material_verifier': pin}
+    if has_registry_policy:result['controlled_registry_evidence_sha256'] = controlled['registry_evidence_sha256']
+    return result
 
 
 
