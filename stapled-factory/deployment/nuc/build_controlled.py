@@ -21,6 +21,8 @@ sys.path.insert(0, str(SECURITY))
 from isolated_npm_build import POPULATE, npm_recipe, verify_docker_tools, isolated_npm_build
 from isolated_cargo_build import build_cargo_candidate, verify_docker_image_archive
 from npm_registry_policy import decode_policy
+from npm_attestation_bundle import MAX_BUNDLE, verify_attestation_bundle
+from npm_workflow_attestation import _small
 
 MAX_SOURCE = 2 * 1024 * 1024 * 1024
 MAX_DIFF = 128 * 1024 * 1024
@@ -88,15 +90,27 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
                      materials_sha256, base_layout, base_manifest, builder_name,
                      builder_container_id, builder_image_id, docker_host, docker_config,
                      signing_key, output_dir, docker_bin_sha256, buildx_bin_sha256,
-                     npm_entrypoint=None, cargo_binary=None, docker_bin='/usr/local/bin/docker', registry_policy=None):
+                     npm_entrypoint=None, cargo_binary=None, docker_bin='/usr/local/bin/docker', registry_policy=None,
+                     npm_attestation=None):
     """Build and sign one candidate, retaining any partial original operation."""
     if profile not in ('npm', 'cargo'):raise ValueError('unsupported controlled build profile')
     if profile == 'npm':
         if cargo_binary is not None:raise ValueError('unsupported mixed runtime contract')
         npm_recipe(npm_entrypoint)
-    elif registry_policy is not None or npm_entrypoint is not None or not isinstance(cargo_binary,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',cargo_binary):
+    elif npm_attestation is not None or registry_policy is not None or npm_entrypoint is not None or not isinstance(cargo_binary,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',cargo_binary):
         raise ValueError('valid Cargo binary required')
     registry_keys = None if registry_policy is None else decode_policy(registry_policy)
+    if npm_attestation is not None:
+        fields = {'bundle', 'bundle_sha256', 'policy', 'trusted_root', 'trusted_root_sha256', 'cosign', 'cosign_sha256'}
+        if not isinstance(npm_attestation, dict) or set(npm_attestation) != fields:
+            raise ValueError('complete npm attestation configuration required')
+        npm_attestation = dict(npm_attestation)
+        encoded_policy = json.dumps(npm_attestation['policy'],sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+        if len(encoded_policy)>65536:raise ValueError('npm attestation policy too large')
+        npm_attestation['policy'] = json.loads(encoded_policy)
+        for field in ('bundle_sha256','trusted_root_sha256','cosign_sha256'):
+            if not isinstance(npm_attestation[field],str) or not re.fullmatch(r'[a-f0-9]{64}',npm_attestation[field]):
+                raise ValueError('pinned npm attestation digest required')
     if (not isinstance(revision,str) or not re.fullmatch(r'[a-f0-9]{40}',revision) or
             not isinstance(baseline,str) or not re.fullmatch(r'[a-f0-9]{40}',baseline) or
             not isinstance(unit,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}',unit) or
@@ -135,6 +149,10 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
         'baseline':baseline,'archive_sha256':archive_sha,'diff_sha256':diff_sha,
         'materials_sha256':materials_sha256,'tag':tag}
     if registry_policy is not None:intent['registry_policy'] = registry_policy
+    if npm_attestation is not None:
+        intent['npm_attestation'] = {'bundle_sha256':npm_attestation['bundle_sha256'],
+            'policy_sha256':hashlib.sha256(encoded_policy).hexdigest(),
+            'trusted_root_sha256':npm_attestation['trusted_root_sha256'],'cosign_sha256':npm_attestation['cosign_sha256']}
     _write(out/'build-intent.json',json.dumps(intent,sort_keys=True,separators=(',',':')).encode())
     _sync_dir(out)
 
@@ -165,6 +183,23 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
             if not isinstance(digest,str) or not re.fullmatch(r'[a-f0-9]{64}',digest):
                 raise ValueError('missing registry evidence digest')
             controlled.update(registry_policy=registry_policy, registry_evidence_sha256=digest)
+        if npm_attestation is not None:
+            raw = _small(npm_attestation['bundle'], MAX_BUNDLE)
+            if hashlib.sha256(raw).hexdigest() != npm_attestation['bundle_sha256']:
+                raise ValueError('npm attestation bundle differs from intent')
+            _write(out/'npm-attestations.json', raw)
+            checked = verify_attestation_bundle(out/'npm-attestations.json', npm_attestation['bundle_sha256'],
+                npm_attestation['policy'], archive=materials_archive, archive_sha256=materials_sha256,
+                trusted_root=npm_attestation['trusted_root'], trusted_root_sha256=npm_attestation['trusted_root_sha256'],
+                cosign=npm_attestation['cosign'], cosign_sha256=npm_attestation['cosign_sha256'], registry_keys=registry_keys)
+            if (checked.get('status') != 'verified-selected-frozen-npm-attestations' or
+                    checked.get('coverage') != 'incomplete' or checked.get('archive_sha256') != materials_sha256 or
+                    checked.get('lock_sha256') != result.get('lock_sha256') or
+                    checked.get('manifest_sha256') != result.get('materials_manifest_sha256') or
+                    checked.get('attestation_bundle_sha256') != npm_attestation['bundle_sha256'] or
+                    checked.get('attestation_policy_sha256') != hashlib.sha256(encoded_policy).hexdigest()):
+                raise ValueError('npm attestation evidence differs from build')
+            controlled['npm_attestation'] = {**intent['npm_attestation'], 'policy':npm_attestation['policy']}
         runner_image_sha = result.get('image_tar_sha256');runner_config = result.get('config_digest')
     else:
         result = build_cargo_candidate(source_repo=repo, revision=revision, unit=unit,
@@ -215,6 +250,8 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
         raise ValueError('runner image binding differs')
     if _digest_file(out/'source.tar') != archive_sha or _digest_file(out/'diff') != diff_sha:
         raise ValueError('source artifacts changed during build')
+    if npm_attestation is not None and _digest_file(out/'npm-attestations.json') != npm_attestation['bundle_sha256']:
+        raise ValueError('npm attestation bundle changed during build')
     _write(out/'Dockerfile',recipe)
     manifest = {'schema':'factory.build.v2','revision':revision,'baseline':baseline,
         'archive_sha256':archive_sha,'diff_sha256':diff_sha,'dockerfile_sha256':controlled['recipe_sha256'],

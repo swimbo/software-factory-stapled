@@ -115,6 +115,40 @@ def test_signed_manifest_binds_registry_policy_and_evidence(tmp_path,monkeypatch
         '-in',str(values['output_dir']/'build.json'),'-sigfile',str(values['output_dir']/'build.sig')],check=True,capture_output=True)
 
 
+def test_signed_manifest_binds_verified_frozen_attestation(tmp_path,monkeypatch):
+    values,public=inputs(tmp_path);fake_runners(monkeypatch,values)
+    bundle=tmp_path/'evidence';bundle.write_bytes(b'evidence')
+    digest=hashlib.sha256(bundle.read_bytes()).hexdigest()
+    policy={'node_modules/example':{'workflow':{'identity':'https://example.invalid/workflow','issuer':'https://example.invalid'}}}
+    policy_hash=hashlib.sha256(json.dumps(policy,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    def verify(path, expected, checked_policy, **kwargs):
+        assert path.read_bytes()==b'evidence' and expected==digest and checked_policy==policy
+        assert kwargs['archive_sha256']==values['materials_sha256']
+        return {'status':'verified-selected-frozen-npm-attestations','coverage':'incomplete',
+            'archive_sha256':values['materials_sha256'],'lock_sha256':'d'*64,'manifest_sha256':'e'*64,
+            'attestation_bundle_sha256':digest,'attestation_policy_sha256':policy_hash}
+    monkeypatch.setattr(m,'verify_attestation_bundle',verify)
+    config={'bundle':bundle,'bundle_sha256':digest,'policy':policy,'trusted_root':'root',
+            'trusted_root_sha256':'a'*64,'cosign':'cosign','cosign_sha256':'b'*64}
+    manifest=m.build_controlled(profile='npm',npm_attestation=config,**values)
+    assert manifest['controlled']['npm_attestation']['bundle_sha256']==digest
+    assert manifest['controlled']['npm_attestation']['policy']==policy
+    assert manifest['controlled']['coverage']=='incomplete'
+    subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public),'-rawin',
+        '-in',str(values['output_dir']/'build.json'),'-sigfile',str(values['output_dir']/'build.sig')],check=True,capture_output=True)
+
+
+def test_attestation_mismatch_does_not_sign(tmp_path,monkeypatch):
+    values,_=inputs(tmp_path);fake_runners(monkeypatch,values)
+    bundle=tmp_path/'evidence';bundle.write_bytes(b'evidence')
+    monkeypatch.setattr(m,'verify_attestation_bundle',lambda *args,**kwargs: {'status':'verified-selected-frozen-npm-attestations'})
+    config={'bundle':bundle,'bundle_sha256':hashlib.sha256(bundle.read_bytes()).hexdigest(),'policy':{},
+            'trusted_root':'root','trusted_root_sha256':'a'*64,'cosign':'cosign','cosign_sha256':'b'*64}
+    with pytest.raises(ValueError,match='attestation evidence differs'):
+        m.build_controlled(profile='npm',npm_attestation=config,**values)
+    assert not (values['output_dir']/'build.sig').exists()
+
+
 def test_reject_signing_key_in_candidate_before_build(tmp_path, monkeypatch):
     values,_=inputs(tmp_path);calls=fake_runners(monkeypatch,values)
     inside=values['repo']/'key.pem';inside.write_bytes(values['signing_key'].read_bytes());inside.chmod(0o600)
