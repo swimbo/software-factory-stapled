@@ -1,0 +1,114 @@
+{
+  "dependency_provenance_bundle": {
+    "image": "ghcr.io/example/runtime@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "registry_attestation": {
+      "evidence_sha256": "dc428809da7b9b5a7b7af8e145ac13375d2601bbbdb70f80258c4013a6e636b6",
+      "predicate_type": "https://example/factory/registry-signature/v1",
+      "subject_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "registry_attestation_evidence": {
+      "build_provenance_verified": false,
+      "image": "ghcr.io/example/runtime@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "issuer": "https://token.actions.githubusercontent.com",
+      "publisher_identity": "https://github.com/example/runtime/.github/workflows/build.yml@refs/heads/main",
+      "verified_signatures": 1
+    },
+    "registry_attestation_sha256": "02badb335cb99080afd937c10d5a2d85301367cddc4b5d49f1de7f91983dc586",
+    "schema_version": 1,
+    "workflow_attestation": {
+      "evidence_sha256": "74d79d4a787271356343fde6358f751179a56d85399770628e35aab652470559",
+      "predicate_type": "https://example/factory/workflow-publication/v1",
+      "subject_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111"
+    },
+    "workflow_attestation_sha256": "290add54b5b37bbe838b80e9e9024f2ded0e176512a592a1bd0e5a6aefd7f8f4",
+    "workflow_evidence": {
+      "evidence_type": "authenticated-github-workflow-and-registry-publication",
+      "image": "ghcr.io/example/runtime@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "log_sha256": "2222222222222222222222222222222222222222222222222222222222222222",
+      "platform_manifests": [
+        {
+          "digest": "sha256:3333333333333333333333333333333333333333333333333333333333333333",
+          "mediaType": "application/vnd.oci.image.manifest.v1+json",
+          "platform": {
+            "architecture": "amd64",
+            "os": "linux"
+          }
+        },
+        {
+          "annotations": {
+            "vnd.docker.reference.type": "attestation-manifest"
+          },
+          "artifactType": "application/vnd.in-toto+json",
+          "digest": "sha256:4444444444444444444444444444444444444444444444444444444444444444",
+          "mediaType": "application/vnd.oci.image.manifest.v1+json"
+        }
+      ],
+      "policy": {
+        "actor": "maintainer",
+        "event": "push",
+        "job_id": 121684879794,
+        "job_name": "Publish",
+        "publication_style": "pushing-digest-to-reference",
+        "reference": "ghcr.io/example/runtime:release",
+        "repo": "example/runtime",
+        "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "run_id": 40352978807,
+        "step_name": "Push image",
+        "step_number": 3,
+        "workflow": ".github/workflows/build.yml"
+      },
+      "publication_lines": [
+        "Publish\tUNKNOWN STEP\t2026-10-27T00:00:30.123Z #1 1.2 pushing sha256:1111111111111111111111111111111111111111111111111111111111111111 to ghcr.io/example/runtime:release"
+      ],
+      "publication_step": {
+        "completed_at": "2026-10-27T00:01:00Z",
+        "name": "Push image",
+        "number": 3,
+        "started_at": "2026-10-27T00:00:00Z"
+      },
+      "publisher_signature_verified": false,
+      "registry_index_sha256": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "repository": "example/runtime",
+      "revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "run_id": 40352978807,
+      "run_url": "https://github.com/example/runtime/actions/runs/40352978807",
+      "workflow": ".github/workflows/build.yml"
+    }
+  },
+  "operator_output": {
+    "artifact_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "attempt_id": "unit-1:0",
+    "bundle_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "envelope_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+    "git_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "unit": "unit-1"
+  },
+  "schema_version": 1,
+  "trust_policy": {
+    "issuer": "https://token.actions.githubusercontent.com",
+    "publisher_identity": "https://github.com/example/runtime/.github/workflows/build.yml@refs/heads/main",
+    "schema_version": 1,
+    "workflow_repositories": [
+      "example/runtime"
+    ]
+  },
+  "validation_receipt": {
+    "accepted": true,
+    "envelope_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+    "evidence": {
+      "artifact_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "attempt_id": "unit-1:0",
+      "checks_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+      "deployment_id": "6666666666666666666666666666666666666666666666666666666666666666",
+      "git_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "passed": true,
+      "scenario_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+      "scope": "disposable-candidate",
+      "security_engines": {
+        "dependency": "osv-scanner"
+      },
+      "source_archive_digest": "5555555555555555555555555555555555555555555555555555555555555555",
+      "unit_id": "unit-1"
+    }
+  }
+}

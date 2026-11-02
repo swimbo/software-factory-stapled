@@ -1,0 +1,39 @@
+{
+  "accepted": true,
+  "boundary": {
+    "execution": "local-in-process-fixture",
+    "network_calls": 0,
+    "production_authorization": false,
+    "service_restarts": 0
+  },
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:verify-frozen-dependency-provenance-and-operator-join-contracts",
+  "dependency_provenance": {
+    "accepted": true,
+    "artifact_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "build_provenance_verified": false,
+    "certificate_issuer": "https://token.actions.githubusercontent.com",
+    "image": "ghcr.io/example/runtime@sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "publisher_identity": "https://github.com/example/runtime/.github/workflows/build.yml@refs/heads/main",
+    "registry_attestation_evidence_sha256": "dc428809da7b9b5a7b7af8e145ac13375d2601bbbdb70f80258c4013a6e636b6",
+    "registry_attestation_sha256": "02badb335cb99080afd937c10d5a2d85301367cddc4b5d49f1de7f91983dc586",
+    "trust_policy_separated": true,
+    "verified_signatures": 1,
+    "workflow_attestation_sha256": "290add54b5b37bbe838b80e9e9024f2ded0e176512a592a1bd0e5a6aefd7f8f4",
+    "workflow_evidence_sha256": "74d79d4a787271356343fde6358f751179a56d85399770628e35aab652470559",
+    "workflow_signature_trust_claimed": false
+  },
+  "fixture_sha256": "557a3d6e43750dd60c19b33c61caf3df3c04c4eee4ab11c85034db5ff69810e2",
+  "operator_receipt_join": {
+    "accepted": true,
+    "artifact_digest": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+    "attempt_id": "unit-1:0",
+    "checks_digest": "8888888888888888888888888888888888888888888888888888888888888888",
+    "dependency_provenance_bound": true,
+    "envelope_digest": "9999999999999999999999999999999999999999999999999999999999999999",
+    "git_revision": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "scenario_digest": "7777777777777777777777777777777777777777777777777777777777777777",
+    "source_bundle_sha256": "5555555555555555555555555555555555555555555555555555555555555555",
+    "unit_id": "unit-1"
+  },
+  "schema_version": 1
+}
