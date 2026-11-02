@@ -16,6 +16,8 @@ import subprocess
 
 UNITS = ('factory-restate', 'factory-endpoint', 'factory-ingress')
 DROPIN = '90-factory-admission.conf'
+MODULES = frozenset(('admission_live.py','admission_identity.py','admission_nft.py',
+                     'admission_effective.py','admission_install.py'))
 
 
 def _unsafe_mode(info, private):
@@ -65,13 +67,25 @@ def _write(path, raw):
     _sync(path.parent)
 
 
-def prepare_install(control, service_dir, guard_source, expected_sha256):
+def prepare_install(control, service_dir, guard_source, expected_sha256, *, module_sources=None):
     control = _directory(control, private=True);service_dir = _directory(service_dir)
     if not isinstance(expected_sha256, str) or not re.fullmatch(r'[a-f0-9]{64}', expected_sha256):
         raise ValueError('exact guard digest required')
     guard = _regular(guard_source)
     if hashlib.sha256(guard).hexdigest() != expected_sha256:
         raise ValueError('guard source differs')
+    modules={}
+    if module_sources is not None:
+        if not isinstance(module_sources,dict) or set(module_sources)!=MODULES:
+            raise ValueError('complete pinned admission module bundle required')
+        for name,source in module_sources.items():
+            if (not isinstance(source,dict) or set(source)!={'path','sha256'} or
+                    not isinstance(source['sha256'],str) or not re.fullmatch(r'[a-f0-9]{64}',source['sha256'])):
+                raise ValueError('invalid admission module pin')
+            data=_regular(source['path'])
+            if hashlib.sha256(data).hexdigest()!=source['sha256']:
+                raise ValueError('admission module differs')
+            modules[name]=data
     root = control/'admission-fence'
     if os.path.lexists(root):raise FileExistsError('original admission installation exists')
     original = {}
@@ -84,6 +98,7 @@ def prepare_install(control, service_dir, guard_source, expected_sha256):
     root.mkdir(mode=0o700);_sync(control)
     hold = root/'hold';hold.mkdir(mode=0o700);_sync(root)
     script = root/'guard.py';_write(script, guard)
+    for name,data in sorted(modules.items()):_write(root/name,data)
     files = {}
     for name in UNITS:
         if _regular(service_dir/(name+'.service')) != original[name]:
@@ -96,11 +111,12 @@ def prepare_install(control, service_dir, guard_source, expected_sha256):
         _write(directory/DROPIN, data)
         files[name] = hashlib.sha256(data).hexdigest()
     receipt = {'guard_sha256':expected_sha256,'dropins':files,'armed':False,'loaded':False}
+    if module_sources is not None:receipt['modules']={name:hashlib.sha256(data).hexdigest() for name,data in modules.items()}
     _write(root/'installation.json',json.dumps(receipt,sort_keys=True,separators=(',', ':')).encode())
     return receipt
 
 
-def verify_loaded(control, service_dir, expected_sha256):
+def verify_loaded(control, service_dir, expected_sha256, *, module_sha256=None):
     """Read back the prepared files and each active systemd unit before arming."""
     control = _directory(control, private=True);service_dir = _directory(service_dir)
     root = _directory(control/'admission-fence', private=True)
@@ -117,10 +133,18 @@ def verify_loaded(control, service_dir, expected_sha256):
             result[key]=value
         return result
     receipt=json.loads(_regular(root/'installation.json',private=True),object_pairs_hook=unique)
-    if (not isinstance(receipt,dict) or set(receipt)!={'guard_sha256','dropins','armed','loaded'} or
+    keys={'guard_sha256','dropins','armed','loaded'} | ({'modules'} if module_sha256 is not None else set())
+    if (not isinstance(receipt,dict) or set(receipt)!=keys or
             receipt['guard_sha256'] != expected_sha256 or receipt['armed'] is not False or receipt['loaded'] is not False or
             not isinstance(receipt['dropins'],dict) or set(receipt['dropins']) != set(UNITS)):
         raise ValueError('installation receipt differs')
+    if module_sha256 is not None:
+        if not isinstance(module_sha256,dict) or set(module_sha256)!=MODULES or receipt['modules']!=module_sha256:
+            raise ValueError('admission module bundle differs')
+        for name,digest in module_sha256.items():
+            if (not isinstance(digest,str) or not re.fullmatch(r'[a-f0-9]{64}',digest) or
+                    hashlib.sha256(_regular(root/name,private=True)).hexdigest()!=digest):
+                raise ValueError('installed admission module differs')
     runtime='/run/user/'+str(os.getuid())
     env={'PATH':'/usr/bin:/bin','HOME':str(Path.home()),'XDG_RUNTIME_DIR':runtime,
          'DBUS_SESSION_BUS_ADDRESS':'unix:path='+runtime+'/bus'}

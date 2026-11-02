@@ -39,6 +39,16 @@ def test_preparation_never_overwrites_existing_dropin(tmp_path):
     assert existing.read_text()=='original' and not (control/'admission-fence').exists()
 
 
+def test_preparation_pins_complete_guard_module_bundle(tmp_path):
+    control,units,guard,digest=fixture(tmp_path)
+    names=('admission_live.py','admission_identity.py','admission_nft.py','admission_effective.py','admission_install.py')
+    sources={name:{'path':HERE/name,'sha256':hashlib.sha256((HERE/name).read_bytes()).hexdigest()} for name in names}
+    receipt=module.prepare_install(control,units,guard,digest,module_sources=sources)
+    assert set(receipt['modules'])==set(names)
+    for name in names:
+        assert hashlib.sha256((control/'admission-fence'/name).read_bytes()).hexdigest()==receipt['modules'][name]
+
+
 def test_loaded_guard_check_rejects_stale_systemd_state(tmp_path, monkeypatch):
     control,units,guard,digest=fixture(tmp_path)
     module.prepare_install(control,units,guard,digest)
