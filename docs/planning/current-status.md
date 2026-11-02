@@ -103,6 +103,8 @@ An evidence-only bundle now freezes those signed attestations separately from ve
 
 The controlled-build Python entry point can now optionally verify this evidence against its exact frozen npm materials and bind the evidence digest, policy and verifier/root digests into its signed build manifest. The original evidence is retained with the build; differing materials or evidence prevent signing. This is local integration only: the operator CLI does not expose it, and the NUC material verifier rejects the new manifest field until independent remote verification is implemented. No live validation receipt or provenance-gate closure follows from it.
 
+The NUC operator module now also contains an independent re-verifier for this signed binding. It copies pinned verifier source into a fresh private directory, selects a separately pinned local Cosign binary, and requires the signed trust-root and policy digests. A local fixture reverified the real retained package using this code. The function is not yet connected to transfer, trust provisioning or the operator CLI; the existing transfer remains fail-closed, and no NUC runtime was changed.
+
 A private one-pair evaluation task and independent acceptance oracle were prepared under `/Users/bo/.local/share/stapled-factory-release/out/actual-pair-prep-59b02c5b90d6c92f`. The oracle rejected the present baseline and passed an isolated positive control. This is preparation only; no paid trial was run. Refresh its exact source revision and freeze the task before submission if the checkout advances.
 
 ## Resume order
