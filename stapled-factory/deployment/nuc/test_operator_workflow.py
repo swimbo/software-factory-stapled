@@ -1407,6 +1407,21 @@ def test_controlled_npm_config_binds_attestation_preflight(tmp_path, monkeypatch
         cli.load_controlled_config(path)
 
 
+def test_controlled_cargo_config_binds_selected_component(tmp_path, monkeypatch):
+    _,_,_,path,_,_,report=controlled_build_inputs(tmp_path,monkeypatch)
+    config=json.loads(path.read_text());config['profile']='cargo';config.pop('npm_entrypoint')
+    config.update(cargo_binary='app',source_component='backend');path.write_text(json.dumps(config))
+    loaded,_=cli.load_controlled_config(path)
+    bound={key:value for key,value in report.items() if key not in ('npm_entrypoint','materials_manifest_sha256','cache_recipe_sha256')}
+    bound.update(profile='cargo',cargo_binary='app',source_component='backend')
+    assert cli.validate_controlled_preflight(loaded,bound,report['source_sha256'])==bound
+    with pytest.raises(ValueError,match='component differs'):
+        cli.validate_controlled_preflight(loaded,{**bound,'source_component':'other'},report['source_sha256'])
+    config['source_component']='../backend';path.write_text(json.dumps(config))
+    with pytest.raises(ValueError,match='component'):
+        cli.load_controlled_config(path)
+
+
 def test_attestation_preflight_requires_matching_frozen_materials(tmp_path, monkeypatch):
     import hashlib
     monkeypatch.syspath_prepend(str(Path(__file__).resolve().parents[2] / 'security'))

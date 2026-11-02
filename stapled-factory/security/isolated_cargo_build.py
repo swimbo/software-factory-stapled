@@ -53,7 +53,17 @@ def _pinned_copy(source, dest, digest):
     dest.chmod(0o600)
 
 
-def _source_lock_digest(source, binary_name=None):
+def _component(value):
+    if not isinstance(value, str) or (value and (len(value) > 512 or
+            any(not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*', part) or part in ('.', '..', 'target')
+                for part in value.split('/')))):
+        raise ValueError('invalid Cargo source component')
+    return value
+
+
+def _source_lock_digest(source, binary_name=None, source_component=''):
+    source_component = _component(source_component)
+    prefix = source_component + '/' if source_component else ''
     if source.stat().st_size > MAX_SOURCE_BYTES:
         raise ValueError('source archive too large')
     names = set(); regular = set(); lock = None; manifest = None; total = 0
@@ -75,10 +85,10 @@ def _source_lock_digest(source, binary_name=None):
                 if member.isfile():regular.add(canonical)
                 if total > MAX_SOURCE_BYTES:
                     raise ValueError('source archive too large')
-                if name == 'Cargo.toml' and member.isfile():
+                if name == prefix + 'Cargo.toml' and member.isfile():
                     if member.size > 1024 * 1024:raise ValueError('Cargo manifest too large')
                     manifest = tar.extractfile(member).read()
-                if name == 'Cargo.lock':
+                if name == prefix + 'Cargo.lock':
                     if not member.isfile() or member.size > MAX_LOCK_BYTES:
                         raise ValueError('invalid source Cargo.lock')
                     lock = hashlib.file_digest(tar.extractfile(member), 'sha256').hexdigest()
@@ -86,6 +96,10 @@ def _source_lock_digest(source, binary_name=None):
         raise ValueError('invalid source archive') from exc
     if lock is None or manifest is None:
         raise ValueError('root Cargo.toml and Cargo.lock required')
+    if source_component:
+        parts = source_component.split('/')
+        if any('/'.join(parts[:index] + ['Cargo.toml']) in regular for index in range(len(parts))):
+            raise ValueError('parent Cargo workspace or package is unsupported')
     if binary_name is not None:
         if not isinstance(binary_name, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}', binary_name):
             raise ValueError('invalid Cargo binary name')
@@ -111,15 +125,17 @@ def _source_lock_digest(source, binary_name=None):
         elif matches or package.get('autobins', True) is True:
             if package.get('name') == binary_name:paths.append('src/main.rs')
             paths.extend(['src/bin/' + binary_name + '.rs', 'src/bin/' + binary_name + '/main.rs'])
-        if not any(path in regular for path in paths):
+        if not any(prefix + path in regular for path in paths):
             raise ValueError('selected Cargo binary source unavailable')
     return lock
 
 
-def cargo_source_preflight(source_archive, binary_name):
+def cargo_source_preflight(source_archive, binary_name, source_component=''):
     """Validate a narrow root-package binary and report its lock digest."""
-    return {'lock_sha256': _source_lock_digest(Path(source_archive), binary_name),
-            'cargo_binary': binary_name}
+    result = {'lock_sha256': _source_lock_digest(Path(source_archive), binary_name, source_component),
+              'cargo_binary': binary_name}
+    if source_component:result['source_component'] = source_component
+    return result
 
 
 def _unique(pairs):
@@ -315,16 +331,20 @@ def _fsync_directory(path):
         os.close(fd)
 
 
-def _recipe(source_sha, cargo_sha, binary_name):
+def _recipe(source_sha, cargo_sha, binary_name, source_component=''):
+    source_component = _component(source_component)
+    if not isinstance(binary_name,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',binary_name):
+        raise ValueError('invalid Cargo binary name')
+    workdir = '/factory/source' + ('/' + source_component if source_component else '')
     return f'''FROM base
 COPY source.tar /factory-input/source.tar
 COPY cargo-inputs.tar /factory-input/cargo-inputs.tar
 RUN --network=none printf '%s  %s\\n' '{source_sha}' /factory-input/source.tar '{cargo_sha}' /factory-input/cargo-inputs.tar | sha256sum -c - && mkdir -p /factory/source /factory/cargo /factory/cargo-home && tar -xf /factory-input/source.tar -C /factory/source && tar -xf /factory-input/cargo-inputs.tar -C /factory/cargo && printf '%s\\n' '[source.crates-io]' 'replace-with = "vendored-sources"' '[source.vendored-sources]' 'directory = "/factory/cargo/vendor"' '[net]' 'offline = true' > /factory/cargo-home/config.toml
 ENV CARGO_HOME=/factory/cargo-home CARGO_NET_OFFLINE=true
-WORKDIR /factory/source
+WORKDIR {workdir}
 RUN --network=none cargo build --release --locked --offline --bin {binary_name}
 ENTRYPOINT []
-CMD ["/factory/source/target/release/{binary_name}"]
+CMD ["{workdir}/target/release/{binary_name}"]
 '''.encode()
 
 
@@ -333,7 +353,7 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
                           builder_name, builder_container_id, builder_image_id,
                           docker_host, docker_config, output_dir, binary_name,
                           docker_bin_sha256, buildx_bin_sha256,
-                          docker_bin='/usr/local/bin/docker', timeout=900):
+                          docker_bin='/usr/local/bin/docker', timeout=900, source_component=''):
     """Build once from private copies and return incomplete evidence for signing.
 
     No factory credential, Docker socket or caller Dockerfile enters the build
@@ -357,6 +377,7 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
         raise ValueError('invalid Cargo binary name')
     if not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{40}', revision):
         raise ValueError('exact Git revision required')
+    source_component = _component(source_component)
     tag = 'factory-candidate-' + unit.lower() + ':' + revision
     original_docker = docker_bin
     forbidden = [source_repo, output_dir, Path(__file__).resolve().parents[2]]
@@ -377,11 +398,11 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
     _pinned_copy(cargo_archive, cargo, cargo_sha256)
     _verify_git_source(source_repo, revision, source)
     cargo_report = verify_frozen_cargo(cargo, cargo_sha256)
-    if cargo_source_preflight(source, binary_name)['lock_sha256'] != cargo_report['lock_sha256']:
+    if cargo_source_preflight(source, binary_name, source_component)['lock_sha256'] != cargo_report['lock_sha256']:
         raise ValueError('source and frozen Cargo lock differ')
     layout = output / 'base-layout'; layout.mkdir(mode=0o700)
     base_config = _freeze_base(base_layout, base_manifest, layout)
-    recipe = _recipe(source_sha256, cargo_sha256, binary_name)
+    recipe = _recipe(source_sha256, cargo_sha256, binary_name, source_component)
     (context / 'Dockerfile').write_bytes(recipe)
     recipe_sha256 = hashlib.sha256(recipe).hexdigest()
     image = output / 'image.tar'; metadata = output / 'build-metadata.json'
@@ -391,6 +412,7 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
               'recipe_sha256': recipe_sha256, 'builder': builder,
               'cargo_binary': binary_name, 'docker_bin_sha256': docker_bin_sha256,
               'buildx_bin_sha256': buildx_bin_sha256}
+    if source_component:intent['source_component'] = source_component
     with (output / 'build-intent.json').open('x') as stream:
         json.dump(intent, stream, sort_keys=True, separators=(',', ':')); stream.flush(); os.fsync(stream.fileno())
     _fsync_directory(output)
@@ -414,7 +436,7 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
                            buildx_bin_sha256, forbidden) != (resolved_docker, plugin):
         raise ValueError('Docker executables changed during build')
     result = verify_docker_image_archive(image, tag, revision, source_sha256,
-        expected_cmd=['/factory/source/target/release/' + binary_name])
+        expected_cmd=['/factory/source/' + (source_component + '/' if source_component else '') + 'target/release/' + binary_name])
     # Recheck exact copied inputs after the build; concurrent same-owner writers
     # remain outside this function's trust boundary.
     for path, expected in ((source, source_sha256), (cargo, cargo_sha256)):

@@ -63,8 +63,10 @@ def fake_runners(monkeypatch, values, *, wrong_image=False):
         calls.append('cargo');out=args['output_dir'];(out/'context').mkdir(parents=True)
         recipe=b'FROM base\n';(out/'context/Dockerfile').write_bytes(recipe)
         tag='factory-candidate-'+args['unit'].lower()+':'+args['revision']
-        sha,config=fake_image(out/'image.tar',tag,args['revision'],args['source_sha256'],['/factory/source/target/release/'+args['binary_name']])
-        return {'status':'isolated-cargo-image-built','coverage':'incomplete','revision':args['revision'],
+        component=args.get('source_component','')
+        cmd='/factory/source/'+(component+'/' if component else '')+'target/release/'+args['binary_name']
+        sha,config=fake_image(out/'image.tar',tag,args['revision'],args['source_sha256'],[cmd])
+        result={'status':'isolated-cargo-image-built','coverage':'incomplete','revision':args['revision'],
             'tag':tag,'source_sha256':args['source_sha256'],'cargo_sha256':args['cargo_sha256'],
             'cargo_lock_sha256':'d'*64,'base_manifest_digest':args['base_manifest'],
             'base_config_digest':'sha256:'+'f'*64,'builder_config_sha256':'1'*64,
@@ -72,6 +74,8 @@ def fake_runners(monkeypatch, values, *, wrong_image=False):
             'image_archive_sha256':sha,'image_config_digest':config,'cargo_binary':args['binary_name'],
             'docker_bin_sha256':args['docker_bin_sha256'],'buildx_bin_sha256':args['buildx_bin_sha256'],
             'builder':{'container_id':args['builder_container_id'],'image_id':args['builder_image_id'],'network_mode':'none'}}
+        if component:result['source_component']=component
+        return result
     monkeypatch.setattr(m,'verify_docker_tools',lambda docker,*a:(docker,'/plugin'))
     monkeypatch.setattr(m,'isolated_npm_build',npm);monkeypatch.setattr(m,'build_cargo_candidate',cargo)
     return calls
@@ -101,6 +105,15 @@ def test_mismatched_image_preserves_failed_original_and_refuses_replay(tmp_path,
     assert not (out/'build.sig').exists()
     with pytest.raises(FileExistsError):m.build_controlled(profile='npm',**values)
     assert calls == ['npm']
+
+
+def test_signed_cargo_component_and_runtime_are_bound(tmp_path,monkeypatch):
+    values,public=inputs(tmp_path);fake_runners(monkeypatch,values)
+    values.pop('npm_entrypoint');values['cargo_binary']='app'
+    manifest=m.build_controlled(profile='cargo',source_component='backend',**values)
+    assert manifest['controlled']['source_component']=='backend'
+    subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public),'-rawin',
+        '-in',str(values['output_dir']/'build.json'),'-sigfile',str(values['output_dir']/'build.sig')],check=True,capture_output=True)
 
 
 def test_signed_manifest_binds_registry_policy_and_evidence(tmp_path,monkeypatch):

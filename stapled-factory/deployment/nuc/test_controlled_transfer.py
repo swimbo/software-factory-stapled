@@ -24,12 +24,13 @@ spec = importlib.util.spec_from_file_location('controlled_nuc_fixture', BASE/'op
 nuc = importlib.util.module_from_spec(spec);spec.loader.exec_module(nuc)
 
 
-def fixture(tmp_path, monkeypatch, profile, registry=False):
+def fixture(tmp_path, monkeypatch, profile, registry=False, component=''):
     root = tmp_path/'control';root.mkdir(mode=0o700)
     monkeypatch.setattr(nuc, 'ROOT', root)
     release = root/'releases/frozen';security = release/'stapled-factory/security';security.mkdir(parents=True)
     files = {}
     modules = nuc.MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if registry else ())
+    if component:modules += ('stapled-factory/security/isolated_cargo_build.py',)
     for name in modules:
         source = BASE.parent/name; dest = release/name
         shutil.copyfile(source, dest);files[name] = hashlib.sha256(dest.read_bytes()).hexdigest()
@@ -66,12 +67,17 @@ def fixture(tmp_path, monkeypatch, profile, registry=False):
         lock_name = 'Cargo.lock'
     stage = tmp_path/'stage';stage.mkdir()
     with tarfile.open(stage/'source.tar', 'w') as tar:
-        item = tarfile.TarInfo(lock_name);item.size = len(lock);tar.addfile(item, io.BytesIO(lock))
+        name=(component+'/' if component else '')+lock_name
+        item = tarfile.TarInfo(name);item.size = len(lock);tar.addfile(item, io.BytesIO(lock))
+        if component:
+            for name,raw in [('backend/Cargo.toml',b'[package]\nname="app"\nversion="0.1.0"\n'),
+                             ('backend/src/main.rs',b'fn main() {}')]:
+                item=tarfile.TarInfo(name);item.size=len(raw);tar.addfile(item,io.BytesIO(raw))
     (stage/'diff').write_bytes(b'fixture diff');(stage/'Dockerfile').write_bytes(b'fixture recipe')
     (stage/'result.bundle').write_bytes(b'fixture bundle');shutil.copyfile(material, stage/'materials.tar')
     source_sha = hashlib.sha256((stage/'source.tar').read_bytes()).hexdigest()
     recipe_sha = hashlib.sha256((stage/'Dockerfile').read_bytes()).hexdigest()
-    cmd = ['node', '/workspace/server.js'] if profile == 'npm' else ['/factory/source/target/release/app']
+    cmd = ['node', '/workspace/server.js'] if profile == 'npm' else ['/factory/source/'+(component+'/' if component else '')+'target/release/app']
     config = json.dumps({'os':'linux','architecture':'amd64','config':{'Labels':{
         'factory.git-revision':revision,'factory.source-archive-sha256':source_sha},'Cmd':cmd}}).encode()
     tag = 'factory-candidate-unit-1:'+revision
@@ -88,7 +94,9 @@ def fixture(tmp_path, monkeypatch, profile, registry=False):
     if profile == 'npm':
         controlled.update(materials_manifest_sha256=report['manifest_sha256'], cache_recipe_sha256='2'*64, npm_entrypoint='server.js')
         if registry:controlled.update(registry_policy=policy,registry_evidence_sha256=report['registry_evidence_sha256'])
-    else:controlled['cargo_binary']='app'
+    else:
+        controlled['cargo_binary']='app'
+        if component:controlled['source_component']=component
     binding = {'schema':'factory.build.v2','revision':revision,'baseline':baseline,'archive_sha256':source_sha,
         'diff_sha256':hashlib.sha256((stage/'diff').read_bytes()).hexdigest(),'dockerfile_sha256':recipe_sha,
         'config_digest':'sha256:'+hashlib.sha256(config).hexdigest(),
@@ -130,6 +138,28 @@ def test_signed_registry_policy_and_material_are_verified_on_transfer(tmp_path, 
     altered['controlled']['registry_evidence_sha256']='0'*64
     with pytest.raises(ValueError,match='materials differ'):
         nuc.verify_controlled_materials(target,intent,altered,data['unit'])
+
+
+def test_nested_cargo_component_is_verified_on_transfer(tmp_path, monkeypatch):
+    data=fixture(tmp_path,monkeypatch,'cargo',component='backend')
+    result=nuc.main('validation_verify_transfer',{'unit':data['unit']})
+    assert result['verified'] is True and result['controlled_profile']=='cargo'
+    altered=json.loads(json.dumps(data['binding']))
+    altered['controlled']['source_component']='../backend'
+    intent=json.loads((data['target']/'transfer-intent.json').read_text())
+    with pytest.raises(ValueError,match='Cargo component'):
+        nuc.verify_controlled_materials(data['target'],intent,altered,data['unit'])
+
+
+def test_material_verifier_does_not_load_unpinned_cached_bytecode(tmp_path, monkeypatch):
+    import py_compile
+    data=fixture(tmp_path,monkeypatch,'npm')
+    module=data['release']/'stapled-factory/security/controlled_npm.py'
+    original=module.read_bytes()
+    module.write_text("raise RuntimeError('stale bytecode executed')\n")
+    py_compile.compile(str(module),doraise=True,invalidation_mode=py_compile.PycInvalidationMode.UNCHECKED_HASH)
+    module.write_bytes(original)
+    assert nuc.main('validation_verify_transfer',{'unit':data['unit']})['verified'] is True
 
 
 def test_attestation_verifier_binds_signed_policy_and_independent_local_tools(tmp_path, monkeypatch):

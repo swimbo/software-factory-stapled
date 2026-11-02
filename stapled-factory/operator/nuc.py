@@ -134,7 +134,7 @@ ATTESTATION_MODULES = tuple('stapled-factory/security/' + name + '.py' for name 
     'npm_frozen_attestations', 'npm_attestation_bundle'))
 
 
-def material_verifier_release(path, manifest_sha256=None, *, registry_policy=False, attestations=False):
+def material_verifier_release(path, manifest_sha256=None, *, registry_policy=False, attestations=False, cargo_component=False):
     """Validate every verifier module against one original frozen release."""
     path = verify_release(Path(path))
     for directory in (path, path/'stapled-factory', path/'stapled-factory/security'):
@@ -151,6 +151,7 @@ def material_verifier_release(path, manifest_sha256=None, *, registry_policy=Fal
     manifest = json.loads(raw); files = manifest.get('files')
     modules = MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if registry_policy else ())
     if attestations: modules += ATTESTATION_MODULES
+    if cargo_component: modules += ('stapled-factory/security/isolated_cargo_build.py',)
     if not isinstance(files, dict) or not set(modules).issubset(files):
         raise ValueError('frozen release lacks material verifier modules')
     for name in modules:
@@ -257,7 +258,15 @@ def verify_controlled_materials(target, intent, binding, unit):
     if not isinstance(controlled, dict) or controlled.get('profile') not in ('npm', 'cargo'):
         raise ValueError('unsupported controlled material profile')
     if controlled['profile'] == 'npm':names |= {'materials_manifest_sha256', 'cache_recipe_sha256', 'npm_entrypoint'}
-    else:names.add('cargo_binary')
+    else:
+        names.add('cargo_binary')
+        if 'source_component' in controlled:
+            component=controlled['source_component']
+            if (not isinstance(component,str) or not component or len(component)>512 or
+                    any(not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*',part) or part in ('.','..','target')
+                        for part in component.split('/'))):
+                raise ValueError('invalid signed Cargo component')
+            names.add('source_component')
     has_registry_policy = 'registry_policy' in controlled or 'registry_evidence_sha256' in controlled
     if has_registry_policy:
         if controlled['profile'] != 'npm':raise ValueError('registry policy requires npm profile')
@@ -299,13 +308,15 @@ def verify_controlled_materials(target, intent, binding, unit):
         raise ValueError('original material verifier release unavailable')
     policy_raw = json.dumps(controlled.get('registry_policy'),sort_keys=True,separators=(',',':'))
     if len(policy_raw) > 65536:raise ValueError('registry policy too large')
-    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy)
-    # -I ignores current working directory and PYTHONPATH. Disable bytecode to
-    # avoid writes to the frozen release, then import only from that release.
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy,
+                              cargo_component='source_component' in controlled)
+    # -I ignores cwd and PYTHONPATH. The modules are copied from their verified
+    # release bytes to a fresh private source-only directory before import;
+    # disabling bytecode writes alone would still allow stale bytecode reads.
     program = r'''import hashlib, importlib, json, sys, tarfile
 sys.dont_write_bytecode = True
 sys.path.insert(0, sys.argv[1])
-profile, archive, expected, source, policy_raw = sys.argv[2:]
+profile, archive, expected, source, policy_raw, lock_name, component, binary = sys.argv[2:]
 module = importlib.import_module('controlled_npm' if profile == 'npm' else 'controlled_cargo')
 verify = module.verify_frozen_npm if profile == 'npm' else module.verify_frozen_cargo
 policy = json.loads(policy_raw)
@@ -315,7 +326,7 @@ if policy is not None:
     report = verify(archive, expected, registry_keys=keys)
 else:
     report = verify(archive, expected)
-name = 'package-lock.json' if profile == 'npm' else 'Cargo.lock'
+name = lock_name
 lock = None
 with open(source, 'rb') as stream, tarfile.open(fileobj=module._BoundedTarInput(stream), mode='r:') as tar:
     for count, item in enumerate(tar, 1):
@@ -325,12 +336,27 @@ with open(source, 'rb') as stream, tarfile.open(fileobj=module._BoundedTarInput(
                 raise ValueError('unsafe source lock')
             lock = hashlib.file_digest(tar.extractfile(item), 'sha256').hexdigest()
 if lock is None: raise ValueError('source lock missing')
+if component:
+    if profile != 'cargo': raise ValueError('component requires Cargo')
+    checked=importlib.import_module('isolated_cargo_build').cargo_source_preflight(source,binary,component)
+    if checked['lock_sha256'] != lock: raise ValueError('component source lock differs')
 print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True))
 '''
-    security = Path(pin['release'])/'stapled-factory/security'
-    result = subprocess.run([sys.executable, '-I', '-c', program, str(security), controlled['profile'],
-                             str(target/'materials.tar'), controlled['materials_sha256'], str(target/'source.tar'), policy_raw],
-                            capture_output=True, text=True, check=True, timeout=600)
+    lock_name = ('package-lock.json' if controlled['profile']=='npm' else
+                 (controlled.get('source_component','')+'/' if controlled.get('source_component') else '')+'Cargo.lock')
+    release_path=Path(pin['release'])
+    release_files=json.loads((release_path/'release-manifest.json').read_bytes())['files']
+    modules=MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if has_registry_policy else ())
+    if 'source_component' in controlled:modules += ('stapled-factory/security/isolated_cargo_build.py',)
+    with tempfile.TemporaryDirectory(prefix='factory-material-verifier-') as temp:
+        for name in modules:
+            raw=(release_path/name).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=release_files[name]:raise ValueError('material verifier module changed')
+            (Path(temp)/Path(name).name).write_bytes(raw)
+        result = subprocess.run([sys.executable, '-I', '-B', '-c', program, temp, controlled['profile'],
+                                 str(target/'materials.tar'), controlled['materials_sha256'], str(target/'source.tar'), policy_raw,
+                                 lock_name, controlled.get('source_component',''), controlled.get('cargo_binary','')],
+                                capture_output=True, text=True, check=True, timeout=600)
     verified = json.loads(result.stdout); report = verified.get('report') or {}
     if (report.get('coverage') != 'incomplete' or report.get('archive_sha256') != controlled['materials_sha256'] or
             report.get('lock_sha256') != controlled['lock_sha256'] or
@@ -338,7 +364,8 @@ print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True)
             controlled['profile'] == 'npm' and report.get('manifest_sha256') != controlled['materials_manifest_sha256'] or
             has_registry_policy and report.get('registry_evidence_sha256') != controlled['registry_evidence_sha256']):
         raise ValueError('verified controlled materials differ from signed inputs')
-    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy)
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy,
+                              cargo_component='source_component' in controlled)
     result = {'controlled_profile': controlled['profile'], 'controlled_materials_sha256': controlled['materials_sha256'],
               'controlled_lock_sha256': controlled['lock_sha256'], 'material_verifier': pin}
     if has_registry_policy:result['controlled_registry_evidence_sha256'] = controlled['registry_evidence_sha256']
@@ -733,7 +760,8 @@ def main(action, data):
         if controlled_verified:
             controlled = binding['controlled']
             if controlled['profile'] == 'cargo':
-                expected_cmd = ['/factory/source/target/release/' + controlled['cargo_binary']]
+                component=controlled.get('source_component','')
+                expected_cmd = ['/factory/source/'+(component+'/' if component else '')+'target/release/' + controlled['cargo_binary']]
             else:
                 expected_cmd = ['node', '/workspace/' + controlled['npm_entrypoint']]
             if ((image.get('config') or {}).get('Cmd') != expected_cmd or

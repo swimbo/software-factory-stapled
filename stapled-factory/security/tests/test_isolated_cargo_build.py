@@ -51,8 +51,10 @@ def inputs(tmp_path, monkeypatch):
                   for i, item in enumerate(args) if i and args[i-1] == '--label'}
         layer_data = gzip.compress(b'compressed-layer-fixture')
         layer_name = 'blobs/sha256/' + hashlib.sha256(layer_data).hexdigest()
+        recipe = (Path(args[-1])/'Dockerfile').read_text()
+        cmd = json.loads(next(line[4:] for line in recipe.splitlines() if line.startswith('CMD ')))
         image = {'os': 'linux', 'architecture': 'amd64', 'config': {'Labels': labels,
-                 'Cmd': ['/factory/source/target/release/app']},
+                 'Cmd': cmd},
                  'rootfs': {'type': 'layers', 'diff_ids': ['sha256:' + hashlib.sha256(b'compressed-layer-fixture').hexdigest()]}}
         config_data = json.dumps(image).encode();config_name = 'config.json'
         manifest = json.dumps([{'Config': config_name, 'RepoTags': [tag], 'Layers': [layer_name]}]).encode()
@@ -100,6 +102,22 @@ def test_fixed_offline_build_binds_inputs_and_rechecks_builder(tmp_path, monkeyp
     with pytest.raises(FileExistsError):build_cargo_candidate(**params)
 
 
+def test_nested_component_runner_uses_selected_source_and_output(tmp_path, monkeypatch):
+    params,_,_=inputs(tmp_path,monkeypatch)
+    with tarfile.open(params['source_archive']) as tar:
+        original=[(item.name,tar.extractfile(item).read()) for item in tar if item.isfile()]
+    with tarfile.open(params['source_archive'],'w') as tar:
+        for name,data in original:
+            item=tarfile.TarInfo('backend/'+name);item.size=len(data);tar.addfile(item,io.BytesIO(data))
+    params['source_sha256']=hashlib.sha256(params['source_archive'].read_bytes()).hexdigest()
+    params['source_component']='backend'
+    result=build_cargo_candidate(**params)
+    assert result['source_component']=='backend' and result['coverage']=='incomplete'
+    recipe=(params['output_dir']/'context/Dockerfile').read_text()
+    assert 'WORKDIR /factory/source/backend\n' in recipe
+    assert 'CMD ["/factory/source/backend/target/release/app"]' in recipe
+
+
 def test_builder_network_socket_and_insecure_entitlement_reject_before_build(tmp_path, monkeypatch):
     params, state, calls = inputs(tmp_path, monkeypatch)
     for change in ('network', 'socket', 'entitlement'):
@@ -145,3 +163,25 @@ def test_git_archive_matches_exact_selected_commit(tmp_path):
     with source.open('ab') as stream:stream.write(b'tampered')
     with pytest.raises(ValueError, match='source archive differs'):
         subject._verify_git_source(repo, revision, source)
+
+
+def test_nested_cargo_component_binds_its_lock_and_runtime_path(tmp_path):
+    source=tmp_path/'source.tar';lock=b'version = 4\n'
+    def write_source(*extra):
+        with tarfile.open(source,'w') as tar:
+            entries=[('backend/Cargo.toml',b'[package]\nname="app"\nversion="0.1.0"\n'),
+                     ('backend/Cargo.lock',lock),('backend/src/main.rs',b'fn main() {}'),*extra]
+            for name,data in entries:
+                item=tarfile.TarInfo(name);item.size=len(data);tar.addfile(item,io.BytesIO(data))
+    write_source()
+    result=subject.cargo_source_preflight(source,'app','backend')
+    assert result['lock_sha256']==hashlib.sha256(lock).hexdigest()
+    assert result['source_component']=='backend'
+    recipe=subject._recipe('a'*64,'b'*64,'app','backend').decode()
+    assert 'WORKDIR /factory/source/backend\n' in recipe
+    assert 'CMD ["/factory/source/backend/target/release/app"]' in recipe
+    with pytest.raises(ValueError,match='component'):
+        subject.cargo_source_preflight(source,'app','../backend')
+    write_source(('Cargo.toml',b'[workspace]\nmembers=["backend"]\n'))
+    with pytest.raises(ValueError,match='parent Cargo workspace'):
+        subject.cargo_source_preflight(source,'app','backend')

@@ -19,7 +19,7 @@ import time
 SECURITY = Path(__file__).resolve().parents[2] / 'security'
 sys.path.insert(0, str(SECURITY))
 from isolated_npm_build import POPULATE, npm_recipe, verify_docker_tools, isolated_npm_build
-from isolated_cargo_build import build_cargo_candidate, verify_docker_image_archive
+from isolated_cargo_build import _component, build_cargo_candidate, verify_docker_image_archive
 from npm_registry_policy import decode_policy
 from npm_attestation_bundle import MAX_BUNDLE, verify_attestation_bundle
 from npm_workflow_attestation import _small
@@ -91,15 +91,16 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
                      builder_container_id, builder_image_id, docker_host, docker_config,
                      signing_key, output_dir, docker_bin_sha256, buildx_bin_sha256,
                      npm_entrypoint=None, cargo_binary=None, docker_bin='/usr/local/bin/docker', registry_policy=None,
-                     npm_attestation=None):
+                     npm_attestation=None, source_component=''):
     """Build and sign one candidate, retaining any partial original operation."""
     if profile not in ('npm', 'cargo'):raise ValueError('unsupported controlled build profile')
     if profile == 'npm':
-        if cargo_binary is not None:raise ValueError('unsupported mixed runtime contract')
+        if cargo_binary is not None or source_component:raise ValueError('unsupported mixed runtime contract')
         npm_recipe(npm_entrypoint)
     elif npm_attestation is not None or registry_policy is not None or npm_entrypoint is not None or not isinstance(cargo_binary,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',cargo_binary):
         raise ValueError('valid Cargo binary required')
     registry_keys = None if registry_policy is None else decode_policy(registry_policy)
+    source_component = _component(source_component)
     if npm_attestation is not None:
         fields = {'bundle', 'bundle_sha256', 'policy', 'trusted_root', 'trusted_root_sha256', 'cosign', 'cosign_sha256'}
         if not isinstance(npm_attestation, dict) or set(npm_attestation) != fields:
@@ -151,6 +152,7 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
         'baseline':baseline,'archive_sha256':archive_sha,'diff_sha256':diff_sha,
         'materials_sha256':materials_sha256,'tag':tag}
     if registry_policy is not None:intent['registry_policy'] = registry_policy
+    if source_component:intent['source_component'] = source_component
     if npm_attestation is not None:
         intent['npm_attestation'] = {'bundle_sha256':npm_attestation['bundle_sha256'],
             'policy_sha256':hashlib.sha256(encoded_policy).hexdigest(),
@@ -210,13 +212,15 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
             base_layout=base_layout, base_manifest=base_manifest, builder_name=builder_name,
             builder_container_id=builder_container_id, builder_image_id=builder_image_id,
             docker_host=docker_host, docker_config=docker_config, output_dir=out/'runner', docker_bin=docker_bin,
-            docker_bin_sha256=docker_bin_sha256, buildx_bin_sha256=buildx_bin_sha256, binary_name=cargo_binary)
+            docker_bin_sha256=docker_bin_sha256, buildx_bin_sha256=buildx_bin_sha256, binary_name=cargo_binary,
+            source_component=source_component)
         builder = result.get('builder') or {}
         if (result.get('status') != 'isolated-cargo-image-built' or result.get('revision') != revision or
                 result.get('tag') != tag or result.get('source_sha256') != archive_sha or
                 result.get('cargo_sha256') != materials_sha256 or result.get('base_manifest_digest') != base_manifest or
                 builder.get('container_id') != builder_container_id or builder.get('image_id') != builder_image_id or
                 builder.get('network_mode') != 'none' or result.get('cargo_binary') != cargo_binary or
+                result.get('source_component','') != source_component or
                 result.get('docker_bin_sha256') != docker_bin_sha256 or result.get('buildx_bin_sha256') != buildx_bin_sha256 or
                 Path(result.get('image_archive','')) != out/'runner/image.tar'):
             raise ValueError('Cargo runner evidence differs from original intent')
@@ -229,6 +233,7 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
             'builder_container_id':builder_container_id, 'builder_image_id':builder_image_id,
             'builder_config_sha256':result.get('builder_config_sha256'), 'recipe_sha256':result.get('recipe_sha256'),
             'cargo_binary':cargo_binary,'docker_bin_sha256':docker_bin_sha256,'buildx_bin_sha256':buildx_bin_sha256}
+        if source_component:controlled['source_component']=source_component
         runner_image_sha = result.get('image_archive_sha256');runner_config = result.get('image_config_digest')
     if result.get('coverage') != 'incomplete':raise ValueError('controlled coverage must remain incomplete')
     controlled.update(unit=unit, tag=tag)
@@ -246,7 +251,8 @@ def build_controlled(*, profile, repo, revision, baseline, unit, materials_archi
         raise ValueError('npm cache recipe differs')
     if verify_docker_tools(docker_original,docker_config,docker_bin_sha256,buildx_bin_sha256,forbidden_tools) != (docker_target,plugin):
         raise ValueError('Docker tool identity changed during build')
-    expected_cmd = ['node','/workspace/'+npm_entrypoint] if profile == 'npm' else ['/factory/source/target/release/'+cargo_binary]
+    expected_cmd = ['node','/workspace/'+npm_entrypoint] if profile == 'npm' else [
+        '/factory/source/'+(source_component+'/' if source_component else '')+'target/release/'+cargo_binary]
     image = verify_docker_image_archive(out/'image.tar',tag,revision,archive_sha,expected_cmd=expected_cmd)
     if image['archive_sha256'] != runner_image_sha or image['config_digest'] != runner_config:
         raise ValueError('runner image binding differs')
@@ -276,6 +282,7 @@ def main():
     parser.add_argument('--docker-bin',default='/usr/local/bin/docker')
     parser.add_argument('--npm-entrypoint')
     parser.add_argument('--cargo-binary')
+    parser.add_argument('--source-component',default='')
     parser.add_argument('--registry-policy')
     parser.add_argument('--npm-attestation')
     args = vars(parser.parse_args())
