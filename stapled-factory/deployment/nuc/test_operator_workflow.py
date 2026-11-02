@@ -1,7 +1,10 @@
 """Operator workflow scope, uncertain-send behavior and publication boundaries."""
+import copy
 import importlib.util
 import json
 from pathlib import Path
+import socket
+import subprocess
 import sys
 import types
 
@@ -14,6 +17,23 @@ def load(name):
 
 cli = load('cli')
 nuc = load('nuc')
+workflow_spec = importlib.util.spec_from_file_location(
+    'operator_workflow', Path(__file__).with_name('operator_workflow.py'))
+workflow = importlib.util.module_from_spec(workflow_spec)
+workflow_spec.loader.exec_module(workflow)
+worker_base = Path(__file__).resolve().parents[2] / 'worker'
+def load_worker(name):
+    spec = importlib.util.spec_from_file_location(name, worker_base / (name + '.py'))
+    module = importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+
+upstream_workflow = load_worker('verify_upstream_workflow')
+upstream_image = load_worker('verify_upstream_image')
+PROVENANCE_FIXTURE = Path(__file__).resolve().parents[2] / 'fixtures/frozen-provenance-operator-join.json'
+PROVENANCE_REPORT = Path(__file__).resolve().parents[3] / 'docs/verification/frozen-provenance-operator-join.json'
+
+
+def provenance_fixture():
+    return json.loads(PROVENANCE_FIXTURE.read_text())
 
 
 def spec():
@@ -67,6 +87,160 @@ def test_completed_run_is_observed_without_rebinding_or_dispatch(tmp_path, monke
     monkeypatch.setattr(nuc, 'post', lambda *a: pytest.fail('unexpected paid dispatch'))
     monkeypatch.setattr(nuc, 'command', lambda *a: pytest.fail('unexpected service/container mutation'))
     assert nuc.main('run', {'unit': 'unit-1'}) == result
+
+
+def checked_provenance(monkeypatch):
+    manifest = json.dumps({'manifests': [{'digest': 'sha256:' + 'c'*64}]})
+    digest = 'sha256:' + __import__('hashlib').sha256(manifest.encode()).hexdigest()
+    image = 'ghcr.io/example/runtime@' + digest
+    reviewed = {'repo': 'example/runtime', 'workflow': '.github/workflows/build.yml',
+                'revision': 'b'*40, 'run_id': 1, 'event': 'push', 'actor': 'maintainer',
+                'job_id': 2, 'job_name': 'Publish', 'step_number': 3,
+                'step_name': 'Push image', 'reference': 'ghcr.io/example/runtime:release',
+                'publication_style': 'pushing-digest-to-reference'}
+    monkeypatch.setitem(upstream_workflow.POLICIES, image, reviewed)
+    meta = {'head_repository': {'full_name': 'example/runtime'},
+            'repository': {'full_name': 'example/runtime'}, 'head_sha': 'b'*40,
+            'path': '.github/workflows/build.yml', 'status': 'completed',
+            'conclusion': 'success', 'html_url': 'https://example/run/1',
+            'head_branch': 'main', 'event': 'push', 'actor': {'login': 'maintainer'},
+            'triggering_actor': {'login': 'maintainer'}}
+    job = {'run_id': 1, 'name': 'Publish', 'head_sha': 'b'*40, 'conclusion': 'success',
+           'steps': [{'number': 3, 'name': 'Push image', 'conclusion': 'success',
+                      'started_at': '2026-10-27T00:00:00Z',
+                      'completed_at': '2026-10-27T00:01:00Z'}]}
+    meta_json = json.dumps(meta);job_json = json.dumps(job)
+    log = ('Publish\tUNKNOWN STEP\t2026-10-27T00:00:30.123Z '
+           f'#1 1.2 pushing {digest} to ghcr.io/example/runtime:release')
+    def workflow_runner(command, **kwargs):
+        assert command[0] in ('gh', 'docker')
+        output = (manifest if command[0] == 'docker' else
+                  job_json if '/jobs/' in command[-1] else meta_json if command[1] == 'api' else log)
+        return subprocess.CompletedProcess(command, 0, output)
+    workflow_evidence = upstream_workflow.verify(
+        image, reviewed['repo'], reviewed['workflow'], reviewed['revision'], 1,
+        runner=workflow_runner)
+    identity = 'https://github.com/example/runtime/.github/workflows/build.yml@refs/heads/main'
+    issuer = 'https://token.actions.githubusercontent.com'
+    def signature_runner(command, **kwargs):
+        assert command[:2] == ['cosign', 'verify']
+        assert command[command.index('--certificate-identity') + 1] == identity
+        assert command[command.index('--certificate-oidc-issuer') + 1] == issuer
+        signature = {'critical': {'image': {'docker-manifest-digest': digest}}}
+        return subprocess.CompletedProcess(command, 0, json.dumps([signature]))
+    registry_evidence = upstream_image.verify(image, identity, issuer, runner=signature_runner)
+    trust = {'schema_version': 1, 'publisher_identity': identity, 'issuer': issuer,
+             'workflow_repositories': ['example/runtime']}
+    workflow_attestation = {'subject_digest': digest,
+                            'evidence_sha256': workflow.evidence_digest(workflow_evidence),
+                            'predicate_type': 'https://example/factory/workflow-publication/v1'}
+    registry_attestation = {'subject_digest': digest,
+                            'evidence_sha256': workflow.evidence_digest(registry_evidence),
+                            'predicate_type': 'https://example/factory/registry-signature/v1'}
+    bundle = {'schema_version': 1, 'image': image,
+              'workflow_evidence': workflow_evidence,
+              'registry_attestation_evidence': registry_evidence,
+              'workflow_attestation': workflow_attestation,
+              'registry_attestation': registry_attestation,
+              'workflow_attestation_sha256': workflow.evidence_digest(workflow_attestation),
+              'registry_attestation_sha256': workflow.evidence_digest(registry_attestation)}
+    return workflow.verify_dependency_provenance(bundle, trust), bundle, trust
+
+
+def test_offline_workflow_and_registry_evidence_bind_distinct_attestation_digests(monkeypatch):
+    result, bundle, _ = checked_provenance(monkeypatch)
+    assert result['accepted'] is True
+    assert result['artifact_digest'] == bundle['image'].rsplit('@', 1)[1]
+    assert result['workflow_evidence_sha256'] == workflow.evidence_digest(
+        bundle['workflow_evidence'])
+    assert result['registry_attestation_evidence_sha256'] == workflow.evidence_digest(
+        bundle['registry_attestation_evidence'])
+    assert result['workflow_attestation_sha256'] != result['registry_attestation_sha256']
+    assert result['workflow_signature_trust_claimed'] is False
+    assert result['build_provenance_verified'] is False
+
+
+def test_trust_policy_stays_separate_from_workflow_and_registry_evidence(monkeypatch):
+    result, bundle, trust = checked_provenance(monkeypatch)
+    assert result['trust_policy_separated'] is True
+    changed_bundle = copy.deepcopy(bundle)
+    changed_bundle['workflow_evidence']['publisher_identity'] = trust['publisher_identity']
+    with pytest.raises(ValueError, match='trust authority'):
+        workflow.verify_dependency_provenance(changed_bundle, trust)
+    with pytest.raises(ValueError, match='issuer'):
+        workflow.verify_dependency_provenance(bundle, dict(trust, issuer='https://untrusted.example'))
+    with pytest.raises(ValueError, match='repository'):
+        workflow.verify_dependency_provenance(bundle, dict(trust, workflow_repositories=['attacker/runtime']))
+
+
+@pytest.mark.parametrize('path,value', [
+    ('workflow_evidence.run_url', 'https://attacker.example/run'),
+    ('registry_attestation_evidence.publisher_identity', 'attacker'),
+    ('workflow_attestation.evidence_sha256', 'a'*64),
+    ('registry_attestation.subject_digest', 'sha256:' + 'b'*64),
+    ('workflow_attestation_sha256', 'c'*64),
+    ('registry_attestation_sha256', 'd'*64),
+    ('image', 'ghcr.io/example/runtime@sha256:' + 'e'*64),
+])
+def test_dependency_digest_or_authority_substitutions_are_rejected(path, value):
+    data = provenance_fixture();bundle = data['dependency_provenance_bundle']
+    parts = path.split('.');target = bundle
+    for part in parts[:-1]:target = target[part]
+    target[parts[-1]] = value
+    with pytest.raises(ValueError):workflow.verify_dependency_provenance(bundle, data['trust_policy'])
+
+
+def test_operator_output_joins_exact_validation_receipt_and_provenance():
+    data = provenance_fixture()
+    provenance = workflow.verify_dependency_provenance(
+        data['dependency_provenance_bundle'], data['trust_policy'])
+    joined = workflow.verify_operator_receipt_join(
+        data['operator_output'], data['validation_receipt'], provenance)
+    assert joined['accepted'] is True
+    assert joined['unit_id'] == data['operator_output']['unit']
+    assert joined['source_bundle_sha256'] == data['validation_receipt']['evidence']['source_archive_digest']
+    assert joined['artifact_digest'] == provenance['artifact_digest']
+    assert joined['dependency_provenance_bound'] is True
+
+
+@pytest.mark.parametrize('path,value', [
+    ('operator_output.unit', 'other-unit'), ('operator_output.attempt_id', 'unit-1:0:successor'),
+    ('operator_output.git_revision', 'c'*40), ('operator_output.bundle_sha256', 'a'*64),
+    ('operator_output.artifact_digest', 'sha256:' + 'b'*64),
+    ('operator_output.envelope_digest', '0'*64),
+    ('validation_receipt.accepted', False),
+    ('validation_receipt.envelope_digest', 'c'*64),
+    ('validation_receipt.evidence.unit_id', 'other-unit'),
+    ('validation_receipt.evidence.attempt_id', 'unit-1:0:successor'),
+    ('validation_receipt.evidence.git_revision', 'd'*40),
+    ('validation_receipt.evidence.source_archive_digest', 'e'*64),
+    ('validation_receipt.evidence.artifact_digest', 'sha256:' + 'f'*64),
+    ('validation_receipt.evidence.scope', 'repository-only'),
+])
+def test_receipt_join_rejects_every_selected_output_substitution(path, value):
+    data = provenance_fixture();parts = path.split('.');target = data
+    for part in parts[:-1]:target = target[part]
+    target[parts[-1]] = value
+    provenance = workflow.verify_dependency_provenance(
+        data['dependency_provenance_bundle'], data['trust_policy'])
+    with pytest.raises(ValueError, match='receipt|operator|provenance|validation'):
+        workflow.verify_operator_receipt_join(data['operator_output'], data['validation_receipt'], provenance)
+
+
+def test_fixture_report_is_in_process_and_never_touches_network_or_services(monkeypatch, capsys):
+    def forbidden(*args, **kwargs):pytest.fail('verification must stay in-process')
+    monkeypatch.setattr(socket, 'create_connection', forbidden)
+    for name in ('run', 'Popen', 'check_output', 'call', 'check_call'):
+        monkeypatch.setattr(subprocess, name, forbidden)
+    monkeypatch.setattr(sys, 'argv', ['operator_workflow.py', str(PROVENANCE_FIXTURE)])
+    report = workflow.main()
+    assert report['accepted'] is True
+    assert report['boundary'] == {'execution': 'local-in-process-fixture',
+                                  'network_calls': 0, 'service_restarts': 0,
+                                  'production_authorization': False}
+    printed = capsys.readouterr().out
+    assert json.loads(printed)['fixture_sha256'] == report['fixture_sha256']
+    assert printed == PROVENANCE_REPORT.read_text()
 
 
 @pytest.mark.parametrize('successor_status', [None, 'completed', 'unknown'])
