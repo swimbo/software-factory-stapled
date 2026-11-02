@@ -12,6 +12,7 @@ import tarfile
 import tempfile
 import threading
 import time
+import tomllib
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -100,10 +101,10 @@ def archive_lockfiles(raw, source):
 
 
 def archive_dependency_inventory(raw):
-    """Find missing local locks; parent workspace membership is not yet verified.
+    """Find missing locks, recognizing only explicitly evidenced workspaces.
 
-    Presence alone never proves complete coverage. Until a workspace relationship
-    is independently checked, an unrelated parent lock must not cover a child.
+    A lock's presence or workspace membership does not prove dependency coverage.
+    Unsupported workspace forms remain missing rather than being inferred.
     """
     candidates = {
         'package.json': ('package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'),
@@ -117,7 +118,7 @@ def archive_dependency_inventory(raw):
         'pubspec.yaml': ('pubspec.lock',),
         'mix.exs': ('mix.lock',),
     }
-    regular = set(); manifests = []
+    regular = set(); manifests = []; metadata = {}; metadata_bytes = 0
     with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
         for member in tar.getmembers():
             path = Path(member.name)
@@ -129,9 +130,72 @@ def archive_dependency_inventory(raw):
                 if str(path) in regular:raise ValueError('duplicate candidate archive path')
                 regular.add(str(path))
                 if path.name in candidates:manifests.append(path)
+                if path.name in ('package.json','package-lock.json','Cargo.toml','Cargo.lock'):
+                    # Bound parsing independently of the overall source archive.
+                    if member.size <= 16 * 1024 * 1024 and metadata_bytes + member.size <= 32 * 1024 * 1024:
+                        metadata[str(path)] = tar.extractfile(member).read()
+                        metadata_bytes += member.size
+
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:raise ValueError('duplicate workspace metadata key')
+            value[key] = item
+        return value
+
+    def parsed(path, kind):
+        data = metadata.get(str(path))
+        if data is None:return None
+        try:
+            value = json.loads(data, object_pairs_hook=unique) if kind == 'npm' else tomllib.loads(data.decode('utf-8'))
+        except (ValueError, UnicodeDecodeError):return None
+        return value if isinstance(value, dict) else None
+
+    def literal_workspace_path(value):
+        return (isinstance(value,str) and bool(value) and
+                all(re.fullmatch(r'[A-Za-z0-9_@.-]+',part) and part not in ('.','..') for part in value.split('/')))
+
+    def covered_by_workspace(manifest):
+        kind = 'npm' if manifest.name == 'package.json' else 'cargo' if manifest.name == 'Cargo.toml' else None
+        if kind is None:return False
+        child = parsed(manifest, kind)
+        if child is None:return False
+        for parent in manifest.parent.parents:
+            relative = manifest.parent.relative_to(parent).as_posix()
+            if kind == 'npm':
+                root = parsed(parent/'package.json', kind);lock = parsed(parent/'package-lock.json', kind)
+                if (not root or not lock or not isinstance(root.get('workspaces'), list) or
+                        not all(literal_workspace_path(item) for item in root['workspaces']) or
+                        relative not in root['workspaces']):
+                    continue
+                packages = lock.get('packages');name = child.get('name');version = child.get('version')
+                if (lock.get('lockfileVersion') != 3 or not isinstance(packages, dict) or
+                        not isinstance(name, str) or not re.fullmatch(r'(?:@[a-z0-9._~-]+/)?[a-z0-9._~-]+', name) or
+                        not isinstance(version, str) or not version):continue
+                locked = packages.get(relative);link = packages.get('node_modules/'+name)
+                if (isinstance(locked,dict) and locked.get('version') == version and
+                        isinstance(link,dict) and link.get('link') is True and link.get('resolved') == relative):
+                    return True
+            else:
+                root = parsed(parent/'Cargo.toml', kind);lock = parsed(parent/'Cargo.lock', kind)
+                workspace = root.get('workspace') if root else None
+                if (not isinstance(workspace,dict) or not lock or not isinstance(workspace.get('members'),list) or
+                        not all(literal_workspace_path(item) for item in workspace['members']) or relative not in workspace['members']):
+                    continue
+                excluded = workspace.get('exclude', [])
+                if (not isinstance(excluded,list) or not all(literal_workspace_path(x) for x in excluded) or
+                        relative in excluded):continue
+                package=child.get('package');packages=lock.get('package')
+                if not isinstance(package,dict) or not isinstance(packages,list):continue
+                name,version=package.get('name'),package.get('version')
+                if not isinstance(name,str) or not name or not isinstance(version,str) or not version:continue
+                matches=[p for p in packages if isinstance(p,dict) and p.get('name')==name and p.get('version')==version and 'source' not in p]
+                if lock.get('version') in (3,4) and len(matches)==1:return True
+        return False
     missing = []
     for manifest in manifests:
-        if not any(str(manifest.parent/name) in regular for name in candidates[manifest.name]):
+        if (not any(str(manifest.parent/name) in regular for name in candidates[manifest.name]) and
+                not covered_by_workspace(manifest)):
             missing.append(str(manifest))
     return {'manifests': sorted(map(str, manifests)), 'missing_locks': sorted(missing),
             'coverage': 'incomplete'}

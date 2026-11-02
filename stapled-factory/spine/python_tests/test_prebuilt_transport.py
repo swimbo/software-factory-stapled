@@ -63,6 +63,33 @@ def test_unrelated_parent_lock_does_not_cover_nested_package():
     assert inventory['coverage'] == 'incomplete'
 
 
+def test_only_explicit_matching_workspace_members_use_parent_locks():
+    import io
+    import json
+    import tarfile
+    def inventory(npm_version='1.0.0', npm_member='packages/web', cargo_exclude='[]', npm_extra=None):
+        files={
+            'package.json': json.dumps({'workspaces':[npm_member]+(npm_extra or [])}).encode(),
+            'package-lock.json': json.dumps({'lockfileVersion':3,'packages':{
+                'packages/web':{'version':npm_version},'node_modules/web':{'resolved':'packages/web','link':True}}}).encode(),
+            'packages/web/package.json': b'{"name":"web","version":"1.0.0"}',
+            'Cargo.toml': f'[workspace]\nmembers=["services/api"]\nexclude={cargo_exclude}\n'.encode(),
+            'Cargo.lock': b'version = 4\n[[package]]\nname = "api"\nversion = "1.0.0"\n',
+            'services/api/Cargo.toml': b'[package]\nname="api"\nversion="1.0.0"\n',
+        }
+        data=io.BytesIO()
+        with tarfile.open(fileobj=data,mode='w') as tar:
+            for name,raw in files.items():
+                item=tarfile.TarInfo(name);item.size=len(raw);tar.addfile(item,io.BytesIO(raw))
+        return m.archive_dependency_inventory(data.getvalue())
+    assert inventory()['missing_locks']==[]
+    assert inventory(npm_version='2.0.0')['missing_locks']==['packages/web/package.json']
+    assert inventory(npm_member='packages/*')['missing_locks']==['packages/web/package.json']
+    assert inventory(npm_extra=['!packages/*'])['missing_locks']==['packages/web/package.json']
+    assert inventory(cargo_exclude='["services/*"]')['missing_locks']==['services/api/Cargo.toml']
+    assert inventory()['coverage']=='incomplete'
+
+
 def test_source_inventory_rejects_symlinked_dependency_manifest():
     import io
     import tarfile
