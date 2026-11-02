@@ -1,0 +1,21 @@
+{
+  "atomic_receipt_capability": true,
+  "boundary": "Fixture-seeded WorkUnit and fresh fixture key on isolated unsigned loopback endpoint; checks provenance and actual build/deployment are not established by this probe.",
+  "client_crash_after_acceptance": true,
+  "duplicate_acceptance_rejected": true,
+  "endpoint_crash_recovery": true,
+  "factory_dispatches": 0,
+  "fixture_unit": "receipt-probe-a8d2d8a1e68a454ea45c28bc55386064",
+  "model_calls": 0,
+  "original_journal_reconciled_without_resubmit": true,
+  "passed": true,
+  "production_runtime_activated": false,
+  "real_restate": true,
+  "repeated_observation_unchanged": true,
+  "signed_receipt_stored": true,
+  "stale_bindings_rejected": true,
+  "tamper_rejected": true,
+  "private_evidence_sha256": "4779840c87cc67059b903e3cd1d61460af4997ed8b09910cc1529a5ac6063ecf",
+  "older_live_runtime_capability_http_status": 404,
+  "scope": "Isolated real Restate and fixture-seeded WorkUnit using actual prior fixture checks; live runtime only received a read-only capability request."
+}

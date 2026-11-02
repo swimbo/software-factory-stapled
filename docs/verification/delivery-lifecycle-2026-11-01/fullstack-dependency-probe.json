@@ -1,0 +1,66 @@
+{
+  "date": "2026-11-01",
+  "scope": "Private fixture copied from the existing fullstack template, not a factory candidate or release",
+  "npm_version": "11.21.0",
+  "source_inventory_missing_locks": ["agents/package.json", "frontend/package.json"],
+  "frontend": {
+    "resolution": "npm install --package-lock-only --ignore-scripts --no-audit --no-fund succeeded in a private copy",
+    "lock_sha256": "66fdfc080e83514f88e1e3194023d033068c0ec15227c94a37b142a02a11665b",
+    "lock_package_entries": 220,
+    "osv_spdx_packages_emitted": 2,
+    "osv_all_packages_emitted": 219,
+    "osv_inventory_sha256": "dfab0bf35ad7492b07edbc1eb131df45aaec21c256d6325077d00ff9f7d95ca5",
+    "osv_lock_inventory_comparison": "passed for npm package entries",
+    "osv_findings": 1,
+    "affected_packages": 1,
+    "example": "zod GHSA-mrhx-c7xc-m3w5"
+  },
+  "agents": {
+    "resolution": "ERESOLVE: latest agent SDK requires Zod 4 while the manifest specifies Zod 3",
+    "lock_created": false,
+    "override_used": false,
+    "private_diagnostic": {
+      "change": "Pin agent SDK 0.3.316 and use Zod 4 in a private copy only",
+      "lock_sha256": "1bbe20a99dbc768a57f1ef200d88ff2406925bfac0625dcbac075c712a06f6ff",
+      "npm_ci_ignore_scripts": "passed",
+      "typescript_build": "passed",
+      "osv_extracted_packages": 167,
+      "osv_inventory_sha256": "2c117e3b0f566d889a3e34ed82bdfacc79a6c6b6ab3913f61cf69d25051b46a9",
+      "osv_lock_inventory_comparison": "passed for npm package entries",
+      "osv_findings": 0
+    }
+  },
+  "backend": {
+    "lock_sha256": "1bd85c2ee33a37c5a8227149a5f0e3475b0d3740dd8d004184fc2ac36f75763a",
+    "osv_lock_inventory_comparison": "passed for 315 registry crates",
+    "osv_inventory_sha256": "200f5d09196ce8f90423b9c805a42a044e56356c4a279a38863d988351b69d95",
+    "osv_findings": 34,
+    "affected_packages": 11
+  },
+  "unrelated_fixture_image_reconciliation": {
+    "coverage": "incomplete",
+    "lock_only_components": 535,
+    "image_ecosystems_without_locks": ["Debian:13", "PyPI"],
+    "scope": "Negative control using an unrelated retained fixture image; not a candidate build"
+  },
+  "npm_image_metadata_controls": {
+    "scope": "Synthetic Docker archives, not a factory candidate",
+    "hidden_lock_claimed_packages": 135,
+    "package_metadata_files_present": 1,
+    "osv_alone_reported": 135,
+    "mismatched_image_rejected_by_provisional_guard": true,
+    "guard_status": "removed after review found incomplete filesystem handling and unsupported valid package layouts",
+    "negative_image_sha256": "83993525b85c182a2e2358a876505188dd314be533bff7f231b991a9a7e00472",
+    "local_trivy_version": "0.76.1",
+    "trivy_reported_npm_components": 1,
+    "no_hidden_lock_trivy_sbom_osv_packages": 1,
+    "matched_one_package_image_accepted_by_provisional_guard": true,
+    "positive_image_sha256": "d9947046471489c1394eebf658f3c3e8d2a0a779be6d05d33cf75180e4f1c355"
+  },
+  "limitations": [
+    "The generated frontend lock was not present in or applied to the original template.",
+    "No agents lock was applied to the original template, and no complete source-to-image dependency inventory was established.",
+    "Default OSV SPDX output omitted non-vulnerable packages; all-packages output was separately compared against npm and Cargo lock entries.",
+    "Findings are scanner observations, not an exploitability assessment or an accepted release decision."
+  ]
+}

@@ -1,0 +1,10 @@
+# Template remediation evidence
+
+Evidence is adequate to continue the private candidate, but insufficient to adopt or deploy it.
+
+- The existing backend manifest uses edition 2024 while its Dockerfile selects Rust 1.83. A network-disabled Cargo 1.83 fixture failed before compilation; edition 2024 was stabilized in [Rust 1.85](https://blog.rust-lang.org/2025/02/20/Rust-1.85.0/). Rust 1.99.1 completed a network-disabled offline `cargo check` of the existing source and lock, not a release build.
+- A private Cargo lock refresh reduced OSV observations from 34 to two. A separate private jsonwebtoken 10.4.0/aws-lc diagnostic left one RSA observation in the lock. The private JWT candidate passed network-disabled offline `cargo check` after a timed-out run continued using its retained cache; no release or JWT behavior test was established. No template file was changed. See `docs/verification/delivery-lifecycle-2026-11-01/dependency-materials-20261101.json`.
+- [The jsonwebtoken advisory](https://github.com/Keats/jsonwebtoken/security/advisories/GHSA-h395-gr6q-cpjc) affects versions below 10.3.0. The actual template uses typed claims and default validation; the advisory alone does not establish an exploitable path.
+- [The RSA advisory](https://rustsec.org/advisories/RUSTSEC-2023-0071.html) lists no patched release. An inverse dependency query for the private candidate's Linux amd64 feature graph did not select RSA; that is target-specific and does not remove the lockfile finding.
+- [jsonwebtoken 10.4 documentation](https://docs.rs/crate/jsonwebtoken/10.4.0) requires selecting a crypto backend. Its [validation defaults](https://docs.rs/jsonwebtoken/10.4.0/jsonwebtoken/struct.Validation.html) include 60 seconds of expiry leeway and disabled `nbf` validation. The Node middleware uses a TypeScript cast rather than runtime validation of the full application claims; its expiry behavior must be compared separately.
+- [AWS-LC Linux requirements](https://aws.github.io/aws-lc-rs/requirements/linux.html) distinguish ordinary compiler requirements from FIPS build dependencies. Exact toolchain, image and runtime tests remain necessary.

@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-01",
+  "scope": "Synthetic NUC Python and filesystem recovery fixture",
+  "prejournal_resume": "passed",
+  "concurrent_original_refused": true,
+  "evaluation_count": 1,
+  "submission_count": 1,
+  "accepted_receipt_observed_without_replay": true,
+  "limitations": [
+    "The WorkUnit and acceptance endpoint were in-memory fixtures; no live WorkUnit or Docker target was used.",
+    "The runtime release was not activated."
+  ]
+}

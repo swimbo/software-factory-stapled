@@ -5,6 +5,9 @@ import {mkdtemp,writeFile,chmod,rm} from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import {workUnit} from '../dist/state.js';
+test('validation capability advertises atomic receipt storage', async () => {
+  assert.deepEqual(await workUnit.object.getValidationCapabilities({}), {receipt_storage: 'atomic-v1'});
+});
 test('signed validation rejects substitution, tamper, failed verdict and replay',async()=>{
 const dir=await mkdtemp(path.join(os.tmpdir(),'validation-'));const old=process.env.FACTORY_VALIDATION_KEY_FILE;
 try{const key=randomBytes(32),file=path.join(dir,'key');await writeFile(file,key,{mode:0o600});process.env.FACTORY_VALIDATION_KEY_FILE=file;
@@ -17,6 +20,30 @@ await assert.rejects(()=>workUnit.object.acceptValidation(ctx,sign({...good,pass
 assert.equal(await workUnit.object.acceptValidation(ctx,sign(good)),true);assert.equal(state.stage,'validated');assert.equal(await workUnit.object.acceptValidation(ctx,sign(good)),false);
 await chmod(file,0o644);await assert.rejects(()=>workUnit.object.acceptValidation(ctx,sign(good)),/signed evidence/);
 }finally{if(old===undefined)delete process.env.FACTORY_VALIDATION_KEY_FILE;else process.env.FACTORY_VALIDATION_KEY_FILE=old;await rm(dir,{recursive:true,force:true})}});
+
+test('new claims cannot downgrade to legacy metadata-only validation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'validation-contract-'));
+  const old = process.env.FACTORY_VALIDATION_KEY_FILE;
+  try {
+    const key = randomBytes(32), file = path.join(dir, 'key');
+    await writeFile(file, key, {mode: 0o600}); process.env.FACTORY_VALIDATION_KEY_FILE = file;
+    const revision = 'a'.repeat(40);
+    const proof = {unit_id:'unit', attempt_id:'unit:0', git_revision:revision, deployment_id:'target',
+      artifact_digest:'sha256:'+'b'.repeat(64), scenario_digest:'c'.repeat(64),
+      passed:true, scope:'disposable-candidate', security_engines:{sast:'fixture'}};
+    const payload=JSON.stringify(proof), envelope={payload,signature:createHmac('sha256',key).update(payload).digest('hex')};
+    let state=null;
+    const ctx={key:'unit',run:async f=>f(),get:async()=>state,set:(_key,value)=>state=value};
+    assert.equal(await workUnit.object.claim(ctx,'worker'),true);
+    assert.equal(state.validation_contract,'manifest-v2');
+    state.stage='needs_validation';state.build={attempt_id:'unit:0',status:'completed',git_revision:revision};
+    assert.equal(await workUnit.object.acceptValidation(ctx,envelope),false);
+    assert.equal(state.stage,'needs_validation');
+  } finally {
+    if (old===undefined) delete process.env.FACTORY_VALIDATION_KEY_FILE; else process.env.FACTORY_VALIDATION_KEY_FILE=old;
+    await rm(dir,{recursive:true,force:true});
+  }
+});
 
 test('validated wall receipt is signed, revision bound and stored atomically', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'validation-receipt-'));
@@ -34,15 +61,23 @@ test('validated wall receipt is signed, revision bound and stored atomically', a
     const proof = {unit_id: 'unit', attempt_id: 'unit:0', git_revision: revision,
       deployment_id: 'd'.repeat(64), artifact_digest: 'sha256:' + 'b'.repeat(64),
       scenario_digest: 'c'.repeat(64), source_archive_digest: 'e'.repeat(64),
-      checks_digest: 'f'.repeat(64), passed: true, scope: 'disposable-candidate',
+      checks_digest: 'f'.repeat(64), build_manifest_digest: '1'.repeat(64), passed: true, scope: 'disposable-candidate',
       security_engines: {sast: 'fixture'}, receipt};
     const sign = value => {
       const payload = JSON.stringify(value);
       return {payload, signature: createHmac('sha256', key).update(payload).digest('hex')};
     };
-    let state = {stage: 'needs_validation', receipt: null,
+    let state = {stage: 'needs_validation', receipt: null, validation_contract:'manifest-v2',
       build: {attempt_id: 'unit:0', status: 'completed', git_revision: revision}};
     const ctx = {key: 'unit', run: async f => f(), get: async () => state, set: (_key, value) => state = value};
+    assert.equal(await workUnit.object.acceptValidation(ctx, sign(proof)), false);
+    const original = {kind:'validation-binding-v1', unit_id:'unit', attempt_id:'unit:0', git_revision:revision,
+      baseline:'0'.repeat(40), artifact_digest:proof.artifact_digest, source_archive_digest:proof.source_archive_digest,
+      scenario_digest:proof.scenario_digest, build_manifest_digest:proof.build_manifest_digest};
+    assert.equal(await workUnit.object.registerValidationBinding(ctx,sign(original)),true);
+    assert.equal(await workUnit.object.registerValidationBinding(ctx,sign(original)),true);
+    assert.equal(await workUnit.object.registerValidationBinding(ctx,sign({...original, artifact_digest:'sha256:'+'0'.repeat(64)})),false);
+    assert.equal(await workUnit.object.acceptValidation(ctx,sign({...proof, artifact_digest:'sha256:'+'0'.repeat(64)})),false);
     for (const bad of [
       {...receipt, git_revision: '0'.repeat(40)},
       {...receipt, verdict: {...receipt.verdict, passed: false}},
@@ -52,7 +87,21 @@ test('validated wall receipt is signed, revision bound and stored atomically', a
       assert.equal(state.stage, 'needs_validation');
       assert.equal(state.receipt, null);
     }
+    await assert.rejects(() => workUnit.object.acceptValidation(ctx, sign({...proof, build_manifest_digest: 'bad'})), /signed evidence/);
+    for (const incomplete of [
+      {...proof, receipt: undefined},
+      {...proof, source_archive_digest: undefined},
+      {...proof, checks_digest: undefined},
+      {...proof, security_engines: {}},
+      {...proof, security_engines: []},
+      {...proof, security_engines: {sast: ''}},
+    ]) {
+      await assert.rejects(() => workUnit.object.acceptValidation(ctx, sign(incomplete)), /signed evidence/);
+      assert.equal(state.stage, 'needs_validation');
+      assert.equal(state.receipt, null);
+    }
     assert.equal(await workUnit.object.acceptValidation(ctx, sign(proof)), true);
+    assert.equal(state.validation.build_manifest_digest, proof.build_manifest_digest);
     assert.deepEqual(state.receipt, receipt);
     assert.equal(state.stage, 'validated');
     assert.equal(await workUnit.object.acceptValidation(ctx, sign(proof)), false);

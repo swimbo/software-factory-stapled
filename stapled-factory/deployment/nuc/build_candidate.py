@@ -5,21 +5,27 @@ p=argparse.ArgumentParser()
 for n in ('repo','revision','baseline','dockerfile','tag','output','signing-key'):p.add_argument('--'+n,required=True)
 a=p.parse_args();out=Path(a.output);out.mkdir(parents=True,exist_ok=True)
 def git(*args):return subprocess.check_output(['git','-C',a.repo,*args])
-assert git('rev-parse',a.revision+'^{commit}').decode().strip()==a.revision
+if git('rev-parse',a.revision+'^{commit}').decode().strip()!=a.revision:
+ raise ValueError('exact revision required')
 subprocess.run(['git','-C',a.repo,'merge-base','--is-ancestor',a.baseline,a.revision],check=True)
 archive=git('archive',a.revision);diff=git('diff',a.baseline,a.revision);dockerfile=Path(a.dockerfile).read_bytes()
 with tempfile.TemporaryDirectory(prefix='attested-build-') as temp:
- context=Path(temp)
+ context=Path(temp)/'context';context.mkdir()
  with tarfile.open(fileobj=io.BytesIO(archive)) as tar:tar.extractall(context,filter='data')
- (context/'Dockerfile').write_bytes(dockerfile)
+ # Never write through a candidate-controlled path in the signed source tree.
+ trusted_dockerfile=Path(temp)/'operator.Dockerfile';trusted_dockerfile.write_bytes(dockerfile)
  # The signing key stays outside this directory, outside Docker's build context.
  if Path(a.signing_key).resolve().is_relative_to(context):raise ValueError('key in build context')
- subprocess.run(['docker','build','--platform','linux/amd64','--quiet','-t',a.tag,temp],check=True)
+ subprocess.run(['docker','build','--platform','linux/amd64','--quiet','--file',str(trusted_dockerfile),
+                 '--label','factory.git-revision='+a.revision,
+                 '--label','factory.source-archive-sha256='+hashlib.sha256(archive).hexdigest(),
+                 '-t',a.tag,str(context)],check=True)
  subprocess.run(['docker','save','-o',str(out/'image.tar'),a.tag],check=True)
  with tarfile.open(out/'image.tar') as tar:
   record=json.load(tar.extractfile('manifest.json'))
   config=tar.extractfile(record[0]['Config']).read()
- binding=dict(revision=a.revision,baseline=a.baseline,archive_sha256=hashlib.sha256(archive).hexdigest(),diff_sha256=hashlib.sha256(diff).hexdigest(),dockerfile_sha256=hashlib.sha256(dockerfile).hexdigest(),config_digest='sha256:'+hashlib.sha256(config).hexdigest())
+ with (out/'image.tar').open('rb') as stream:image_tar_sha256=hashlib.file_digest(stream,'sha256').hexdigest()
+ binding=dict(schema='factory.build.v2',image_tar_sha256=image_tar_sha256,revision=a.revision,baseline=a.baseline,archive_sha256=hashlib.sha256(archive).hexdigest(),diff_sha256=hashlib.sha256(diff).hexdigest(),dockerfile_sha256=hashlib.sha256(dockerfile).hexdigest(),config_digest='sha256:'+hashlib.sha256(config).hexdigest())
  (out/'source.tar').write_bytes(archive);(out/'diff').write_bytes(diff);(out/'Dockerfile').write_bytes(dockerfile)
  (out/'build.json').write_text(json.dumps(binding,sort_keys=True,separators=(',',':')))
  subprocess.run(['openssl','pkeyutl','-sign','-inkey',a.signing_key,'-rawin','-in',str(out/'build.json'),'-out',str(out/'build.sig')],check=True)

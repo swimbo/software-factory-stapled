@@ -48,13 +48,28 @@ exact filenames, not wildcards. This version publishes to that GitHub repo's
 `main` branch via a new `codex/<unit>` PR and uses its existing
 `scripts/verify-local.py` gate.
 
+## Local dependency preflight
+
+Before a task or image build, inspect the committed source locally:
+
+```sh
+python3 stapled-factory/operator/cli.py preflight-source /absolute/path/to/repository --revision main
+```
+
+This reads the exact Git archive and reports obvious manifests without nearby
+lockfiles. It does not assess uncommitted changes, load operator settings,
+contact the NUC, sign, build, or dispatch. The result remains `held`: source
+inspection alone does not establish dependency provenance. Committed Git
+attributes can exclude files from the archive; repositories with local info
+attributes are rejected. Repeat it on the collected candidate revision; a baseline inspection cannot predict later edits.
+
 ## Explicit operator steps
 
 ```sh
 python3 stapled-factory/operator/cli.py prepare /absolute/path/task.json
 python3 stapled-factory/operator/cli.py run ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
 # Inspect candidate.diff and candidate source/tests before executing their CI.
-python3 stapled-factory/operator/cli.py publish ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
+python3 stapled-factory/operator/cli.py publish-repository ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
 python3 stapled-factory/operator/cli.py status ~/.local/share/stapled-factory-operator/runs/operator-docs-20261028-01
 ```
 
@@ -80,7 +95,62 @@ Interrupted or rejected execution leaves an explicit `NEEDS_INTERVENTION` state;
 its binding is retained until safely observed/reconciled. Never delete the
 NUC `operator-active.json` marker or change a binding while effects are uncertain.
 
-`publish` is the explicit diff-review boundary: it executes operator checks and
+For an application candidate, after reviewing the collected source, create the
+local attested build with operator-owned inputs outside the candidate:
+
+```sh
+python3 stapled-factory/operator/cli.py build-candidate /absolute/private/run --dockerfile /absolute/private/Dockerfile --build-signing-key /absolute/private/build-key.pem
+python3 stapled-factory/operator/cli.py build-status /absolute/private/run
+python3 stapled-factory/operator/cli.py transfer-validation /absolute/private/run
+python3 stapled-factory/operator/cli.py transfer-status /absolute/private/run
+python3 stapled-factory/operator/cli.py verify-transfer /absolute/private/run
+python3 stapled-factory/operator/cli.py load-validation /absolute/private/run
+python3 stapled-factory/operator/cli.py load-status /absolute/private/run
+python3 stapled-factory/operator/cli.py prepare-validation /absolute/private/run
+python3 stapled-factory/operator/cli.py prepare-validation-status /absolute/private/run
+python3 stapled-factory/operator/cli.py transfer-holdout /absolute/private/run --holdout /absolute/private/scenarios.json
+python3 stapled-factory/operator/cli.py holdout-status /absolute/private/run
+python3 stapled-factory/operator/cli.py validate /absolute/private/run
+python3 stapled-factory/operator/cli.py validate-status /absolute/private/run
+python3 stapled-factory/operator/cli.py validate-resume /absolute/private/run
+python3 stapled-factory/operator/cli.py validation-status /absolute/private/run
+```
+
+The first command records a one-shot intent before building. If interrupted,
+inspect the original with `build-status`; it does not rebuild or verify the
+image/signature. Transfer records a separate one-shot intent and checks the
+received file hashes. After interruption, `transfer-status` observes the same
+intent; it never resends files. Isolated validation and signed acceptance still
+require separate operator steps; full security coverage remains incomplete.
+`verify-transfer` checks the trusted build signature, exact transferred source,
+image configuration, platform and image tag without loading or running it. New
+`factory.build.v2` manifests also sign the complete image archive digest. The
+validator checks that archive and config against the signed manifest and binds
+the manifest digest into signed validation evidence. Legacy builds and existing
+validation journals retain their original contracts. This binds artifacts; it
+does not establish a controlled build or dependency provenance.
+`load-validation` records one original load intent, refuses an existing tag,
+and verifies the loaded image's saved configuration. After an uncertain load,
+use `load-status` to observe it; do not repeat the load or delete the image.
+`prepare-validation` clones the transferred bundle once and checks the exact
+revision, baseline, source archive and diff against the verified image binding.
+After interruption, `prepare-validation-status` observes that original clone.
+Before `validate`, transfer an operator-owned, owner-only holdout outside the
+candidate. Transfer records its digest without publishing scenario contents;
+after interruption, `holdout-status` observes the original without resending.
+The validator freezes that file, records the active validation release separately
+from the original build release, and requires atomic-receipt capability. After
+an uncertain result, `validate-status` observes the original journal without
+reevaluating or resubmitting. `validate-resume` can continue from retained,
+completed checks before a submission was attempted. If the original evaluation
+intent exists but its session never started, it can claim that original session
+and start its first target under the journal lock. It never recreates an
+already-started target or resends a recorded submission. The current
+live runtime and scanner coverage do not yet satisfy these gates.
+
+`publish` requires matching accepted application validation and complete
+scanner coverage. `publish-repository` is explicitly repository-only. Each is
+an explicit diff-review boundary: it executes operator checks and
 candidate local CI on the Mac, then pushes only the completed revision and opens
 or reuses an unmerged PR. Review all code, tests and dependency changes first;
 this command is not a host execution sandbox. The trusted CI runner itself may

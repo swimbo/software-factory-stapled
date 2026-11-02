@@ -16,7 +16,35 @@ from receipt import UsageRecord
 
 def load_scenarios(path: str | Path) -> list[dict]:
     data = json.loads(Path(path).read_text())
-    return data["scenarios"]
+    scenarios = data.get("scenarios") if isinstance(data, dict) else None
+    if not isinstance(scenarios, list) or not scenarios:
+        raise ValueError("at least one scenario is required")
+    ids = set()
+    for scenario in scenarios:
+        if not isinstance(scenario, dict) or not isinstance(scenario.get("id"), str) or not scenario["id"] or scenario["id"] in ids:
+            raise ValueError("unique nonempty scenario IDs are required")
+        ids.add(scenario["id"])
+        steps = scenario.get("steps")
+        if not isinstance(steps, list) or not steps:
+            raise ValueError("scenario must exercise an asserted request")
+        requests = 0
+        for step in steps:
+            if not isinstance(step, dict):
+                raise ValueError("invalid scenario step")
+            if "delay_seconds" in step:
+                if "request" in step or "expect" in step:
+                    raise ValueError("delay cannot replace a request assertion")
+                continue
+            expect = step.get("expect")
+            if not isinstance(step.get("request"), dict) or not isinstance(expect, dict):
+                raise ValueError("request and expectation are required")
+            status, body = expect.get("status"), expect.get("body_contains")
+            if not (type(status) is int and 100 <= status <= 599 or isinstance(body, str) and body):
+                raise ValueError("request must assert an HTTP status or nonempty response content")
+            requests += 1
+        if not requests:
+            raise ValueError("scenario must exercise an asserted request")
+    return scenarios
 
 
 class _NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -48,6 +76,8 @@ def _check_step(step: dict, status: int, body: str) -> str:
     expect = step.get("expect", {})
     method = step["request"].get("method", "GET")
     path = step["request"].get("path", "/")
+    if status == 0:
+        return f"{method} {path} request failed"
     if "status" in expect and status != expect["status"]:
         return f"{method} {path} returned {status} (expected {expect['status']})"
     if "body_contains" in expect and expect["body_contains"] not in body:

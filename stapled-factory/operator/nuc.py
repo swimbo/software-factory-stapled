@@ -5,10 +5,13 @@ import fcntl
 import hashlib
 import json
 import os
+import re
 from pathlib import Path
 import sqlite3
+import stat
 import subprocess
 import sys
+import tarfile
 import time
 import tempfile
 import urllib.error
@@ -55,16 +58,332 @@ def post(route, data):
         return json.load(response)
 
 
-def release():
-    pid = command('systemctl', '--user', 'show', 'factory-endpoint', '-p', 'MainPID', '--value')
-    path = Path('/proc', pid, 'cwd').resolve().parents[1]
+def validation_capabilities(unit):
+    req = urllib.request.Request(f'http://127.0.0.1:{RAW_INGRESS_PORT}/WorkUnit/{unit}/getValidationCapabilities',
+                                 b'{}', headers={'Content-Type': 'application/json'})
+    with urllib.request.urlopen(req, timeout=20) as response:
+        return json.load(response)
+
+
+def verify_release(path):
+    path = Path(path)
     if path.parent != ROOT / 'releases':
-        raise ValueError('endpoint is not a frozen release')
+        raise ValueError('runtime is not a frozen release')
     manifest = json.loads((path / 'release-manifest.json').read_text())
     for name, digest in manifest['files'].items():
         if hashlib.sha256((path / name).read_bytes()).hexdigest() != digest:
             raise ValueError('frozen release changed')
     return path
+
+
+def scanner_bundle(selected=None):
+    """Bind validation to an owner-selected, fully verified scanner tree."""
+    root = ROOT/'scanners'
+    if selected is None:
+        selection = root/'selection.json'
+        st = selection.lstat()
+        if selection.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o077:
+            raise ValueError('owner-only scanner selection required')
+        selected = json.loads(selection.read_text())
+    if (not isinstance(selected, dict) or set(selected) != {'bundle', 'manifest_sha256'} or
+            not isinstance(selected['bundle'], str) or not re.fullmatch(r'[A-Za-z0-9_-]+', selected['bundle']) or
+            not isinstance(selected['manifest_sha256'], str) or not re.fullmatch(r'[a-f0-9]{64}', selected['manifest_sha256'])):
+        raise ValueError('invalid scanner selection')
+    package = root/selected['bundle'];tree = package/'scanner';manifest = package/'files-final.json'
+    for directory in (root, package, tree):
+        st = directory.lstat()
+        if directory.is_symlink() or not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+            raise ValueError('unsafe scanner directory')
+    st = manifest.lstat()
+    if manifest.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+        raise ValueError('unsafe scanner manifest')
+    data = manifest.read_bytes()
+    if hashlib.sha256(data).hexdigest() != selected['manifest_sha256']:
+        raise ValueError('scanner manifest differs')
+    expected = json.loads(data)
+    if not isinstance(expected, dict) or not all('bin/'+n in expected for n in ('semgrep', 'pysemgrep', 'gitleaks', 'osv-scanner', 'cosign')):
+        raise ValueError('incomplete scanner manifest')
+    actual = {}
+    for path in tree.rglob('*'):
+        st = path.lstat()
+        if path.is_symlink() or st.st_uid != os.getuid() or st.st_mode & 0o022:
+            raise ValueError('unsafe scanner file')
+        if stat.S_ISREG(st.st_mode):
+            with path.open('rb') as stream:actual[str(path.relative_to(tree))] = hashlib.file_digest(stream, 'sha256').hexdigest()
+        elif not stat.S_ISDIR(st.st_mode):raise ValueError('unsafe scanner file')
+    if actual != expected or any(not os.access(tree/'bin'/n, os.X_OK) for n in ('semgrep', 'pysemgrep', 'gitleaks', 'osv-scanner', 'cosign')):
+        raise ValueError('scanner files differ')
+    return {'bundle': selected['bundle'], 'manifest_sha256': selected['manifest_sha256'], 'bin': str(tree/'bin')}
+
+
+def release():
+    pid = command('systemctl', '--user', 'show', 'factory-endpoint', '-p', 'MainPID', '--value')
+    return verify_release(Path('/proc', pid, 'cwd').resolve().parents[1])
+
+
+MATERIAL_MODULES = (
+    'stapled-factory/security/material_store.py',
+    'stapled-factory/security/npm_materials.py',
+    'stapled-factory/security/controlled_npm.py',
+    'stapled-factory/security/cargo_materials.py',
+    'stapled-factory/security/cargo_vendor.py',
+    'stapled-factory/security/controlled_cargo.py',
+)
+ATTESTATION_MODULES = tuple('stapled-factory/security/' + name + '.py' for name in (
+    'npm_registry_policy', 'npm_workflow_attestation', 'npm_registry_attestation',
+    'npm_frozen_attestations', 'npm_attestation_bundle'))
+
+
+def material_verifier_release(path, manifest_sha256=None, *, registry_policy=False, attestations=False, cargo_component=False):
+    """Validate every verifier module against one original frozen release."""
+    path = verify_release(Path(path))
+    for directory in (path, path/'stapled-factory', path/'stapled-factory/security'):
+        st = directory.lstat()
+        if directory.is_symlink() or not stat.S_ISDIR(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+            raise ValueError('unsafe material verifier release directory')
+    manifest_path = path/'release-manifest.json'
+    st = manifest_path.lstat()
+    if manifest_path.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or st.st_mode & 0o022:
+        raise ValueError('unsafe material verifier release manifest')
+    raw = manifest_path.read_bytes(); digest = hashlib.sha256(raw).hexdigest()
+    if manifest_sha256 is not None and digest != manifest_sha256:
+        raise ValueError('original material verifier release changed')
+    manifest = json.loads(raw); files = manifest.get('files')
+    modules = MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if registry_policy else ())
+    if attestations: modules += ATTESTATION_MODULES
+    if cargo_component: modules += ('stapled-factory/security/isolated_cargo_build.py',)
+    if not isinstance(files, dict) or not set(modules).issubset(files):
+        raise ValueError('frozen release lacks material verifier modules')
+    for name in modules:
+        module = path/name; st = module.lstat()
+        if (module.is_symlink() or not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid() or
+                st.st_mode & 0o022 or not isinstance(files[name], str) or
+                not re.fullmatch(r'[a-f0-9]{64}', files[name])):
+            raise ValueError('unsafe material verifier module')
+        with module.open('rb') as stream:
+            if hashlib.file_digest(stream, 'sha256').hexdigest() != files[name]:
+                raise ValueError('material verifier module changed')
+    return {'release': str(path), 'manifest_sha256': digest}
+
+
+def verify_controlled_npm_attestation(target, controlled, pin, trust):
+    """Reverify signed npm evidence with separately selected local trust tools.
+
+    The signer pins the trust root and policy; the operator supplies the local
+    root and cosign executable. Its executable digest may differ by platform.
+    This function alone does not authorize transfer or runtime activation.
+    """
+    att = controlled.get('npm_attestation')
+    keys = {'bundle_sha256','policy_sha256','trusted_root_sha256','cosign_sha256','policy'}
+    if (controlled.get('profile') != 'npm' or not isinstance(att, dict) or set(att) != keys or
+            not isinstance(trust, dict) or set(trust) != {'trusted_root','trusted_root_sha256','cosign','cosign_sha256'} or
+            any(not isinstance(att.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', att[k]) for k in keys - {'policy'}) or
+            trust['trusted_root_sha256'] != att['trusted_root_sha256'] or
+            not isinstance(trust['cosign_sha256'], str) or not re.fullmatch(r'[a-f0-9]{64}', trust['cosign_sha256'])):
+        raise ValueError('invalid controlled npm attestation trust')
+    policy_raw = json.dumps(att['policy'], sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode()
+    if len(policy_raw) > 65536 or hashlib.sha256(policy_raw).hexdigest() != att['policy_sha256']:
+        raise ValueError('signed attestation policy differs')
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=True, attestations=True)
+    release_path = Path(pin['release'])
+    files = json.loads((release_path/'release-manifest.json').read_bytes())['files']
+    program = r'''import json,sys
+from npm_attestation_bundle import verify_attestation_bundle
+v=json.load(sys.stdin)
+print(json.dumps(verify_attestation_bundle(v['bundle'],v['bundle_sha256'],v['policy'],archive=v['archive'],
+ archive_sha256=v['archive_sha256'],trusted_root=v['trusted_root'],trusted_root_sha256=v['trusted_root_sha256'],
+ cosign=v['cosign'],cosign_sha256=v['cosign_sha256'],registry_keys=v['registry_keys']),sort_keys=True))
+'''
+    # A fresh private source-only directory prevents stale bytecode in the
+    # release from being loaded after the release modules were hashed.
+    with tempfile.TemporaryDirectory(prefix='factory-attestation-verifier-') as temp:
+        for name in set(MATERIAL_MODULES + ATTESTATION_MODULES):
+            raw = (release_path/name).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != files[name]:raise ValueError('material verifier module changed')
+            (Path(temp)/Path(name).name).write_bytes(raw)
+        request = {'bundle':str(Path(target)/'npm-attestations.json'),'bundle_sha256':att['bundle_sha256'],
+            'policy':json.loads(policy_raw),'archive':str(Path(target)/'materials.tar'),
+            'archive_sha256':controlled['materials_sha256'],**trust,'registry_keys':None}
+        if 'registry_policy' in controlled:
+            # Registry keys are decoded within the isolated verifier below.
+            request['registry_policy'] = controlled['registry_policy']
+            program = program.replace("v=json.load(sys.stdin)", "v=json.load(sys.stdin)\nfrom npm_registry_policy import decode_policy\nv['registry_keys']=decode_policy(v.pop('registry_policy'))")
+        program = 'import sys\nsys.path.insert(0,sys.argv[1])\n' + program
+        proc = subprocess.run([sys.executable,'-I','-B','-c',program,temp],input=json.dumps(request),
+                              capture_output=True,text=True,check=True,timeout=600)
+    report = json.loads(proc.stdout)
+    if (report.get('status') != 'verified-selected-frozen-npm-attestations' or report.get('coverage') != 'incomplete' or
+            report.get('archive_sha256') != controlled['materials_sha256'] or report.get('lock_sha256') != controlled['lock_sha256'] or
+            report.get('manifest_sha256') != controlled['materials_manifest_sha256'] or
+            report.get('attestation_bundle_sha256') != att['bundle_sha256'] or report.get('attestation_policy_sha256') != att['policy_sha256']):
+        raise ValueError('verified npm attestation differs from signed inputs')
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=True, attestations=True)
+    return {'controlled_attestation_bundle_sha256':att['bundle_sha256'],
+            'controlled_attestation_policy_sha256':att['policy_sha256'], 'coverage':'incomplete'}
+
+
+def attestation_trust():
+    """Read the operator-provisioned local verifier and trusted root selection."""
+    fd = os.open(ROOT/'attestation-trust.json', os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_size > 16384:
+            raise ValueError('owner-only attestation trust required')
+        raw = stream.read(16385)
+    if len(raw) > 16384: raise ValueError('attestation trust too large')
+    def unique(pairs):
+        result = {}
+        for key,value in pairs:
+            if key in result: raise ValueError('duplicate attestation trust key')
+            result[key] = value
+        return result
+    value = json.loads(raw, object_pairs_hook=unique)
+    if not isinstance(value, dict) or set(value) != {'trusted_root','trusted_root_sha256','cosign','cosign_sha256'}:
+        raise ValueError('invalid attestation trust')
+    for field in ('trusted_root','cosign'):
+        if not isinstance(value[field], str) or not Path(value[field]).is_absolute() or '..' in Path(value[field]).parts:
+            raise ValueError('absolute attestation trust paths required')
+    for field in ('trusted_root_sha256','cosign_sha256'):
+        if not isinstance(value[field], str) or not re.fullmatch(r'[a-f0-9]{64}', value[field]):
+            raise ValueError('pinned attestation trust required')
+    return value
+
+
+def verify_controlled_materials(target, intent, binding, unit):
+    """Check signed material, source lock and pinned release without executing a build."""
+    controlled = binding.get('controlled')
+    names = {'profile', 'coverage', 'source_sha256', 'materials_sha256', 'lock_sha256',
+             'base_manifest', 'base_config', 'builder_container_id', 'builder_image_id',
+             'builder_config_sha256', 'recipe_sha256', 'docker_bin_sha256', 'buildx_bin_sha256', 'unit', 'tag'}
+    if not isinstance(controlled, dict) or controlled.get('profile') not in ('npm', 'cargo'):
+        raise ValueError('unsupported controlled material profile')
+    if controlled['profile'] == 'npm':names |= {'materials_manifest_sha256', 'cache_recipe_sha256', 'npm_entrypoint'}
+    else:
+        names.add('cargo_binary')
+        if 'source_component' in controlled:
+            component=controlled['source_component']
+            if (not isinstance(component,str) or not component or len(component)>512 or
+                    any(not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]*',part) or part in ('.','..','target')
+                        for part in component.split('/'))):
+                raise ValueError('invalid signed Cargo component')
+            names.add('source_component')
+        if 'rust_toolchain' in controlled:
+            if not isinstance(controlled['rust_toolchain'],str) or not re.fullmatch(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}',controlled['rust_toolchain']):
+                raise ValueError('invalid signed Rust toolchain')
+            names.add('rust_toolchain')
+    has_registry_policy = 'registry_policy' in controlled or 'registry_evidence_sha256' in controlled
+    if has_registry_policy:
+        if controlled['profile'] != 'npm':raise ValueError('registry policy requires npm profile')
+        names |= {'registry_policy', 'registry_evidence_sha256'}
+    has_attestation = 'npm_attestation' in controlled
+    if has_attestation:
+        if controlled['profile'] != 'npm':raise ValueError('attestation requires npm profile')
+        names.add('npm_attestation')
+    sha_fields = {'source_sha256', 'materials_sha256', 'lock_sha256', 'builder_container_id',
+                  'builder_config_sha256', 'recipe_sha256', 'docker_bin_sha256', 'buildx_bin_sha256'}
+    if controlled['profile'] == 'npm':sha_fields |= {'materials_manifest_sha256', 'cache_recipe_sha256'}
+    if has_registry_policy:sha_fields.add('registry_evidence_sha256')
+    digest_fields = {'base_manifest', 'base_config', 'builder_image_id'}
+    if (set(controlled) != names or controlled.get('coverage') != 'incomplete' or
+            any(not isinstance(controlled.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', controlled[k]) for k in sha_fields) or
+            any(not isinstance(controlled.get(k), str) or not re.fullmatch(r'sha256:[a-f0-9]{64}', controlled[k]) for k in digest_fields) or
+            binding.get('schema') != 'factory.build.v2' or controlled['unit'] != unit or
+            controlled['tag'] != 'factory-candidate-' + unit.lower() + ':' + intent['revision'] or
+            controlled['source_sha256'] != binding['archive_sha256'] or
+            controlled['recipe_sha256'] != binding['dockerfile_sha256'] or
+            controlled['materials_sha256'] != intent['files'].get('materials.tar')):
+        raise ValueError('controlled build binding differs from signed manifest')
+    if controlled['profile'] == 'cargo':
+        binary = controlled['cargo_binary']
+        if not isinstance(binary, str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}', binary):
+            raise ValueError('invalid signed Cargo binary')
+    else:
+        entry = controlled['npm_entrypoint']
+        if not isinstance(entry, str) or len(entry) > 4096:
+            raise ValueError('invalid signed npm entrypoint')
+        parts = entry.split('/')
+        if (any(not re.fullmatch(r'[A-Za-z0-9._-]+', p) or p in ('.', '..', 'node_modules', '.git') for p in parts) or
+                not entry.endswith(('.js', '.cjs', '.mjs'))):
+            raise ValueError('invalid signed npm entrypoint')
+    pin = intent.get('material_verifier')
+    if (not isinstance(pin, dict) or set(pin) != {'release', 'manifest_sha256'} or
+            not isinstance(pin['release'], str) or not isinstance(pin['manifest_sha256'], str) or
+            not re.fullmatch(r'[a-f0-9]{64}', pin['manifest_sha256'])):
+        raise ValueError('original material verifier release unavailable')
+    policy_raw = json.dumps(controlled.get('registry_policy'),sort_keys=True,separators=(',',':'))
+    if len(policy_raw) > 65536:raise ValueError('registry policy too large')
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy,
+                              cargo_component='source_component' in controlled or 'rust_toolchain' in controlled)
+    # -I ignores cwd and PYTHONPATH. The modules are copied from their verified
+    # release bytes to a fresh private source-only directory before import;
+    # disabling bytecode writes alone would still allow stale bytecode reads.
+    program = r'''import hashlib, importlib, json, sys, tarfile
+sys.dont_write_bytecode = True
+sys.path.insert(0, sys.argv[1])
+profile, archive, expected, source, policy_raw, lock_name, component, binary, rust_toolchain = sys.argv[2:]
+module = importlib.import_module('controlled_npm' if profile == 'npm' else 'controlled_cargo')
+verify = module.verify_frozen_npm if profile == 'npm' else module.verify_frozen_cargo
+policy = json.loads(policy_raw)
+if policy is not None:
+    if profile != 'npm': raise ValueError('registry policy requires npm')
+    keys = importlib.import_module('npm_registry_policy').decode_policy(policy)
+    report = verify(archive, expected, registry_keys=keys)
+else:
+    report = verify(archive, expected)
+name = lock_name
+lock = None
+with open(source, 'rb') as stream, tarfile.open(fileobj=module._BoundedTarInput(stream), mode='r:') as tar:
+    for count, item in enumerate(tar, 1):
+        if count > 100000: raise ValueError('too many source entries')
+        if item.name == name:
+            if lock is not None or not item.isfile() or item.size > 16 * 1024 * 1024:
+                raise ValueError('unsafe source lock')
+            lock = hashlib.file_digest(tar.extractfile(item), 'sha256').hexdigest()
+if lock is None: raise ValueError('source lock missing')
+if component or rust_toolchain:
+    if profile != 'cargo': raise ValueError('component requires Cargo')
+    checked=importlib.import_module('isolated_cargo_build').cargo_source_preflight(source,binary,component,rust_toolchain or None)
+    if checked['lock_sha256'] != lock: raise ValueError('component source lock differs')
+print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True))
+'''
+    lock_name = ('package-lock.json' if controlled['profile']=='npm' else
+                 (controlled.get('source_component','')+'/' if controlled.get('source_component') else '')+'Cargo.lock')
+    release_path=Path(pin['release'])
+    release_files=json.loads((release_path/'release-manifest.json').read_bytes())['files']
+    modules=MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if has_registry_policy else ())
+    if 'source_component' in controlled or 'rust_toolchain' in controlled:
+        modules += ('stapled-factory/security/isolated_cargo_build.py',)
+    with tempfile.TemporaryDirectory(prefix='factory-material-verifier-') as temp:
+        for name in modules:
+            raw=(release_path/name).read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=release_files[name]:raise ValueError('material verifier module changed')
+            (Path(temp)/Path(name).name).write_bytes(raw)
+        result = subprocess.run([sys.executable, '-I', '-B', '-c', program, temp, controlled['profile'],
+                                 str(target/'materials.tar'), controlled['materials_sha256'], str(target/'source.tar'), policy_raw,
+                                 lock_name, controlled.get('source_component',''), controlled.get('cargo_binary',''),
+                                 controlled.get('rust_toolchain','')],
+                                capture_output=True, text=True, check=True, timeout=600)
+    verified = json.loads(result.stdout); report = verified.get('report') or {}
+    if (report.get('coverage') != 'incomplete' or report.get('archive_sha256') != controlled['materials_sha256'] or
+            report.get('lock_sha256') != controlled['lock_sha256'] or
+            verified.get('source_lock_sha256') != controlled['lock_sha256'] or
+            controlled['profile'] == 'npm' and report.get('manifest_sha256') != controlled['materials_manifest_sha256'] or
+            has_registry_policy and report.get('registry_evidence_sha256') != controlled['registry_evidence_sha256']):
+        raise ValueError('verified controlled materials differ from signed inputs')
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy,
+                              cargo_component='source_component' in controlled or 'rust_toolchain' in controlled)
+    result = {'controlled_profile': controlled['profile'], 'controlled_materials_sha256': controlled['materials_sha256'],
+              'controlled_lock_sha256': controlled['lock_sha256'], 'material_verifier': pin}
+    if has_registry_policy:result['controlled_registry_evidence_sha256'] = controlled['registry_evidence_sha256']
+    if has_attestation:
+        if (not isinstance(controlled['npm_attestation'], dict) or
+                intent['files'].get('npm-attestations.json') != controlled['npm_attestation'].get('bundle_sha256') or
+                not isinstance(intent.get('attestation_trust'), dict) or attestation_trust() != intent['attestation_trust']):
+            raise ValueError('original attestation transfer or trust differs')
+        result.update(verify_controlled_npm_attestation(target, controlled, pin, intent['attestation_trust']))
+    elif 'npm-attestations.json' in intent['files'] or 'attestation_trust' in intent:
+        raise ValueError('unexpected attestation evidence')
+    return result
 
 
 
@@ -109,6 +428,28 @@ def restore_binding(service, previous, desired):
     command('systemctl', '--user', 'daemon-reload')
     command('systemctl', '--user', 'restart', 'factory-endpoint')
 
+
+def observation_lock():
+    """Open the existing operator lock without creating a marker."""
+    try:
+        fd = os.open(ROOT/'operator.lock', os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    except OSError as exc:
+        raise ValueError('operator lock unavailable for read-only observation') from exc
+    st = os.fstat(fd)
+    if not stat.S_ISREG(st.st_mode) or st.st_uid != os.getuid():
+        os.close(fd)
+        raise ValueError('unsafe operator lock')
+    return os.fdopen(fd, 'r')
+
+
+def original_file_exists(path):
+    try:st = path.lstat()
+    except FileNotFoundError:return False
+    if not stat.S_ISREG(st.st_mode):
+        raise ValueError('unsafe original dispatch evidence')
+    return True
+
+
 def main(action, data):
     if action == 'describe':
         rel = release()
@@ -130,6 +471,417 @@ def main(action, data):
         raise ValueError('invalid unit')
     approval = ROOT / 'approvals' / unit
     run = ROOT / 'dispatch' / unit
+    if action == 'dispatch_status':
+        with observation_lock() as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return {'intent_exists': original_file_exists(approval/'dispatch-intent.json'),
+                    'result_exists': original_file_exists(approval/'result.json')}
+    if action in ('validation_holdout_begin', 'validation_holdout_status'):
+        folder = approval/'holdouts'
+        if action == 'validation_holdout_begin':
+            selected = main('validation_status', {'unit': unit})
+            if (selected.get('accepted') is not False or selected.get('stage') != 'needs_validation' or
+                    data.get('attempt_id') != selected.get('attempt_id') or data.get('revision') != selected.get('revision') or
+                    not isinstance(data.get('sha256'), str) or not re.fullmatch(r'[a-f0-9]{64}', data['sha256'])):
+                raise ValueError('holdout binding differs from selected build')
+            folder.mkdir(mode=0o700)
+            private(folder/'holdout-intent.json', data)
+            return {'created': True}
+        intent = json.loads((folder/'holdout-intent.json').read_text())
+        if intent.get('unit') != unit or not re.fullmatch(r'[a-f0-9]{64}', intent.get('sha256', '')):
+            raise ValueError('original holdout binding differs')
+        path = folder/'scenarios.json'
+        complete = False
+        if (not folder.is_symlink() and folder.is_dir() and folder.stat().st_uid == os.getuid() and
+                not folder.stat().st_mode & 0o077 and not path.is_symlink() and path.is_file() and
+                path.stat().st_uid == os.getuid() and not path.stat().st_mode & 0o077):
+            with path.open('rb') as stream:complete = hashlib.file_digest(stream, 'sha256').hexdigest() == intent['sha256']
+        return {'complete': complete, 'sha256': intent['sha256'], 'attempt_id': intent['attempt_id'], 'revision': intent['revision']}
+    if action in ('validation_execute', 'validation_execute_status', 'validation_execute_resume'):
+        target = approval/'validation-inputs'
+        intent_path, session = target/'evaluation-intent.json', target/'validation-session'
+        if action == 'validation_execute' and (intent_path.exists() or session.exists()):
+            raise ValueError('original evaluation exists; observe without repeating')
+        prepared = main('validation_prepare_status', {'unit': unit})
+        plan = json.loads((approval/'operator.json').read_text())
+        if action == 'validation_execute':
+            rel = release()
+            scanners = scanner_bundle()
+        else:
+            recorded = json.loads(intent_path.read_text())
+            rel = verify_release(recorded['release'])
+            scanners = scanner_bundle({k: recorded['scanners'][k] for k in ('bundle', 'manifest_sha256')})
+        manifest_bytes = (rel/'release-manifest.json').read_bytes()
+        manifest = json.loads(manifest_bytes)
+        required = ('stapled-factory/deployment/nuc/validate.py', 'stapled-factory/spine/validation_session.py',
+                    'stapled-factory/spine/prebuilt_validation.py', 'stapled-factory/spine/validation_transport.py',
+                    'stapled-factory/security/pipeline_cli.py', 'stapled-factory/security/pipeline.py',
+                    'stapled-factory/wall/evaluator/cli.py', 'stapled-factory/wall/evaluator/config.py',
+                    'stapled-factory/wall/evaluator/evaluate.py', 'stapled-factory/wall/evaluator/gate.py',
+                    'stapled-factory/wall/evaluator/receipt.py')
+        if not all(name in manifest.get('files', {}) for name in required):
+            raise ValueError('pinned runtime lacks frozen validation components')
+        script = rel/'stapled-factory/deployment/nuc/validate.py'
+        script_sha256 = hashlib.sha256(script.read_bytes()).hexdigest()
+        if manifest['files'][required[0]] != script_sha256:
+            raise ValueError('pinned validator differs from release manifest')
+        if action == 'validation_execute' and data.get('validator_sha256') != script_sha256:
+            raise ValueError('active validator differs from operator-reviewed source')
+        scenarios = target/'frozen-scenarios.json'
+        if action == 'validation_execute':
+            holdouts, source = approval/'holdouts', approval/'holdouts/scenarios.json'
+            holdout_status = main('validation_holdout_status', {'unit': unit})
+            if (holdout_status.get('complete') is not True or
+                    holdout_status.get('attempt_id') != prepared['attempt_id'] or
+                    holdout_status.get('revision') != prepared['revision']):
+                raise ValueError('original private holdout transfer incomplete')
+            if (holdouts.is_symlink() or source.is_symlink() or not holdouts.is_dir() or not source.is_file() or
+                    holdouts.stat().st_uid != os.getuid() or holdouts.stat().st_mode & 0o077 or
+                    source.stat().st_uid != os.getuid() or source.stat().st_mode & 0o077):
+                raise ValueError('private operator holdout unavailable')
+            scenario_bytes = source.read_bytes()
+            scenario_sha256 = hashlib.sha256(scenario_bytes).hexdigest()
+            if scenario_sha256 != holdout_status['sha256']:
+                raise ValueError('original private holdout changed')
+        else:
+            scenario_sha256 = recorded['scenario_sha256']
+        original = {'unit': unit, 'attempt_id': prepared['attempt_id'], 'revision': prepared['revision'],
+                    'baseline': prepared['baseline'], 'image_id': prepared['image_id'],
+                    'release': str(rel), 'build_release': plan['release'],
+                    'release_manifest_sha256': hashlib.sha256(manifest_bytes).hexdigest(),
+                    'scanners': scanners,
+                    'scenario_sha256': scenario_sha256, 'validator_sha256': script_sha256}
+        if action == 'validation_execute':
+            try:capabilities = validation_capabilities(unit)
+            except (OSError, ValueError) as error:raise ValueError('runtime receipt capability unavailable') from error
+            if capabilities != {'receipt_storage': 'atomic-v1'}:
+                raise ValueError('runtime receipt capability unavailable')
+            fd = os.open(intent_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                json.dump(original, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+            fd = os.open(scenarios, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'wb') as stream:
+                stream.write(scenario_bytes);stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+        else:
+            if recorded != original:
+                raise ValueError('original evaluation binding differs')
+            scenario_matches = (not scenarios.is_symlink() and scenarios.is_file() and
+                                hashlib.sha256(scenarios.read_bytes()).hexdigest() == scenario_sha256)
+            if action == 'validation_execute_resume' and not scenario_matches:
+                source = approval/'holdouts/scenarios.json'
+                holdout = main('validation_holdout_status', {'unit': unit})
+                if (holdout.get('complete') is not True or holdout.get('sha256') != scenario_sha256 or
+                        holdout.get('attempt_id') != original['attempt_id'] or holdout.get('revision') != original['revision']):
+                    raise ValueError('original private holdout unavailable')
+                scenario_bytes = source.read_bytes()
+                if hashlib.sha256(scenario_bytes).hexdigest() != scenario_sha256:
+                    raise ValueError('original private holdout changed')
+                scenarios = target/'recovery-scenarios.json'
+                try:
+                    fd = os.open(scenarios, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+                except FileExistsError:
+                    pass  # A previous continuation may have frozen this holdout.
+                else:
+                    with os.fdopen(fd, 'wb') as stream:
+                        stream.write(scenario_bytes);stream.flush();os.fsync(stream.fileno())
+                    fd = os.open(target, os.O_RDONLY)
+                    try:os.fsync(fd)
+                    finally:os.close(fd)
+            if scenarios.is_symlink() or not scenarios.is_file():
+                return {'status': 'unresolved', 'reason': 'original frozen holdout unavailable'}
+            with scenarios.open('rb') as stream:
+                if hashlib.file_digest(stream, 'sha256').hexdigest() != scenario_sha256:
+                    raise ValueError('original frozen holdout differs')
+            if action == 'validation_execute_status' and not (session/'intent.json').is_file():
+                return {'status': 'unresolved', 'reason': 'original evaluation journal not established'}
+        args = ['python3', str(script), '--repo', str(target/'source-repo'), '--revision', original['revision'],
+                '--baseline', original['baseline'], '--scenarios', str(scenarios), '--unit', unit,
+                '--expected-scenario-digest', original['scenario_sha256'],
+                '--attempt', original['attempt_id'], '--key-file', str(ROOT/'validation.key'),
+                '--prebuilt-image', original['image_id'], '--source-archive', str(target/'source.tar'),
+                '--diff-file', str(target/'diff'), '--build-manifest', str(target/'build.json'),
+                '--build-signature', str(target/'build.sig'), '--session-dir', str(session),
+                '--ingress', f'http://127.0.0.1:{RAW_INGRESS_PORT}']
+        if action == 'validation_execute_status':args.append('--observe-only')
+        if action == 'validation_execute_resume':args.extend(['--resume-only', '--resume-unstarted'])
+        env = {k: v for k, v in os.environ.items() if not k.startswith('FACTORY_')}
+        env['PATH'] = scanners['bin'] + os.pathsep + env.get('PATH', os.defpath)
+        env['FACTORY_BUILD_APPROVAL_PUBLIC_KEY'] = str(ROOT/'operator-build-public.pem')
+        completed = subprocess.run(args, capture_output=True, text=True, timeout=900, env=env)
+        try:result = json.loads(completed.stdout)
+        except ValueError as error:raise ValueError('original evaluation unresolved; inspect retained journal') from error
+        if completed.returncode == 1 and result.get('accepted') is False and result.get('reason') == 'candidate validation rejected':
+            return result
+        if completed.returncode != 0 or result.get('accepted') is not True:
+            raise ValueError('original evaluation unresolved; inspect retained journal')
+        status = main('validation_status', {'unit': unit})
+        if status.get('accepted') is not True or status.get('validation') != result.get('evidence'):
+            raise ValueError('accepted receipt differs from durable WorkUnit')
+        return result
+    if action in ('validation_prepare', 'validation_prepare_status'):
+        target = approval / 'validation-inputs'
+        intent_path, repo = target / 'prepare-intent.json', target / 'source-repo'
+        if action == 'validation_prepare' and (intent_path.exists() or repo.exists()):
+            raise ValueError('original preparation exists; observe without repeating')
+        verified = main('validation_verify_transfer', {'unit': unit})
+        loaded = main('validation_load_status', {'unit': unit})
+        transfer = json.loads((target/'transfer-intent.json').read_text())
+        if (loaded.get('loaded') is not True or loaded.get('attempt_id') != verified['attempt_id'] or
+                loaded.get('revision') != verified['revision'] or loaded.get('config_digest') != verified['config_digest']):
+            raise ValueError('original verified image is not loaded')
+        original = {'unit': unit, 'attempt_id': verified['attempt_id'], 'revision': verified['revision'],
+                    'baseline': transfer['baseline'], 'image_id': loaded['image_id'],
+                    'source_sha256': transfer['files']['source.tar'], 'diff_sha256': transfer['files']['diff'],
+                    'bundle_sha256': transfer['files']['result.bundle']}
+        env = {k: v for k, v in os.environ.items() if not k.startswith('GIT_')}
+        env.update(GIT_CONFIG_NOSYSTEM='1', GIT_CONFIG_GLOBAL='/dev/null', GIT_TERMINAL_PROMPT='0')
+        if action == 'validation_prepare':
+            fd = os.open(intent_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                json.dump(original, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+            subprocess.run(['git', '-c', 'core.hooksPath=/dev/null', 'clone', '--no-checkout', '--',
+                            str(target/'result.bundle'), str(repo)], check=True, capture_output=True, timeout=120, env=env)
+        elif json.loads(intent_path.read_text()) != original:
+            raise ValueError('original preparation binding differs')
+        for key in ('revision', 'baseline'):
+            actual = subprocess.check_output(['git', '-C', str(repo), 'rev-parse', original[key]+'^{commit}'],
+                                             timeout=30, env=env).decode().strip()
+            if actual != original[key]:raise ValueError('prepared Git revision differs')
+        subprocess.run(['git', '-C', str(repo), 'merge-base', '--is-ancestor', original['baseline'], original['revision']],
+                       check=True, capture_output=True, timeout=30, env=env)
+        archive = subprocess.check_output(['git', '-C', str(repo), 'archive', original['revision']], timeout=120, env=env)
+        diff = subprocess.check_output(['git', '-C', str(repo), 'diff', '--no-ext-diff', '--no-textconv',
+                                        original['baseline'], original['revision']], timeout=120, env=env)
+        for name, raw, expected in [('source.tar', archive, original['source_sha256']), ('diff', diff, original['diff_sha256'])]:
+            with (target/name).open('rb') as stream:transferred_hash = hashlib.file_digest(stream, 'sha256').hexdigest()
+            if hashlib.sha256(raw).hexdigest() != expected or transferred_hash != expected:
+                raise ValueError('prepared ' + name + ' differs')
+        return {'prepared': True, 'unit': unit, 'attempt_id': original['attempt_id'],
+                'revision': original['revision'], 'baseline': original['baseline'], 'image_id': original['image_id']}
+    if action in ('validation_load', 'validation_load_status'):
+        target = approval / 'validation-inputs'
+        intent_path = target / 'load-intent.json'
+        if action == 'validation_load' and intent_path.exists():
+            raise ValueError('original image load exists; observe without repeating')
+        verified = main('validation_verify_transfer', {'unit': unit})
+        if action == 'validation_load':
+            selected = main('validation_status', {'unit': unit})
+            if selected.get('accepted') is not False or selected.get('stage') != 'needs_validation':
+                raise ValueError('selected build no longer awaiting validation')
+        else:
+            original = json.loads(intent_path.read_text())
+            if original != verified:
+                raise ValueError('original image load binding differs')
+        listed = subprocess.run(['docker', 'image', 'ls', '--format', '{{.Repository}}:{{.Tag}}'],
+                                check=True, capture_output=True, text=True, timeout=30).stdout.splitlines()
+        if action == 'validation_load':
+            if verified['tag'] in listed:
+                raise ValueError('image tag already exists; do not overwrite')
+            fd = os.open(intent_path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+            with os.fdopen(fd, 'w') as stream:
+                json.dump(verified, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
+            fd = os.open(target, os.O_RDONLY)
+            try:os.fsync(fd)
+            finally:os.close(fd)
+            subprocess.run(['docker', 'load', '--input', str(target/'image.tar')], check=True,
+                           capture_output=True, timeout=180)
+            return main('validation_load_status', {'unit': unit})
+        if verified['tag'] not in listed:
+            return {'loaded': False, 'uncertain': True, 'tag': verified['tag'],
+                    'revision': verified['revision'], 'attempt_id': verified['attempt_id']}
+        metadata = json.loads(subprocess.check_output(['docker', 'image', 'inspect', verified['tag']], timeout=30))
+        if len(metadata) != 1 or not re.fullmatch(r'sha256:[a-f0-9]{64}', metadata[0].get('Id', '')):
+            raise ValueError('loaded image identity unavailable')
+        with tempfile.TemporaryDirectory(prefix='factory-loaded-image-') as temp:
+            saved = Path(temp)/'image.tar'
+            subprocess.run(['docker', 'save', '-o', str(saved), metadata[0]['Id']], check=True, timeout=180)
+            with tarfile.open(saved) as tar:
+                entries = json.load(tar.extractfile('manifest.json'))
+                if len(entries) != 1:raise ValueError('loaded image metadata ambiguous')
+                config = tar.extractfile(entries[0]['Config']).read()
+        if 'sha256:' + hashlib.sha256(config).hexdigest() != verified['config_digest']:
+            raise ValueError('loaded image configuration differs from signed original')
+        return {'loaded': True, 'image_id': metadata[0]['Id'], 'tag': verified['tag'],
+                'revision': verified['revision'], 'attempt_id': verified['attempt_id'],
+                'config_digest': verified['config_digest']}
+    if action == 'validation_verify_transfer':
+        target = approval / 'validation-inputs'
+        transfer = main('validation_transfer_status', {'unit': unit})
+        selected = main('validation_status', {'unit': unit})
+        if (not transfer['complete'] or selected.get('accepted') not in (True, False) or
+                selected.get('stage') not in ('needs_validation', 'validated', 'gated', 'merged', 'deployed') or
+                selected.get('attempt_id') != transfer['attempt_id'] or
+                selected.get('revision') != transfer['revision']):
+            raise ValueError('original transfer or selected build incomplete')
+        intent = json.loads((target/'transfer-intent.json').read_text())
+        subprocess.run(['openssl', 'pkeyutl', '-verify', '-pubin', '-inkey', str(ROOT/'operator-build-public.pem'),
+                        '-rawin', '-in', str(target/'build.json'), '-sigfile', str(target/'build.sig')],
+                       check=True, capture_output=True, timeout=15)
+        binding = json.loads((target/'build.json').read_text())
+        if (binding.get('revision') != intent['revision'] or binding.get('baseline') != intent['baseline'] or
+                any(binding.get(field) != intent['files'][name] for field, name in
+                    [('archive_sha256', 'source.tar'), ('diff_sha256', 'diff'), ('dockerfile_sha256', 'Dockerfile')])):
+            raise ValueError('signed build source differs from original transfer')
+        if binding.get('schema') == 'factory.build.v2':
+            if binding.get('image_tar_sha256') != intent['files']['image.tar']:
+                raise ValueError('signed image archive differs from original transfer')
+        elif binding.get('schema') is not None:
+            raise ValueError('unsupported build manifest schema')
+        if 'controlled' in binding:
+            if 'materials.tar' not in intent['files']:
+                raise ValueError('signed controlled materials missing from original transfer')
+            controlled_verified = verify_controlled_materials(target, intent, binding, unit)
+        elif 'materials.tar' in intent['files']:
+            raise ValueError('legacy build cannot include controlled materials')
+        else:
+            controlled_verified = {}
+        with tarfile.open(target/'image.tar') as tar:
+            def member(name, limit):
+                matches = [entry for entry in tar.getmembers() if entry.name == name]
+                if len(matches) != 1 or not matches[0].isfile() or matches[0].size > limit:
+                    raise ValueError('unsafe image metadata')
+                return tar.extractfile(matches[0]).read()
+            images = json.loads(member('manifest.json', 1024*1024))
+            tag = 'factory-candidate-' + unit.lower() + ':' + intent['revision']
+            if not isinstance(images, list) or len(images) != 1 or images[0].get('RepoTags') != [tag]:
+                raise ValueError('image tag differs from original build')
+            config = member(images[0]['Config'], 8*1024*1024)
+        if 'sha256:' + hashlib.sha256(config).hexdigest() != binding.get('config_digest'):
+            raise ValueError('signed image configuration differs')
+        image = json.loads(config)
+        labels = (image.get('config') or {}).get('Labels') or {}
+        if (image.get('os') != 'linux' or image.get('architecture') != 'amd64' or
+                labels.get('factory.git-revision') != intent['revision'] or
+                labels.get('factory.source-archive-sha256') != binding['archive_sha256']):
+            raise ValueError('signed image labels or platform differ')
+        if controlled_verified:
+            controlled = binding['controlled']
+            if controlled['profile'] == 'cargo':
+                component=controlled.get('source_component','')
+                expected_cmd = ['/factory/source/'+(component+'/' if component else '')+'target/release/' + controlled['cargo_binary']]
+            else:
+                expected_cmd = ['node', '/workspace/' + controlled['npm_entrypoint']]
+            if ((image.get('config') or {}).get('Cmd') != expected_cmd or
+                    (image.get('config') or {}).get('Entrypoint') not in (None, [])):
+                raise ValueError('signed controlled image command differs')
+        return {'verified': True, 'attempt_id': intent['attempt_id'], 'revision': intent['revision'],
+                'config_digest': binding['config_digest'], 'image_tar_sha256': intent['files']['image.tar'],
+                'manifest_sha256': intent['files']['build.json'], 'tag': tag, 'loaded': False,
+                **controlled_verified}
+    if action == 'validation_transfer_preflight':
+        selected = main('validation_status', {'unit': unit})
+        if selected.get('accepted') is not False or selected.get('stage') != 'needs_validation':
+            raise ValueError('selected build no longer awaiting validation')
+        plan = json.loads((approval/'operator.json').read_text())
+        baseline = plan.get('baseline')
+        if not isinstance(baseline, str) or not re.fullmatch(r'[a-f0-9]{40}', baseline):
+            raise ValueError('original validation baseline unavailable')
+        use_attestations = data.get('attestations', False)
+        if type(use_attestations) is not bool:raise ValueError('invalid attestation selection')
+        pin = material_verifier_release(release(), registry_policy=use_attestations, attestations=use_attestations)
+        response = {'unit': unit, 'attempt_id': selected['attempt_id'], 'revision': selected['revision'],
+                    'baseline': baseline, 'material_verifier': pin}
+        if use_attestations:response['attestation_trust'] = attestation_trust()
+        return response
+    if action in ('validation_transfer_begin', 'validation_transfer_status'):
+        target = approval / 'validation-inputs'
+        names = {'image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle'}
+        controlled_names = names | {'materials.tar'}
+        attested_names = controlled_names | {'npm-attestations.json'}
+        if action == 'validation_transfer_begin':
+            files = data.get('files')
+            result = json.loads((approval / 'result.json').read_text())
+            plan = json.loads((approval / 'operator.json').read_text())
+            state = post('WorkUnit/' + unit + '/getState', {})
+            selected = state.get('successor') or state.get('build') or {}
+            if (not isinstance(files, dict) or set(files) not in (names, controlled_names, attested_names) or
+                    any(not isinstance(v, str) or not re.fullmatch(r'[a-f0-9]{64}', v) for v in files.values()) or
+                    not result.get('binding_restored') or state.get('stage') != 'needs_validation' or
+                    selected.get('status') != 'completed' or
+                    selected.get('attempt_id') != result.get('attempt_id') or
+                    selected.get('git_revision') != result.get('revision') or
+                    data.get('attempt_id') != result.get('attempt_id') or
+                    data.get('revision') != result.get('revision') or data.get('baseline') != plan.get('baseline')):
+                raise ValueError('validation transfer binding differs')
+            if set(files) in (controlled_names, attested_names):
+                # Revalidate the exact preflight release, even if a different
+                # release is now active; never substitute the active release.
+                requested = data.get('material_verifier')
+                if (not isinstance(requested, dict) or set(requested) != {'release', 'manifest_sha256'} or
+                        not isinstance(requested['release'], str) or not isinstance(requested['manifest_sha256'], str) or
+                        not re.fullmatch(r'[a-f0-9]{64}', requested['manifest_sha256'])):
+                    raise ValueError('original material verifier release unavailable')
+                attested = set(files) == attested_names
+                if requested != material_verifier_release(requested['release'], requested['manifest_sha256'],
+                                                           registry_policy=attested, attestations=attested):
+                    raise ValueError('original material verifier release differs')
+                if attested and data.get('attestation_trust') != attestation_trust():
+                    raise ValueError('original attestation trust differs')
+                if not attested and 'attestation_trust' in data:raise ValueError('unexpected attestation trust')
+                data = dict(data)
+            target.mkdir(mode=0o700)
+            private(target / 'transfer-intent.json', data)
+            return {'created': True}
+        intent = json.loads((target / 'transfer-intent.json').read_text())
+        if (intent.get('unit') != unit or not isinstance(intent.get('files'), dict) or
+                set(intent['files']) not in (names, controlled_names, attested_names) or
+                set(intent['files']) in (controlled_names, attested_names) and 'material_verifier' not in intent or
+                set(intent['files']) == names and 'material_verifier' in intent or
+                ('attestation_trust' in intent) != (set(intent['files']) == attested_names)):
+            raise ValueError('original transfer intent differs')
+        matches = {}
+        for name, expected in intent['files'].items():
+            path = target / name
+            if path.is_symlink() or not path.is_file():
+                matches[name] = False
+            else:
+                with path.open('rb') as stream:
+                    matches[name] = hashlib.file_digest(stream, 'sha256').hexdigest() == expected
+        result = {'complete': all(matches.values()), 'files': matches, 'expected': intent['files'],
+                  'attempt_id': intent['attempt_id'], 'revision': intent['revision']}
+        if set(intent['files']) in (controlled_names, attested_names):
+            result['material_verifier'] = intent['material_verifier']
+        if set(intent['files']) == attested_names:result['attestation_trust'] = intent['attestation_trust']
+        return result
+    if action == 'validation_status':
+        result = json.loads((approval / 'result.json').read_text())
+        if not result.get('binding_restored'):
+            raise ValueError('collected result binding unresolved')
+        state = post('WorkUnit/' + unit + '/getState', {})
+        selected = state.get('successor') or state.get('build') or {}
+        if (selected.get('status') != 'completed' or
+                selected.get('attempt_id') != result.get('attempt_id') or
+                selected.get('git_revision') != result.get('revision')):
+            raise ValueError('selected build differs from collected validation target')
+        if state.get('stage') == 'needs_validation' and not state.get('validation'):
+            return {'accepted': False, 'stage': 'needs_validation', 'attempt_id': result['attempt_id'],
+                    'revision': result['revision']}
+        proof = state.get('validation') or {}
+        receipt = proof.get('receipt')
+        if (state.get('stage') not in ('validated', 'gated', 'merged', 'deployed') or
+                proof.get('unit_id') != unit or proof.get('attempt_id') != result['attempt_id'] or
+                proof.get('git_revision') != result['revision'] or proof.get('passed') is not True or
+                proof.get('scope') != 'disposable-candidate' or
+                not isinstance(proof.get('artifact_digest'), str) or
+                not re.fullmatch(r'sha256:[a-f0-9]{64}', proof['artifact_digest']) or
+                not isinstance(proof.get('deployment_id'), str) or
+                not re.fullmatch(r'[a-f0-9]{64}', proof['deployment_id']) or
+                not isinstance(receipt, dict) or receipt.get('git_revision') != result['revision'] or
+                state.get('receipt') != receipt or
+                not all(isinstance(proof.get(k), str) and re.fullmatch(r'[a-f0-9]{64}', proof[k])
+                        for k in ('checks_digest', 'source_archive_digest', 'scenario_digest'))):
+            raise ValueError('accepted validation receipt unavailable or mismatched')
+        return {'accepted': True, 'stage': state['stage'], 'attempt_id': result['attempt_id'],
+                'revision': result['revision'], 'validation': proof}
     if action == 'mkdir':
         approval.mkdir(mode=0o700)
         return {'approval': str(approval)}
@@ -137,6 +889,11 @@ def main(action, data):
         rel = release()
         if str(rel) != data['release']:
             raise ValueError('deployed release changed since preparation')
+        # Preparation establishes the shared lock so future status requests can
+        # remain read-only even before the first dispatch.
+        try:fd = os.open(ROOT/'operator.lock', os.O_CREAT | os.O_EXCL | os.O_WRONLY | os.O_NOFOLLOW, 0o600)
+        except FileExistsError:pass
+        else:os.close(fd)
         for p in approval.iterdir():
             p.chmod(0o600)
         sys.path.insert(0, str(rel / 'stapled-factory/deployment/nuc'))
@@ -189,17 +946,29 @@ def main(action, data):
             return {'status': 'ABANDONED', 'state': result, 'completed': False, 'artifacts_retained': True}
     if action != 'run':
         raise ValueError('unsupported operation')
-    with (ROOT / 'operator.lock').open('a') as lock:
+    observe_only = data.get('observe_only', False)
+    if type(observe_only) is not bool:
+        raise ValueError('observe_only must be a boolean')
+    if observe_only and not (ROOT/'operator.lock').exists():
+        return {'status': 'unresolved', 'reason': 'operator lock unavailable for read-only observation'}
+    with (observation_lock() if observe_only else (ROOT / 'operator.lock').open('a')) as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         active = ROOT / 'operator-active.json'
         cached = approval / 'result.json'
+        intent = approval / 'dispatch-intent.json'
+        if observe_only and not original_file_exists(intent):
+            return {'status': 'unresolved', 'reason': 'original dispatch intent not established'}
         if cached.exists() and json.loads(cached.read_text()).get('binding_restored'):
             if active.exists():
+                if observe_only:
+                    return {'status': 'unresolved', 'reason': 'restored result has an active marker requiring reconciliation'}
                 service = Path.home() / '.config/systemd/user/factory-endpoint.service'
                 if json.loads(active.read_text())['unit'] != unit or service.read_text() != (approval / 'previous.service').read_text():
                     raise ValueError('stale active marker requires reconciliation')
                 active.unlink()
             return json.loads(cached.read_text())
+        if observe_only and not original_file_exists(active):
+            return {'status': 'unresolved', 'reason': 'original active binding unavailable for read-only observation'}
         if active.exists() and json.loads(active.read_text())['unit'] != unit:
             raise ValueError('another task needs observation; do not rebind')
         plan = json.loads((approval / 'operator.json').read_text())
@@ -222,7 +991,6 @@ def main(action, data):
         desired = '\n'.join('Environment=FACTORY_RUNTIME_CONFIG=' + str(run / 'runtime.json')
                             if x.startswith('Environment=FACTORY_RUNTIME_CONFIG=') else x
                             for x in previous.splitlines()) + '\n'
-        intent = approval / 'dispatch-intent.json'
         # A recorded result survives stopped containers and needs only cleanup.
         completed = json.loads(cached.read_text()) if cached.exists() else None
         if completed is None:
@@ -236,6 +1004,8 @@ def main(action, data):
             else:
                 raise ValueError('endpoint unavailable; binding retained for observation')
             if not intent.exists():
+                if observe_only:
+                    raise ValueError('original dispatch intent disappeared during observation')
                 if state.get('stage') != 'unclaimed':
                     raise ValueError('unit already used')
                 private(intent, {'unit': unit, 'baseline': plan['baseline']})

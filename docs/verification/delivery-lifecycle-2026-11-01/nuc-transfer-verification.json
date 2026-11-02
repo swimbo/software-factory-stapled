@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "real_ssh": true,
+  "real_nuc_openssl_verification": true,
+  "real_transferred_docker_archive": true,
+  "synthetic_workunit": true,
+  "image_loaded": false,
+  "model_calls": 0,
+  "live_runtime_activated": false,
+  "revision": "b5aa1f1a7970b0766fd66245bda7a675a6ab85de",
+  "config_digest": "sha256:9ace8927971666d4f72bc7dd036f5b8f1de868aece2c71ecb07a6da8b6328626",
+  "image_tar_sha256": "71af566a63758eb7528cacf7e0a31dd3b7b44aaf0e3fb32f475a44628094e7ca",
+  "manifest_sha256": "a1fa1bb0302abb2c2bc77f78565cf0fad8ed1e0f709d854d1937f5ac1a5899b2",
+  "private_evidence_sha256": "a29b0b1a87db8092932df744fdbc2eeed4b247e7a57265f29e5b551593692e66",
+  "scope": "Actual SSH and NUC OpenSSL/image-archive verification with a fixture signing key and synthetic WorkUnit; image was not loaded or run."
+}

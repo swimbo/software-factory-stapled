@@ -7,10 +7,12 @@ import json
 import re
 import os
 import subprocess
+import stat
 import tarfile
 import tempfile
 import threading
 import time
+import tomllib
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -77,6 +79,126 @@ def forwarder_handler(transport, transport_lock):
 
 def command(*args, timeout=30):
     return subprocess.check_output(args,text=True,timeout=timeout).strip()
+
+
+def archive_lockfiles(raw, source):
+    # Only tracked regular files in the exact archive become scanner inputs.
+    names = {'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock',
+             'Cargo.lock', 'poetry.lock', 'Pipfile.lock', 'pdm.lock', 'uv.lock',
+             'composer.lock', 'Gemfile.lock', 'gems.locked', 'mix.lock',
+             'pubspec.lock', 'conan.lock', 'packages.lock.json', 'renv.lock',
+             'gradle.lockfile', 'buildscript-gradle.lockfile', 'cabal.project.freeze',
+             'stack.yaml.lock'}
+    found = []
+    with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
+        for member in tar.getmembers():
+            path = Path(member.name)
+            if path.name in names:
+                if path.is_absolute() or '..' in path.parts or not member.isfile():
+                    raise ValueError('unsafe candidate lockfile')
+                found.append(str(source / path))
+    return sorted(found)
+
+
+def archive_dependency_inventory(raw):
+    """Find missing locks, recognizing only explicitly evidenced workspaces.
+
+    A lock's presence or workspace membership does not prove dependency coverage.
+    Unsupported workspace forms remain missing rather than being inferred.
+    """
+    candidates = {
+        'package.json': ('package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'),
+        'Cargo.toml': ('Cargo.lock',),
+        'pyproject.toml': ('uv.lock', 'poetry.lock', 'pdm.lock'),
+        'Pipfile': ('Pipfile.lock',),
+        'requirements.txt': ('uv.lock', 'poetry.lock', 'pdm.lock', 'Pipfile.lock'),
+        'go.mod': ('go.sum',),
+        'composer.json': ('composer.lock',),
+        'Gemfile': ('Gemfile.lock', 'gems.locked'),
+        'pubspec.yaml': ('pubspec.lock',),
+        'mix.exs': ('mix.lock',),
+    }
+    regular = set(); manifests = []; metadata = {}; metadata_bytes = 0
+    with tarfile.open(fileobj=io.BytesIO(raw)) as tar:
+        for member in tar.getmembers():
+            path = Path(member.name)
+            if path.is_absolute() or '..' in path.parts:
+                raise ValueError('unsafe candidate dependency path')
+            if path.name in candidates and not member.isfile():
+                raise ValueError('unsafe candidate dependency manifest')
+            if member.isfile():
+                if str(path) in regular:raise ValueError('duplicate candidate archive path')
+                regular.add(str(path))
+                if path.name in candidates:manifests.append(path)
+                if path.name in ('package.json','package-lock.json','Cargo.toml','Cargo.lock'):
+                    # Bound parsing independently of the overall source archive.
+                    if member.size <= 16 * 1024 * 1024 and metadata_bytes + member.size <= 32 * 1024 * 1024:
+                        metadata[str(path)] = tar.extractfile(member).read()
+                        metadata_bytes += member.size
+
+    def unique(pairs):
+        value = {}
+        for key, item in pairs:
+            if key in value:raise ValueError('duplicate workspace metadata key')
+            value[key] = item
+        return value
+
+    def parsed(path, kind):
+        data = metadata.get(str(path))
+        if data is None:return None
+        try:
+            value = json.loads(data, object_pairs_hook=unique) if kind == 'npm' else tomllib.loads(data.decode('utf-8'))
+        except (ValueError, UnicodeDecodeError):return None
+        return value if isinstance(value, dict) else None
+
+    def literal_workspace_path(value):
+        return (isinstance(value,str) and bool(value) and
+                all(re.fullmatch(r'[A-Za-z0-9_@.-]+',part) and part not in ('.','..') for part in value.split('/')))
+
+    def covered_by_workspace(manifest):
+        kind = 'npm' if manifest.name == 'package.json' else 'cargo' if manifest.name == 'Cargo.toml' else None
+        if kind is None:return False
+        child = parsed(manifest, kind)
+        if child is None:return False
+        for parent in manifest.parent.parents:
+            relative = manifest.parent.relative_to(parent).as_posix()
+            if kind == 'npm':
+                root = parsed(parent/'package.json', kind);lock = parsed(parent/'package-lock.json', kind)
+                if (not root or not lock or not isinstance(root.get('workspaces'), list) or
+                        not all(literal_workspace_path(item) for item in root['workspaces']) or
+                        relative not in root['workspaces']):
+                    continue
+                packages = lock.get('packages');name = child.get('name');version = child.get('version')
+                if (lock.get('lockfileVersion') != 3 or not isinstance(packages, dict) or
+                        not isinstance(name, str) or not re.fullmatch(r'(?:@[a-z0-9._~-]+/)?[a-z0-9._~-]+', name) or
+                        not isinstance(version, str) or not version):continue
+                locked = packages.get(relative);link = packages.get('node_modules/'+name)
+                if (isinstance(locked,dict) and locked.get('version') == version and
+                        isinstance(link,dict) and link.get('link') is True and link.get('resolved') == relative):
+                    return True
+            else:
+                root = parsed(parent/'Cargo.toml', kind);lock = parsed(parent/'Cargo.lock', kind)
+                workspace = root.get('workspace') if root else None
+                if (not isinstance(workspace,dict) or not lock or not isinstance(workspace.get('members'),list) or
+                        not all(literal_workspace_path(item) for item in workspace['members']) or relative not in workspace['members']):
+                    continue
+                excluded = workspace.get('exclude', [])
+                if (not isinstance(excluded,list) or not all(literal_workspace_path(x) for x in excluded) or
+                        relative in excluded):continue
+                package=child.get('package');packages=lock.get('package')
+                if not isinstance(package,dict) or not isinstance(packages,list):continue
+                name,version=package.get('name'),package.get('version')
+                if not isinstance(name,str) or not name or not isinstance(version,str) or not version:continue
+                matches=[p for p in packages if isinstance(p,dict) and p.get('name')==name and p.get('version')==version and 'source' not in p]
+                if lock.get('version') in (3,4) and len(matches)==1:return True
+        return False
+    missing = []
+    for manifest in manifests:
+        if (not any(str(manifest.parent/name) in regular for name in candidates[manifest.name]) and
+                not covered_by_workspace(manifest)):
+            missing.append(str(manifest))
+    return {'manifests': sorted(map(str, manifests)), 'missing_locks': sorted(missing),
+            'coverage': 'incomplete'}
 
 
 def record(path, value):
@@ -316,13 +438,25 @@ def candidate_lifecycle(evidence_dir, image):
 class CandidateTransport:
     def __init__(self, container):
         self.container = container
+        self.session = None
+        self.closed = False
 
     def exchange(self, request):
-        from validation_transport import capture
-        output = capture(
-            ['docker', 'exec', '-i', self.container, 'python3', '-u', '-c', CLIENT],
-            (json.dumps(request) + '\n').encode(), timeout=15)
-        return json.loads(output)
+        from validation_transport import Session
+        if self.closed:
+            raise ValueError('validation transport closed; original request must not be resent')
+        if self.session is None:
+            self.session = Session(['docker', 'exec', '-i', self.container, 'python3', '-u', '-c', CLIENT])
+        try:
+            return json.loads(self.session.exchange((json.dumps(request) + '\n').encode(), timeout=15))
+        except BaseException:
+            self.close()
+            raise
+
+    def close(self):
+        self.closed = True
+        if self.session is not None:
+            self.session.close()
 
 
 @contextmanager
@@ -338,6 +472,33 @@ def candidate_http_server(transport, transport_lock):
             server.shutdown()
         server.server_close()
 
+def verify_signed_image_archive(binding, path):
+    """Bind the retained v2 image archive to the signed config without loading it."""
+    if binding.get('schema') is None:
+        return  # Retained legacy sessions preserve their original contract.
+    if binding.get('schema') != 'factory.build.v2':
+        raise ValueError('unsupported build manifest schema')
+    fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        if not stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
+            raise ValueError('unsafe signed image archive')
+        if hashlib.file_digest(stream, 'sha256').hexdigest() != binding.get('image_tar_sha256'):
+            raise ValueError('signed image archive mismatch')
+        stream.seek(0)
+        with tarfile.open(fileobj=stream, mode='r:') as tar:
+            def member(name, limit):
+                found = [entry for entry in tar.getmembers() if entry.name == name]
+                if len(found) != 1 or not found[0].isfile() or found[0].size > limit:
+                    raise ValueError('unsafe signed image metadata')
+                return tar.extractfile(found[0]).read()
+            images = json.loads(member('manifest.json', 1024 * 1024))
+            if not isinstance(images, list) or len(images) != 1 or not isinstance(images[0], dict) or not isinstance(images[0].get('Config'), str):
+                raise ValueError('ambiguous signed image')
+            config = member(images[0]['Config'], 8 * 1024 * 1024)
+            if 'sha256:' + hashlib.sha256(config).hexdigest() != binding.get('config_digest'):
+                raise ValueError('signed archive configuration mismatch')
+
+
 def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,manifest,signature,public_key, *, evidence_dir=None):
     if not re.fullmatch(r'[a-f0-9]{40}',revision):raise ValueError('exact revision required')
     if not re.fullmatch(r'sha256:[a-f0-9]{64}',image):raise ValueError('immutable local image required')
@@ -351,8 +512,16 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
     if Path(diff_file).read_bytes().rstrip(b'\n')!=diff.rstrip(b'\n'):raise ValueError('diff differs from selected commits')
     subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public_key),'-rawin','-in',str(manifest),'-sigfile',str(signature)],check=True,capture_output=True,timeout=15)
     binding=json.loads(Path(manifest).read_text())
+    verify_signed_image_archive(binding, Path(manifest).with_name('image.tar'))
     if hashlib.sha256(Path(manifest).with_name('Dockerfile').read_bytes()).hexdigest()!=binding['dockerfile_sha256']:raise ValueError('signed Dockerfile mismatch')
     if binding['revision']!=revision or binding['baseline']!=baseline or binding['archive_sha256']!=digest or binding['diff_sha256']!=hashlib.sha256(diff).hexdigest():raise ValueError('signed build source mismatch')
+    scenario_digest=hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()
+    metadata=json.loads(command('docker','image','inspect',image))[0]
+    labels=metadata['Config']['Labels'] or {}
+    if labels.get('factory.git-revision')!=revision or labels.get('factory.source-archive-sha256')!=digest:
+        raise ValueError('prebuilt source binding mismatch')
+    if evidence_dir is None:
+        raise ValueError('durable validation evidence directory required')
     # Docker save gives the exact config bytes underlying the image selected by
     # the trusted daemon; config IDs and OCI manifest IDs differ across engines.
     with tempfile.TemporaryDirectory(prefix='image-binding-') as tmp:
@@ -363,26 +532,29 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
             if len(entries)!=1:raise ValueError('ambiguous saved image')
             config=tar.extractfile(entries[0]['Config']).read()
         if 'sha256:'+hashlib.sha256(config).hexdigest()!=binding['config_digest']:raise ValueError('signed build artifact mismatch')
-    scenario_digest=hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()
-    metadata=json.loads(command('docker','image','inspect',image))[0]
-    labels=metadata['Config']['Labels'] or {}
-    if labels.get('factory.git-revision')!=revision or labels.get('factory.source-archive-sha256')!=digest:
-        raise ValueError('prebuilt source binding mismatch')
-    if evidence_dir is None:
-        raise ValueError('durable validation evidence directory required')
-    with tempfile.TemporaryDirectory(prefix='prebuilt-validation-') as temp:
-        source=Path(temp)/'source';source.mkdir()
-        with tarfile.open(fileobj=io.BytesIO(raw)) as tar:tar.extractall(source,filter='data')
-        trusted_diff=Path(temp)/'trusted.diff';trusted_diff.write_bytes(diff)
-        security=json.loads(command('python3',str(ROOT/'security/pipeline_cli.py'),'--diff-file',str(trusted_diff),'--target',str(source),timeout=180))
-        with candidate_lifecycle(evidence_dir, image) as container:
-            def identity():
-                state=json.loads(command('docker','inspect',container))[0]
-                if state['Id']!=container or state['Image']!=metadata['Id'] or not state['State']['Running'] or state['HostConfig']['NetworkMode']!='none' or state.get('Mounts'):
-                    raise ValueError('candidate identity/isolation changed')
-            transport=CandidateTransport(container)
-            transport_lock=threading.Lock()
-            identity();time.sleep(.3)
+        with tempfile.TemporaryDirectory(prefix='prebuilt-validation-') as temp:
+            source=Path(temp)/'source';source.mkdir()
+            with tarfile.open(fileobj=io.BytesIO(raw)) as tar:tar.extractall(source,filter='data')
+            trusted_diff=Path(temp)/'trusted.diff';trusted_diff.write_bytes(diff)
+            lockfiles = archive_lockfiles(raw, source)
+            security_args = ['python3', str(ROOT/'security/pipeline_cli.py'), '--diff-file', str(trusted_diff),
+                             '--target', str(source), '--image-archive', str(saved)]
+            for lockfile in lockfiles:
+                security_args.extend(['--lockfile', lockfile])
+            security=json.loads(command(*security_args,timeout=360))
+            inventory = archive_dependency_inventory(raw)
+            security['dependency_inventory'] = inventory
+            if inventory['missing_locks'] and security['verdict'] == 'pass':
+                security['verdict'] = 'needs_review'
+    with candidate_lifecycle(evidence_dir, image) as container:
+        def identity():
+            state=json.loads(command('docker','inspect',container))[0]
+            if state['Id']!=container or state['Image']!=metadata['Id'] or not state['State']['Running'] or state['HostConfig']['NetworkMode']!='none' or state.get('Mounts'):
+                raise ValueError('candidate identity/isolation changed')
+        transport=CandidateTransport(container)
+        transport_lock=threading.Lock()
+        identity();time.sleep(.3)
+        try:
             with candidate_http_server(transport, transport_lock) as server:
                 target='http://127.0.0.1:'+str(server.server_port)
                 wall=json.loads(command('python3',str(ROOT/'wall/evaluator/cli.py'),'--target',target,'--scenarios',str(scenarios),'--runs','3',timeout=180))
@@ -390,5 +562,7 @@ def validate_prebuilt(archive,revision,image,scenarios,diff_file,repo,baseline,m
                 if hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()!=scenario_digest:raise ValueError('scenario set changed')
                 result = dict(scope='nuc-disposable-candidate',git_revision=revision,artifact_digest=metadata['Id'],deployment_id=container,source_archive_digest=digest,scenario_digest=scenario_digest,security=security,wall=wall,passed=security['verdict']=='pass' and wall['verdict']['passed'])
                 record(Path(evidence_dir) / 'checks.json', result)
-        record(Path(evidence_dir) / 'result.json', result)
-        return result
+        finally:
+            transport.close()
+    record(Path(evidence_dir) / 'result.json', result)
+    return result

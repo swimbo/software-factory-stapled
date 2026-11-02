@@ -1,0 +1,14 @@
+{
+  "passed": true,
+  "real_ssh_scp": true,
+  "private_permissions_checked": true,
+  "sha256": "935c19514a9809935b78a08bb280ec0231236cec5ddf7cebbb1f2446b77b007f",
+  "synthetic_workunit": true,
+  "fixture_holdout": true,
+  "model_calls": 0,
+  "live_runtime_activated": false,
+  "observe_unchanged": true,
+  "repeat_rejected": true,
+  "private_evidence_sha256": "34c6c24a6f339ec319294cdf25979c5a61e5ce543089eb8729f07e8cfd36f54d",
+  "scope": "Synthetic holdout and WorkUnit transferred over actual SSH/SCP to an isolated private NUC fixture; no evaluation or live runtime activation."
+}

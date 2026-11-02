@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "real_ssh": true,
+  "real_nuc_git_bundle_clone": true,
+  "source_archive_and_diff_verified": true,
+  "loaded_image_bound": true,
+  "synthetic_workunit": true,
+  "model_calls": 0,
+  "live_runtime_activated": false,
+  "revision": "b5aa1f1a7970b0766fd66245bda7a675a6ab85de",
+  "image_id": "sha256:4a1f146a14e254df4c8a25272a357a30ab56af817287576afcb025c2deea728f",
+  "repeat_rejected": true,
+  "observe_unchanged": true,
+  "scope": "Actual fixture source preparation on NUC; synthetic WorkUnit; no target was started.",
+  "private_evidence_sha256": "11499886e082f2a103488cb59540c3967c5a29d578a0e7523acab0209f3b4a81"
+}

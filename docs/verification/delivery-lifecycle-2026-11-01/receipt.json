@@ -1,0 +1,30 @@
+{
+  "source_revision": "dcb56ec9eb27e294fd068efba4a101e5771ee1eb",
+  "helper_sha256": "3bd85d7058fd002928d2b96f2e9805dcdc58624cb09daffa2e7bea3dbc0406d3",
+  "source_archive_sha256": "6857a7b5388daa03b660af2ead78502ca8cc0523dbbd05f4168a9be2808e519c",
+  "local_ci_sha256": "70fbf6a497c3b13c01a7bc711d32c3aa9658854b5ca7786247abc2226ac437f1",
+  "result": {
+    "late_start_acknowledged": true,
+    "late_start_after_expiry_contained_without_observer": true,
+    "model_calls": 0,
+    "normal_transport_proved": true,
+    "original_containers_retained": true,
+    "passed": true,
+    "prior_role_container_lifecycles_unchanged": 360,
+    "prior_volume_identities_unchanged": 732,
+    "profile_promotion": false,
+    "runtime_activated": false,
+    "service_bindings_pids_and_guarded_files_unchanged": true,
+    "tracked_prior_states_unchanged": 189,
+    "uncertain_enforcer_retained": false
+  },
+  "private_evidence_sha256": {
+    "before.json": "b5623ee7bdde8ffa8ccd8e53e38e34bd755794fcce2f790afd2613c81636a726",
+    "after.json": "b5623ee7bdde8ffa8ccd8e53e38e34bd755794fcce2f790afd2613c81636a726",
+    "result.json": "1bd0fcf041c1fa769f737568422c4c86979e75d13b1ac26c754bbb269e5d4cd6",
+    "resume-intent.json": "dd3f4cc1d4033930bc2a340500eb052cf3122d56b817e4d6654cc29d21d3768e",
+    "independent-kill-events.json": "852f05e2a3366c1907c985d520dca0f3b5683f4f38289e90d8fee00f14232e7e",
+    "late-contained-without-observer.json": "62b524f7ef9a9b08d3bb8b5b2ce9f45ada2066a18717b85cd5a59060ebaad0da"
+  },
+  "scope": "Unpaid actual Docker/systemd original-only containment on an operator-trusted host. Docker kill events do not identify the calling client; attribution relies on the verified enforcer and sole-participant probe protocol. Does not establish full wall/security, signed receipt acceptance, paid dogfood or production readiness."
+}

@@ -14,7 +14,7 @@ import { BuildEvidence, Claim, Receipt, Stage, WorkUnitState } from "./types.js"
 import { conversationId } from "./build.js";
 import { commitAbandonment, verifyAbandonment, type AbandonmentEnvelope } from "./abandonment.js";
 
-import { verifyValidation, type SignedValidation } from "./validation.js";
+import { verifyValidation, verifyValidationBinding, type SignedValidation } from "./validation.js";
 
 const CLAIM_LEASE_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -37,6 +37,7 @@ export const workUnit = restate.object({
         return false; // held by another worker with a live lease
       }
       s.claim = { worker_id: workerId, lease_until_ms: now + CLAIM_LEASE_MS };
+      s.validation_contract = 'manifest-v2';
       s.stage = "claimed";
       ctx.set(KEY, s);
       return true;
@@ -139,6 +140,26 @@ export const workUnit = restate.object({
       return true;
     },
 
+    registerValidationBinding: async (ctx: restate.ObjectContext, envelope: SignedValidation): Promise<boolean> => {
+      const binding = await ctx.run(() => {
+        try { return verifyValidationBinding(envelope); }
+        catch { throw new restate.TerminalError('Invalid signed validation binding'); }
+      });
+      const s = (await ctx.get<WorkUnitState>(KEY)) ?? empty();
+      const selected = s.successor ?? s.build;
+      if (s.validation_contract !== 'manifest-v2' || s.stage !== 'needs_validation' || s.validation ||
+          !selected || selected.status !== 'completed' || binding.unit_id !== ctx.key ||
+          binding.attempt_id !== selected.attempt_id || binding.git_revision !== selected.git_revision) return false;
+      if (s.validation_binding) {
+        const previous = s.validation_binding;
+        return Object.keys(previous).length === Object.keys(binding).length &&
+          Object.keys(binding).every(key => previous[key as keyof typeof previous] === binding[key as keyof typeof binding]);
+      }
+      s.validation_binding = binding;
+      ctx.set(KEY, s);
+      return true;
+    },
+
     acceptValidation: async (ctx: restate.ObjectContext, envelope: SignedValidation): Promise<boolean> => {
       // Verification is journaled so secret rotation cannot change replay results.
       const evidence = await ctx.run(() => {
@@ -148,6 +169,14 @@ export const workUnit = restate.object({
       const s = (await ctx.get<WorkUnitState>(KEY)) ?? empty();
       const selected = s.successor ?? s.build;
       if (s.stage !== "needs_validation" || s.validation || !selected || selected.status !== "completed" ||
+          (s.validation_contract !== undefined && (s.validation_contract !== 'manifest-v2' ||
+            !s.validation_binding || evidence.receipt === undefined ||
+            evidence.build_manifest_digest !== s.validation_binding.build_manifest_digest ||
+            evidence.source_archive_digest !== s.validation_binding.source_archive_digest ||
+            evidence.artifact_digest !== s.validation_binding.artifact_digest ||
+            evidence.scenario_digest !== s.validation_binding.scenario_digest ||
+            evidence.attempt_id !== s.validation_binding.attempt_id || evidence.unit_id !== s.validation_binding.unit_id ||
+            evidence.git_revision !== s.validation_binding.git_revision)) ||
           evidence.unit_id !== ctx.key || evidence.attempt_id !== selected.attempt_id ||
           evidence.git_revision !== selected.git_revision) return false;
       s.validation = evidence;
@@ -176,6 +205,10 @@ export const workUnit = restate.object({
       if (!valid) throw new restate.TerminalError("Invalid stage transition");
       s.stage = stage;
       ctx.set(KEY, s);
+    },
+
+    getValidationCapabilities: async (_ctx: restate.ObjectContext): Promise<{receipt_storage: string}> => {
+      return {receipt_storage: 'atomic-v1'};
     },
 
     getState: async (ctx: restate.ObjectContext): Promise<WorkUnitState> => {

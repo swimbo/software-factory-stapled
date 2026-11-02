@@ -11,10 +11,13 @@ Verdicts:
   "needs_review" — security-relevant or medium findings → human escalation.
   "fail"         — critical/high findings → block merge.
 """
+import hashlib
 import json
 import re
 import shutil
 import subprocess
+import tempfile
+import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
 from tempfile import NamedTemporaryFile
@@ -35,12 +38,16 @@ class ScanReport:
     security_relevant: bool = False
     verdict: str = "pass"
     engines: dict = field(default_factory=dict)  # category -> "semgrep" | "regex" | ...
+    dependency_inventories: list = field(default_factory=list)
+    inventory_reconciliation: dict = field(default_factory=dict)
 
     def to_dict(self) -> dict:
         return {
             "verdict": self.verdict,
             "security_relevant": self.security_relevant,
             "engines": self.engines,
+            "dependency_inventories": self.dependency_inventories,
+            "inventory_reconciliation": self.inventory_reconciliation,
             "findings": [f.__dict__ for f in self.findings],
         }
 
@@ -64,7 +71,8 @@ def run_semgrep(target: str, ruleset: str = "auto") -> list[Finding] | None:
     if not _which("semgrep"):
         return None
     r = subprocess.run(
-        ["semgrep", "--config", ruleset, "--json", "--quiet", target],
+        ["semgrep", "--config", ruleset, "--json", "--quiet", "--disable-nosem",
+         "--no-git-ignore", "--x-ignore-semgrepignore-files", "--max-target-bytes", "0", target],
         capture_output=True, text=True,
     )
     # semgrep exit codes: 0 = clean, 1 = findings, >=2 = error. But a crash
@@ -76,6 +84,8 @@ def run_semgrep(target: str, ruleset: str = "auto") -> list[Finding] | None:
         data = json.loads(r.stdout)
     except json.JSONDecodeError:
         return None
+    if not isinstance(data, dict) or data.get('errors'):
+        raise ValueError('Semgrep scan incomplete')
     out = []
     for res in data.get("results", []):
         extra = res.get("extra", {})
@@ -102,16 +112,24 @@ def run_gitleaks(target: str) -> list[Finding] | None:
         report_path = tmp.name
     original_error = None
     try:
-        subprocess.run(
-            ["gitleaks", "dir", "--report-format", "json", "--report-path", report_path, target],
-            capture_output=True, text=True,
-        )
+        with tempfile.TemporaryDirectory(prefix='factory-gitleaks-policy-') as policy:
+            config = Path(policy) / 'config.toml'
+            config.write_text('[extend]\nuseDefault = true\n')
+            result = subprocess.run(
+                ["gitleaks", "dir", "--config", str(config), "--gitleaks-ignore-path", policy,
+                 "--ignore-gitleaks-allow", "--report-format", "json", "--report-path", report_path, target],
+                capture_output=True, text=True, timeout=180,
+            )
+        if result.returncode not in (0, 1):
+            raise ValueError('Gitleaks scan failed')
         try:
             data = json.loads(Path(report_path).read_text())
         except (json.JSONDecodeError, OSError):
             return None
         # Gitleaks v8 emits a top-level array; older versions nest under "Findings".
         raw = data if isinstance(data, list) else (data.get("Findings") or data.get("Leaks") or [])
+        if result.returncode == 1 and not raw:
+            raise ValueError('Gitleaks reported findings without a usable report')
         out = []
         for f in raw:
             out.append(Finding(
@@ -136,17 +154,103 @@ def run_gitleaks(target: str) -> list[Finding] | None:
 
 def run_osv_scanner(lockfile: str) -> list[Finding] | None:
     """Run OSV-Scanner (dependency vulnerabilities). Returns None if absent."""
+    return _run_osv(['scan', '-L', lockfile], lockfile=lockfile)
+
+
+def run_osv_image(archive: str) -> list[Finding] | None:
+    """Scan the saved, already identity-verified image without executing it."""
+    return _run_osv(['scan', 'image', '--archive', archive])
+
+
+def _verify_locked_inventory(lockfile: str, data: dict) -> None:
+    """Reject missing scanner entries for comparable npm and Cargo lockfiles."""
+    path = Path(lockfile); expected = set()
+    if path.name == 'package-lock.json':
+        lock = json.loads(path.read_text())
+        packages = lock.get('packages') if isinstance(lock, dict) else None
+        if not isinstance(packages, dict):return  # Older formats remain incomplete.
+        for location, package in packages.items():
+            if not isinstance(location, str) or 'node_modules/' not in location:continue
+            if not isinstance(package, dict) or package.get('link'):continue
+            name = package.get('name') or location.rsplit('node_modules/', 1)[-1]
+            version = package.get('version')
+            if not isinstance(name, str) or not name or not isinstance(version, str) or not version:
+                raise ValueError('unresolved locked package')
+            expected.add((name, version))
+    elif path.name == 'Cargo.lock':
+        lock = tomllib.loads(path.read_text())
+        for package in lock.get('package', []):
+            if str(package.get('source', '')).startswith('registry+'):
+                expected.add((package['name'], package['version']))
+    else:
+        return  # The scanner runs, but coverage of other formats remains incomplete.
+    actual = set()
+    for result in data['results']:
+        for entry in result.get('packages', []):
+            package = entry.get('package', {})
+            if isinstance(package.get('name'), str) and isinstance(package.get('version'), str):
+                actual.add((package['name'], package['version']))
+    if not expected.issubset(actual):
+        raise ValueError('OSV scanner omitted locked packages')
+
+
+class OSVFindings(list):
+    def __init__(self, findings, data):
+        super().__init__(findings)
+        packages = set()
+        for result in data['results']:
+            for entry in result.get('packages', []):
+                package = entry.get('package', {})
+                fields = [package.get(k) for k in ('ecosystem', 'name', 'version', 'purl')]
+                if any(value is not None and not isinstance(value, str) for value in fields):
+                    raise ValueError('OSV scan returned invalid package identity')
+                identity = tuple(value or '' for value in fields[:3])
+                purl_hash = hashlib.sha256((fields[3] or '').encode()).hexdigest()
+                packages.add((*identity, purl_hash))
+        encoded = json.dumps(sorted(packages), separators=(',', ':'), ensure_ascii=True).encode()
+        self.inventory = {'package_count': len(packages), 'packages': [list(item) for item in sorted(packages)],
+                          'unversioned_count': sum(not item[1] or not item[2] for item in packages),
+                          'sha256': hashlib.sha256(encoded).hexdigest()}
+
+
+def reconcile_inventories(inventories):
+    """Report differences; this comparison alone never establishes completeness."""
+    locked, image = set(), set()
+    for inventory in inventories:
+        target = locked if inventory['kind'] == 'lockfile' else image if inventory['kind'] == 'image' else None
+        if target is not None:
+            target.update(tuple(item[:3]) for item in inventory['packages'])
+    ecosystems = {item[0] for item in locked}
+    comparable = {item for item in image if item[0] in ecosystems}
+    return {'coverage': 'incomplete',
+            'comparison_scope': 'ecosystem, name and version only; package origins are not compared',
+            'image_scanned': any(item['kind'] == 'image' for item in inventories),
+            'lockfiles_scanned': sum(item['kind'] == 'lockfile' for item in inventories),
+            'lock_only': [list(item) for item in sorted(locked - comparable)],
+            'image_only': [list(item) for item in sorted(comparable - locked)],
+            'image_ecosystems_without_locks': sorted({item[0] for item in image if item[0] not in ecosystems})}
+
+
+def _run_osv(target_args: list[str], *, lockfile: str | None = None) -> list[Finding] | None:
     if not _which("osv-scanner"):
         return None
-    # v2 syntax: `osv-scanner scan <lockfile> --format json` (the old --lockfile flag is gone).
-    r = subprocess.run(
-        ["osv-scanner", "scan", lockfile, "--format", "json"],
-        capture_output=True, text=True,
-    )
+    # A candidate-controlled osv-scanner.toml must not suppress findings.
+    with NamedTemporaryFile(suffix='.toml') as config:
+        config.write(b'# operator-controlled empty configuration\n');config.flush()
+        r = subprocess.run(
+            ["osv-scanner", *target_args, "--format", "json", "--config", config.name, "--all-packages"],
+            capture_output=True, text=True, timeout=180,
+        )
+    if r.returncode not in (0, 1):
+        raise ValueError('OSV scan failed or found no packages')
     try:
-        data = json.loads(r.stdout or "{}")
-    except json.JSONDecodeError:
-        return []
+        data = json.loads(r.stdout)
+    except (json.JSONDecodeError, TypeError) as error:
+        raise ValueError('OSV scan returned invalid JSON') from error
+    if not isinstance(data, dict) or not isinstance(data.get('results'), list):
+        raise ValueError('OSV scan returned invalid results')
+    if lockfile:
+        _verify_locked_inventory(lockfile, data)
     out = []
     for res in data.get("results", []):
         for pkg in res.get("packages", []):
@@ -159,7 +263,9 @@ def run_osv_scanner(lockfile: str) -> list[Finding] | None:
                     location=str(name),
                     message=vuln.get("summary", vuln.get("id", "")),
                 ))
-    return out
+    if r.returncode == 1 and not out:
+        raise ValueError('OSV scan reported findings without parseable vulnerabilities')
+    return OSVFindings(out, data)
 
 
 def run_cosign_verify(image: str, identity: str) -> list[Finding] | None:
@@ -254,11 +360,12 @@ def _verdict(findings: list[Finding], security_relevant: bool) -> str:
     return "pass"
 
 
-def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None = None, lockfile: str | None = None) -> ScanReport:
+def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None = None, lockfile: str | None = None, lockfiles: list[str] | None = None, image_archive: str | None = None) -> ScanReport:
     """Run the pipeline. Uses real engines when installed, regex fallback otherwise."""
     paths = paths or []
     findings: list[Finding] = []
     engines: dict = {}
+    dependency_inventories = []
 
     # SAST
     semgrep_findings = run_semgrep(target) if target else None
@@ -279,12 +386,34 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
         engines["secret"] = "regex-fallback"
 
     # Dependencies
-    if lockfile and _which("osv-scanner"):
-        findings += run_osv_scanner(lockfile) or []
-        engines["dependency"] = "osv-scanner"
+    if lockfile and lockfiles is not None:
+        raise ValueError('choose one lockfile input form')
+    selected_lockfiles = [lockfile] if lockfile else (lockfiles or [])
+    if selected_lockfiles and _which("osv-scanner"):
+        for selected in selected_lockfiles:
+            dependency_findings = run_osv_scanner(selected)
+            if dependency_findings is None:
+                raise ValueError('OSV scanner became unavailable')
+            findings += dependency_findings
+            if hasattr(dependency_findings, 'inventory'):
+                with Path(selected).open('rb') as stream:source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                dependency_inventories.append({'kind': 'lockfile', 'source_sha256': source_digest, **dependency_findings.inventory})
+        # A selected lockfile alone cannot prove every dependency is represented.
+        engines["dependency"] = "osv-scanner-incomplete"
     else:
         findings += _regex_dependencies(diff_text)
-        engines["dependency"] = "regex-fallback" if lockfile else "manifest-flag"
+        engines["dependency"] = "regex-fallback" if selected_lockfiles else "manifest-flag"
+
+    if image_archive:
+        image_findings = run_osv_image(image_archive)
+        if image_findings is None:
+            engines['image_dependency'] = 'unavailable'
+        else:
+            findings += image_findings
+            engines['image_dependency'] = 'osv-scanner-image-incomplete'
+            if hasattr(image_findings, 'inventory'):
+                with Path(image_archive).open('rb') as stream:source_digest = hashlib.file_digest(stream, 'sha256').hexdigest()
+                dependency_inventories.append({'kind': 'image', 'source_sha256': source_digest, **image_findings.inventory})
 
     security_relevant = classify_security_relevance(paths, diff_text)
     return ScanReport(
@@ -292,4 +421,6 @@ def scan(diff_text: str, paths: list[str] | None = None, *, target: str | None =
         security_relevant=security_relevant,
         verdict=_verdict(findings, security_relevant),
         engines=engines,
+        dependency_inventories=dependency_inventories,
+        inventory_reconciliation=reconcile_inventories(dependency_inventories),
     )

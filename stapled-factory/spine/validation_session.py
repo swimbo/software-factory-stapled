@@ -25,8 +25,10 @@ def read(path):
 def validate_binding(binding):
     fields = {'unit_id', 'attempt_id', 'git_revision', 'baseline', 'artifact_digest',
               'source_archive_digest', 'scenario_digest', 'build_manifest_digest'}
-    if not isinstance(binding, dict) or set(binding) != fields:
+    if not isinstance(binding, dict) or set(binding) not in (fields, fields | {'receipt_version'}):
         raise ValueError('complete immutable validation binding required')
+    if 'receipt_version' in binding and (type(binding['receipt_version']) is not int or binding['receipt_version'] != 2):
+        raise ValueError('unsupported validation receipt version')
     if not isinstance(binding['unit_id'], str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,79}', binding['unit_id']):
         raise ValueError('invalid validation unit')
     if binding['attempt_id'] not in (binding['unit_id'] + ':0', binding['unit_id'] + ':0:successor'):
@@ -56,12 +58,20 @@ def evidence(result, binding):
     passed = result.get('security', {}).get('verdict') == 'pass' and result.get('wall', {}).get('verdict', {}).get('passed') is True
     if type(result.get('passed')) is not bool or result['passed'] != passed:
         raise ValueError('candidate verdict differs from security/wall checks')
+    if binding.get('receipt_version') == 2 and passed:
+        engines = result['security'].get('engines')
+        if (not isinstance(engines, dict) or not engines or
+                any(not isinstance(name, str) or not name.strip() or
+                    not isinstance(engine, str) or not engine.strip() for name, engine in engines.items())):
+            raise ValueError('manifest-bound validation requires security engine evidence')
     proof = dict(unit_id=binding['unit_id'], attempt_id=binding['attempt_id'],
                 git_revision=binding['git_revision'], artifact_digest=binding['artifact_digest'],
                 deployment_id=result['deployment_id'], scenario_digest=binding['scenario_digest'],
                 source_archive_digest=binding['source_archive_digest'],
                 checks_digest=hashlib.sha256(canonical(result).encode()).hexdigest(),
                 scope='disposable-candidate', security_engines=result['security']['engines'], passed=passed)
+    if binding.get('receipt_version') == 2:
+        proof['build_manifest_digest'] = binding['build_manifest_digest']
     if passed:
         verdict = result['wall']['verdict']
         rate = verdict.get('aggregate_pass_rate')
@@ -72,6 +82,15 @@ def evidence(result, binding):
         if any(type(usage.get(name)) is not int or not 0 <= usage[name] <= 2**53-1
                for name in ('tokens_in', 'tokens_out', 'requests', 'retries', 'wall_clock_ms')):
             raise ValueError('complete wall usage receipt required')
+        scenarios = verdict.get('per_scenario')
+        if (not isinstance(scenarios, dict) or not scenarios or
+                any(not isinstance(name, str) or not name or type(ok) is not bool for name, ok in scenarios.items()) or
+                usage['requests'] < 3 * len(scenarios)):
+            raise ValueError('passing wall receipt must cover every scenario run')
+        if not all(scenarios.values()):
+            raise ValueError('passing wall receipt requires every scenario quorum')
+        if rate != sum(scenarios.values()) / len(scenarios):
+            raise ValueError('wall aggregate differs from scenario results')
         cost = usage.get('cost_estimate_usd')
         if (not isinstance(usage.get('tier'), str) or
                 usage.get('pricing_mode') not in ('subscription', 'metered') or
@@ -87,13 +106,15 @@ def evidence(result, binding):
     return proof
 
 
-def validate_session(directory, binding, read_state, evaluate, submit, key, *, observe_only=False):
+def validate_session(directory, binding, read_state, evaluate, submit, key, *, bind=None, observe_only=False, resume_only=False, resume_unstarted=False):
     """Persist checks and envelope before one signed acceptance submission.
 
     Readback can prove a lost response succeeded. An unresolved submission or
     interrupted evaluation stays attached to its original intent; observation
     cannot create another target, submit another acceptance, or invoke a model.
     """
+    if observe_only and resume_only or resume_unstarted and not resume_only:
+        raise ValueError('observation and continuation are mutually exclusive')
     validate_binding(binding)
     if not isinstance(key, bytes) or not 32 <= len(key) <= 4096:
         raise ValueError('bounded validation authority key required')
@@ -112,18 +133,55 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
         state = read_state()
         selected(state, binding)
         if not original:
-            if observe_only:
+            if observe_only or resume_only and not resume_unstarted:
                 raise ValueError('no original validation to observe')
+            if resume_unstarted and any(os.path.lexists(root / name) for name in
+                                        ('target', 'checks.json', 'envelope.json', 'submission.json', 'accepted.json')):
+                raise ValueError('original target exists without journal; do not recreate')
             if state['stage'] != 'needs_validation' or state.get('validation'):
                 raise ValueError('selected build already has different validation authority')
             record(intent, binding)
+        contract = state.get('validation_contract')
+        if contract is not None:
+            if contract != 'manifest-v2' or binding.get('receipt_version') != 2:
+                raise ValueError('selected build requires manifest-bound validation')
+            expected_binding = {name: binding[name] for name in (
+                'unit_id','attempt_id','git_revision','baseline','artifact_digest',
+                'source_archive_digest','scenario_digest','build_manifest_digest')}
+            expected_binding['kind'] = 'validation-binding-v1'
+            actual = state.get('validation_binding')
+            if actual is not None and actual != expected_binding:
+                raise ValueError('original validation binding differs from WorkUnit')
+            if actual is None:
+                marker = root/'binding-submission.json'
+                if marker.exists() or observe_only or state['stage'] != 'needs_validation' or bind is None:
+                    raise ValueError('original validation binding unresolved; never resend')
+                payload = canonical(expected_binding)
+                envelope = {'payload':payload,'signature':hmac.new(key,payload.encode(),hashlib.sha256).hexdigest()}
+                record(marker, {'envelope_digest':hashlib.sha256(canonical(envelope).encode()).hexdigest()})
+                try:bind(envelope)
+                except (OSError,TimeoutError):pass
+                state = read_state();selected(state,binding)
+                if state.get('validation_binding') != expected_binding:
+                    raise ValueError('original validation binding unresolved; never resend')
         checks_path = root / 'checks.json'
         if not checks_path.exists():
-            if original or observe_only:
+            retained = root / 'target' / 'result.json'
+            if resume_only and original and retained.exists():
+                result = read(retained)
+                evidence(result, binding)
+                record(checks_path, result)
+            elif resume_unstarted and not any(os.path.lexists(root / name) for name in
+                                               ('target', 'envelope.json', 'submission.json', 'accepted.json')):
+                result = evaluate()
+                evidence(result, binding)
+                record(checks_path, result)
+            elif original or observe_only or resume_only and not resume_unstarted:
                 raise ValueError('original evaluation incomplete; inspect retained target, never recreate')
-            result = evaluate()
-            evidence(result, binding)
-            record(checks_path, result)
+            else:
+                result = evaluate()
+                evidence(result, binding)
+                record(checks_path, result)
         result = read(checks_path)
         proof = evidence(result, binding)
         if not proof['passed']:
@@ -146,7 +204,7 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
         def accepted(current):
             selected(current, binding)
             return (current.get('stage') in ('validated', 'gated', 'merged', 'deployed') and
-                    current.get('validation') == proof)
+                    current.get('validation') == proof and current.get('receipt') == proof['receipt'])
 
         submission = root / 'submission.json'
         envelope_digest = hashlib.sha256(canonical(envelope).encode()).hexdigest()

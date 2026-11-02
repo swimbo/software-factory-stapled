@@ -1,7 +1,7 @@
 """Candidate HTTP inputs must not be changed into misleading wall results."""
 import http.client
 import importlib.util
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer, ThreadingHTTPServer
 from pathlib import Path
 import subprocess
 import sys
@@ -15,6 +15,90 @@ spec = importlib.util.spec_from_file_location(
     'prebuilt_transport', Path(__file__).resolve().parents[1] / 'prebuilt_validation.py')
 m = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(m)
+
+
+def test_archive_lockfiles_are_discovered_and_symlink_lockfiles_rejected(tmp_path):
+    import io
+    import tarfile
+    def archive(link=False):
+        data = io.BytesIO()
+        with tarfile.open(fileobj=data, mode='w') as tar:
+            for name in ('web/package-lock.json', 'backend/Cargo.lock', 'README.md'):
+                entry = tarfile.TarInfo(name)
+                if link and name.endswith('Cargo.lock'):
+                    entry.type = tarfile.SYMTYPE;entry.linkname = '../README.md';tar.addfile(entry)
+                else:
+                    entry.size = 2;tar.addfile(entry, io.BytesIO(b'{}'))
+        return data.getvalue()
+    assert m.archive_lockfiles(archive(), tmp_path) == [str(tmp_path / 'backend/Cargo.lock'),
+                                                         str(tmp_path / 'web/package-lock.json')]
+    with pytest.raises(ValueError, match='lockfile'):
+        m.archive_lockfiles(archive(True), tmp_path)
+
+
+def test_source_inventory_reports_manifests_without_matching_locks():
+    import io
+    import tarfile
+    data = io.BytesIO()
+    with tarfile.open(fileobj=data, mode='w') as tar:
+        for name in ('frontend/package.json', 'agents/package.json', 'frontend/package-lock.json',
+                     'backend/Cargo.toml', 'backend/Cargo.lock'):
+            entry = tarfile.TarInfo(name);entry.size = 2;tar.addfile(entry, io.BytesIO(b'{}'))
+    inventory = m.archive_dependency_inventory(data.getvalue())
+    assert inventory['missing_locks'] == ['agents/package.json']
+    assert inventory['manifests'] == ['agents/package.json', 'backend/Cargo.toml', 'frontend/package.json']
+    assert inventory['coverage'] == 'incomplete'
+
+
+def test_unrelated_parent_lock_does_not_cover_nested_package():
+    import io
+    import tarfile
+    data = io.BytesIO()
+    with tarfile.open(fileobj=data, mode='w') as tar:
+        for name in ('package.json', 'package-lock.json', 'frontend/package.json',
+                     'Cargo.lock', 'backend/Cargo.toml'):
+            entry=tarfile.TarInfo(name);entry.size=2;tar.addfile(entry,io.BytesIO(b'{}'))
+    inventory=m.archive_dependency_inventory(data.getvalue())
+    assert inventory['missing_locks'] == ['backend/Cargo.toml','frontend/package.json']
+    assert inventory['coverage'] == 'incomplete'
+
+
+def test_only_explicit_matching_workspace_members_use_parent_locks():
+    import io
+    import json
+    import tarfile
+    def inventory(npm_version='1.0.0', npm_member='packages/web', cargo_exclude='[]', npm_extra=None):
+        files={
+            'package.json': json.dumps({'workspaces':[npm_member]+(npm_extra or [])}).encode(),
+            'package-lock.json': json.dumps({'lockfileVersion':3,'packages':{
+                'packages/web':{'version':npm_version},'node_modules/web':{'resolved':'packages/web','link':True}}}).encode(),
+            'packages/web/package.json': b'{"name":"web","version":"1.0.0"}',
+            'Cargo.toml': f'[workspace]\nmembers=["services/api"]\nexclude={cargo_exclude}\n'.encode(),
+            'Cargo.lock': b'version = 4\n[[package]]\nname = "api"\nversion = "1.0.0"\n',
+            'services/api/Cargo.toml': b'[package]\nname="api"\nversion="1.0.0"\n',
+        }
+        data=io.BytesIO()
+        with tarfile.open(fileobj=data,mode='w') as tar:
+            for name,raw in files.items():
+                item=tarfile.TarInfo(name);item.size=len(raw);tar.addfile(item,io.BytesIO(raw))
+        return m.archive_dependency_inventory(data.getvalue())
+    assert inventory()['missing_locks']==[]
+    assert inventory(npm_version='2.0.0')['missing_locks']==['packages/web/package.json']
+    assert inventory(npm_member='packages/*')['missing_locks']==['packages/web/package.json']
+    assert inventory(npm_extra=['!packages/*'])['missing_locks']==['packages/web/package.json']
+    assert inventory(cargo_exclude='["services/*"]')['missing_locks']==['services/api/Cargo.toml']
+    assert inventory()['coverage']=='incomplete'
+
+
+def test_source_inventory_rejects_symlinked_dependency_manifest():
+    import io
+    import tarfile
+    data = io.BytesIO()
+    with tarfile.open(fileobj=data, mode='w') as tar:
+        entry = tarfile.TarInfo('package.json');entry.type = tarfile.SYMTYPE
+        entry.linkname = 'other';tar.addfile(entry)
+    with pytest.raises(ValueError, match='manifest'):
+        m.archive_dependency_inventory(data.getvalue())
 
 
 @pytest.fixture(params=['stream', 'production'])
@@ -57,7 +141,9 @@ def bridge(request, monkeypatch):
         yield 'http://127.0.0.1:' + str(server.server_port), calls
     finally:
         server.shutdown();server.server_close()
-        if request.param == 'stream':
+        if request.param == 'production':
+            transport.close()
+        else:
             transport.terminate();transport.wait(timeout=5)
             transport.stdin.close();transport.stdout.close()
         candidate.shutdown();candidate.server_close()
@@ -112,3 +198,42 @@ def test_host_header_cannot_change_transport_destination(bridge):
     assert request(url, headers={'Host': 'elsewhere.invalid:1234', 'X-Api-Key': 'bad'})[0] == 200
     assert len(calls) == 1
     assert calls[0][2]['Host'] == 'elsewhere.invalid:1234'
+
+
+def test_full_wall_preserves_short_session_and_rate_window(monkeypatch):
+    """Process startup must not consume the fixture's 100ms request windows."""
+    import json
+    root = Path(__file__).resolve().parents[2]
+    target_spec = importlib.util.spec_from_file_location('bounded_wall_target', root / 'wall/target/app.py')
+    app = importlib.util.module_from_spec(target_spec)
+    target_spec.loader.exec_module(app)
+    candidate = HTTPServer(('127.0.0.1', 0), app.Handler)
+    thread = threading.Thread(target=candidate.serve_forever, daemon=True)
+    thread.start()
+    client = m.CLIENT.replace('8000', str(candidate.server_port))
+    monkeypatch.setattr(m, 'CLIENT', client)
+    launch = subprocess.Popen
+    children = []
+    def docker_exec(args, **kwargs):
+        if args[0] != 'docker':
+            return launch(args, **kwargs)
+        assert args == ['docker', 'exec', '-i', 'a'*64, 'python3', '-u', '-c', client]
+        child = launch([sys.executable, '-u', '-c', 'import time;time.sleep(.15)\n' + client], **kwargs)
+        children.append(child)
+        return child
+    monkeypatch.setattr(subprocess, 'Popen', docker_exec)
+    transport = m.CandidateTransport('a'*64)
+    try:
+        with m.candidate_http_server(transport, threading.Lock()) as server:
+            result = subprocess.run([sys.executable, str(root / 'wall/evaluator/cli.py'),
+                '--target', 'http://127.0.0.1:' + str(server.server_port),
+                '--scenarios', str(root / 'wall/holdout/scenarios.json'), '--runs', '3'],
+                check=True, capture_output=True, text=True, timeout=20)
+            wall = json.loads(result.stdout)
+            assert wall['verdict']['passed'] is True, wall['verdict']['failure_message']
+            assert wall['verdict']['aggregate_pass_rate'] == 1
+            assert len(children) == 1
+    finally:
+        transport.close()
+        candidate.shutdown();candidate.server_close();thread.join(timeout=5)
+    assert children[0].returncode is not None

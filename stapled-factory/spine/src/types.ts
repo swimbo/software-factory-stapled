@@ -58,6 +58,9 @@ export interface BuildEvidence {
 
 export interface WorkUnitState {
   stage: Stage;
+  // Set at first claim; absent on historical units with the legacy contract.
+  validation_contract?: 'manifest-v2';
+  validation_binding?: import('./validation.js').ValidationBinding;
   abandonment?: { payload: string; evidence: import("./abandonment.js").AbandonmentEvidence };
   validation?: import("./validation.js").ValidationEvidence;
   recovery?: { request: OrchestrateRequest; attemptDb: string; attemptAnchor?: string } | null;
