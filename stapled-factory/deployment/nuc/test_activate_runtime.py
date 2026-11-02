@@ -32,11 +32,14 @@ def fixture(tmp_path):
            'Environment=FACTORY_RUNTIME_CONFIG=/private/original.json\n').encode()
         (units/(n+'.service')).write_bytes(b);original[n]=b
     class Host:
-        running=old;calls=0;busy=False;fail=False;crash=False;bad_candidate=False;runtime_config=b'/private/original.json'
+        running=old;calls=0;busy=False;fail=False;crash=False;bad_candidate=False;runtime_config=b'/private/original.json';held=False
         @contextmanager
         def admission_fence(self):
             self.fenced=True
-            try: yield
+            self.held=True
+            class Fence:
+                def complete(inner):self.held=False
+            try: yield Fence()
             finally: self.fenced=False
         def capture(self):
             assert self.fenced
@@ -65,6 +68,7 @@ def test_activation_preserves_binding_and_original_intent(tmp_path):
     args,h,original=fixture(tmp_path)
     assert m.activate(**args)['activated'] is True
     assert h.calls==1 and h.running==args['candidate_revision']
+    assert h.held is False
     assert json.loads((args['journal']/'restart-completed.json').read_text()) == {'services':list(m.SERVICES),'returned':True}
     for n in m.SERVICES:
         text=(args['service_dir']/(n+'.service')).read_text()
@@ -77,6 +81,7 @@ def test_restart_failure_preserves_original_until_explicit_recovery(tmp_path):
     args,h,original=fixture(tmp_path);h.fail=True
     with pytest.raises(m.ManualRecoveryRequired,match='uncertain'):m.activate(**args)
     assert h.calls==1 and h.running==args['source_revision']
+    assert h.held is True
     assert (args['journal']/'restart-requested.json').is_file()
     assert not (args['journal']/'restart-completed.json').exists()
     h.pending=True
@@ -86,6 +91,7 @@ def test_restart_failure_preserves_original_until_explicit_recovery(tmp_path):
     h.pending=False
     m.recover(control=args['control'],service_dir=args['service_dir'],journal=args['journal'],host=h)
     assert h.calls==2
+    assert h.held is False
     for n in m.SERVICES:assert (args['service_dir']/(n+'.service')).read_bytes()==original[n]
     assert m.observe(args['control'],args['service_dir'],args['journal'])['state']=='rollback-recorded'
 
@@ -149,6 +155,17 @@ def test_missing_admission_fence_fails_before_changes(tmp_path):
     with pytest.raises(RuntimeError,match='no verified admission fence'):m.activate(**args)
     assert not args['journal'].exists() and h.calls==0
     for n in m.SERVICES:assert (args['service_dir']/(n+'.service')).read_bytes()==original[n]
+
+
+def test_fence_without_explicit_completion_cannot_mutate_service(tmp_path):
+    args,h,original=fixture(tmp_path)
+    @contextmanager
+    def legacy_fence():yield None
+    h.admission_fence=legacy_fence
+    with pytest.raises(ValueError,match='explicit admission fence completion'):
+        m.activate(**args)
+    assert not args['journal'].exists() and h.calls==0
+    for name in m.SERVICES:assert (args['service_dir']/(name+'.service')).read_bytes()==original[name]
 
 
 def test_activation_and_rollback_restart_failure_preserve_original_evidence(tmp_path):

@@ -3,7 +3,9 @@
 A trusted host adapter must implement capture(), restart_services(names), and
 admission_fence(). The fence must independently prevent all new invocations,
 including direct Restate ingress, and remain effective through idle capture,
-switch, verification, and any rollback. A context manager is a contract, not
+switch, verification, and any rollback. The context must retain the hold on
+exit unless its explicit complete() method is called after durable terminal
+evidence. A context manager is a contract, not
 proof: the adapter and fence must be independently reviewed before use.
 This module does not provide a CLI or discover a host. capture() must obtain an
 independently complete inventory and authenticated, read-only WorkUnit data;
@@ -294,7 +296,8 @@ def activate(*,control,service_dir,journal,source_revision,source_manifest_sha25
     """One activation; adapter must independently implement the capture contract."""
     control,service_dir,journal=_paths(control,service_dir,journal)
     if source_revision==candidate_revision:raise ValueError('distinct releases required')
-    with _lock(control), host.admission_fence():
+    with _lock(control), host.admission_fence() as fence:
+        if not callable(getattr(fence,'complete',None)):raise ValueError('explicit admission fence completion required')
         if os.path.lexists(journal):
             raise ValueError('original activation exists; observe or recover it')
         if os.path.lexists(control/'operator-active.json'):
@@ -331,11 +334,14 @@ def activate(*,control,service_dir,journal,source_revision,source_manifest_sha25
                 raise ValueError('retained host evidence changed')
             result={'activated':True,'revision':candidate_revision,'stable_sha256':after['stable_sha256']}
             _write_new(journal/'activated.json',_canonical(result));_sync(journal)
+            fence.complete()
             return result
         except Exception as original:
             if restart_requested:
                 raise ManualRecoveryRequired('restart or subsequent observation uncertain; inspect original journal') from original
-            try:_restore(service_dir,journal,intent,host,restart=False)
+            try:
+                _restore(service_dir,journal,intent,host,restart=False)
+                fence.complete()
             except Exception as rollback:
                 raise ManualRecoveryRequired('activation or restoration uncertain; inspect original journal') from rollback
             raise original
@@ -344,7 +350,8 @@ def activate(*,control,service_dir,journal,source_revision,source_manifest_sha25
 def recover(*,control,service_dir,journal,host):
     """Explicitly restore only exact original units from an interrupted attempt."""
     control,service_dir,journal=_paths(control,service_dir,journal)
-    with _lock(control), host.admission_fence():
+    with _lock(control), host.admission_fence() as fence:
+        if not callable(getattr(fence,'complete',None)):raise ValueError('explicit admission fence completion required')
         intent=_load_journal(journal)
         if os.path.lexists(journal/'activated.json') or os.path.lexists(journal/'rolled-back.json'):
             raise ManualRecoveryRequired('terminal evidence exists; observe and reconcile the original journal')
@@ -362,4 +369,5 @@ def recover(*,control,service_dir,journal,host):
         if before['stable_sha256'] != intent['stable_sha256']:
             raise ManualRecoveryRequired('retained host evidence changed; manual reconciliation required')
         _restore(service_dir,journal,intent,host)
+        fence.complete()
         return {'restored':True,'revision':intent['source_revision']}
