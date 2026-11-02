@@ -1,6 +1,6 @@
 # Software factory current status
 
-Updated: November 1, 2026. **Paused at the user's request.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
+Updated: November 1, 2026. **Resumed at the user's request.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
 
 ## Repository and verification
 
@@ -23,7 +23,7 @@ Updated: November 1, 2026. **Paused at the user's request.** The full delivery o
 - Four confirmed foundation review findings were fixed and independently checked. The latest deadline retirement fix received a separate review with no actionable findings.
 - These local checks and code changes do not establish live end-to-end delivery or production readiness.
 
-The interrupted continuation was inspecting the isolated Restate receipt probe; it did not launch a probe or make source changes. The existing probe still constructs a legacy binding and does not call `registerValidationBinding`, while newly claimed WorkUnits require the manifest-bound contract. Update the probe to exercise the new binding and its lost-response recovery before relying on it; any run must use a new isolated fixture and must not touch the live WorkUnits. The latest targeted checks for the new binding were the spine build, four Node tests and 32 Python tests; these are not exact-revision full CI or a live Restate result.
+The isolated Restate probe now uses the new signed-binding contract. A local Restate 1.8 fixture passed after a simulated lost binding response and a client crash after committed acceptance; the restarted fixture endpoint observed the same original receipt without reevaluation or resubmission. Its owned processes were absent and its endpoint listener closed after the run. Evidence: `/Users/bo/.local/share/stapled-factory-release/out/restate-binding-input-hkgujtx_/probe/result.json`. This uses synthetic checks, a fixture-seeded WorkUnit and an unsigned isolated loopback endpoint; it is not a real factory build, NUC deployment, release approval or exact-revision full CI.
 
 ## Live NUC evidence and pause boundary
 
@@ -125,7 +125,7 @@ A private one-pair evaluation task and independent acceptance oracle were prepar
 
 ## Resume order
 
-1. Reconcile the isolated Restate probe with the new signed-binding contract and verify its original lost-response path. Preserve all original attempts, evidence and reservations. Establish and independently verify the durable admission fence and recovery procedure, including the admin path; take a fresh consistent inventory under that fence. Do not infer terminality from absent records or stopped containers.
+1. Preserve all original attempts, evidence and reservations. Establish and independently verify the durable admission fence and recovery procedure, including the admin path; take a fresh consistent inventory under that fence. Do not infer terminality from absent records or stopped containers.
 2. Complete the supported dependency provenance and coverage controls in the [decision brief](decisions/dependency-provenance/consensus-plan.md). Unknown publisher or binary provenance stays incomplete. Keep the deployment hold until the required gate passes.
 3. Prepare and verify a new exact-source release, activate it through the fenced procedure, and run the prepared small paired comparison using a freshly frozen baseline. Record acceptance and available telemetry; unknown costs and truncation stay unknown. A small sample does not authorize profile promotion.
 4. Complete Phases 10–11 acceptance, rejection, crash recovery and approval paths without duplicate dispatch, then run a real fullstack dogfood feature through build, validation and a reviewed remote PR.
