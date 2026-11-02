@@ -21,6 +21,30 @@ assert.equal(await workUnit.object.acceptValidation(ctx,sign(good)),true);assert
 await chmod(file,0o644);await assert.rejects(()=>workUnit.object.acceptValidation(ctx,sign(good)),/signed evidence/);
 }finally{if(old===undefined)delete process.env.FACTORY_VALIDATION_KEY_FILE;else process.env.FACTORY_VALIDATION_KEY_FILE=old;await rm(dir,{recursive:true,force:true})}});
 
+test('new claims cannot downgrade to legacy metadata-only validation', async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), 'validation-contract-'));
+  const old = process.env.FACTORY_VALIDATION_KEY_FILE;
+  try {
+    const key = randomBytes(32), file = path.join(dir, 'key');
+    await writeFile(file, key, {mode: 0o600}); process.env.FACTORY_VALIDATION_KEY_FILE = file;
+    const revision = 'a'.repeat(40);
+    const proof = {unit_id:'unit', attempt_id:'unit:0', git_revision:revision, deployment_id:'target',
+      artifact_digest:'sha256:'+'b'.repeat(64), scenario_digest:'c'.repeat(64),
+      passed:true, scope:'disposable-candidate', security_engines:{sast:'fixture'}};
+    const payload=JSON.stringify(proof), envelope={payload,signature:createHmac('sha256',key).update(payload).digest('hex')};
+    let state=null;
+    const ctx={key:'unit',run:async f=>f(),get:async()=>state,set:(_key,value)=>state=value};
+    assert.equal(await workUnit.object.claim(ctx,'worker'),true);
+    assert.equal(state.validation_contract,'manifest-v2');
+    state.stage='needs_validation';state.build={attempt_id:'unit:0',status:'completed',git_revision:revision};
+    assert.equal(await workUnit.object.acceptValidation(ctx,envelope),false);
+    assert.equal(state.stage,'needs_validation');
+  } finally {
+    if (old===undefined) delete process.env.FACTORY_VALIDATION_KEY_FILE; else process.env.FACTORY_VALIDATION_KEY_FILE=old;
+    await rm(dir,{recursive:true,force:true});
+  }
+});
+
 test('validated wall receipt is signed, revision bound and stored atomically', async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), 'validation-receipt-'));
   const previous = process.env.FACTORY_VALIDATION_KEY_FILE;
@@ -43,7 +67,7 @@ test('validated wall receipt is signed, revision bound and stored atomically', a
       const payload = JSON.stringify(value);
       return {payload, signature: createHmac('sha256', key).update(payload).digest('hex')};
     };
-    let state = {stage: 'needs_validation', receipt: null,
+    let state = {stage: 'needs_validation', receipt: null, validation_contract:'manifest-v2',
       build: {attempt_id: 'unit:0', status: 'completed', git_revision: revision}};
     const ctx = {key: 'unit', run: async f => f(), get: async () => state, set: (_key, value) => state = value};
     for (const bad of [

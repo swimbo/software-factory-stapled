@@ -37,6 +37,7 @@ export const workUnit = restate.object({
         return false; // held by another worker with a live lease
       }
       s.claim = { worker_id: workerId, lease_until_ms: now + CLAIM_LEASE_MS };
+      s.validation_contract = 'manifest-v2';
       s.stage = "claimed";
       ctx.set(KEY, s);
       return true;
@@ -148,6 +149,8 @@ export const workUnit = restate.object({
       const s = (await ctx.get<WorkUnitState>(KEY)) ?? empty();
       const selected = s.successor ?? s.build;
       if (s.stage !== "needs_validation" || s.validation || !selected || selected.status !== "completed" ||
+          (s.validation_contract !== undefined && (s.validation_contract !== 'manifest-v2' ||
+            evidence.build_manifest_digest === undefined || evidence.receipt === undefined)) ||
           evidence.unit_id !== ctx.key || evidence.attempt_id !== selected.attempt_id ||
           evidence.git_revision !== selected.git_revision) return false;
       s.validation = evidence;
