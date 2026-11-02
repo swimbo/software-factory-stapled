@@ -99,6 +99,8 @@ The same real package also has a separate npm registry publish attestation. A lo
 
 A local evidence collector now verifies selected workflow and registry attestations against the exact package bytes and lock identities in a digest-pinned frozen npm archive. Both attestations for the retained `sigstore@5.0.0` fixture verified together; its archive and unsigned local result are in `/Users/bo/.local/share/stapled-factory-release/out/frozen-sigstore-attestation-699ar_vj`. This does not integrate attestation evidence into build manifests or runtime receipts, authenticate the fixture's operator policy, evaluate build claims, or complete dependency coverage. Missing attestations remain unknown.
 
+An evidence-only bundle now freezes those signed attestations separately from verifier-supplied trust policy, with digest bindings for the evidence and policy. Independent local re-verification of the same real fixture passed; `attestation-bundle.json` and `bundled-receipt.json` are retained in that fixture directory. The policy remains independently provisioned input, not a claim authenticated by this bundle. The result is still unsigned and is not integrated into build manifests or runtime receipts.
+
 A private one-pair evaluation task and independent acceptance oracle were prepared under `/Users/bo/.local/share/stapled-factory-release/out/actual-pair-prep-59b02c5b90d6c92f`. The oracle rejected the present baseline and passed an isolated positive control. This is preparation only; no paid trial was run. Refresh its exact source revision and freeze the task before submission if the checkout advances.
 
 ## Resume order
