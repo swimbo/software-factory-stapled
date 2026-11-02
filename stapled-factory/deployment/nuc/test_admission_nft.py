@@ -39,3 +39,15 @@ def test_nft_readback_rejects_changed_cgroup_and_extra_rules():
     module.verify_snapshot(snapshot,*args)
     with pytest.raises(ValueError):module.verify_snapshot(snapshot.replace('level 2 "user/ingress"','level 1 "user/ingress"'),*args)
     with pytest.raises(ValueError):module.verify_snapshot(snapshot.replace('chain guard {','chain guard {\n  accept'),*args)
+
+
+def test_kernel_readback_requires_exact_current_cgroup_ids():
+    debug='''[ socket load cgroupv2 => reg 1 ]
+[ cmp eq reg 1 0x00000011 0x00000000 ]
+[ socket load cgroupv2 => reg 1 ]
+[ cmp eq reg 1 0x00000022 0x00000000 ]
+[ socket load cgroupv2 => reg 1 ]
+[ cmp eq reg 1 0x00000033 0x00000000 ]'''
+    module.verify_kernel_ids(debug,[17,34,51])
+    with pytest.raises(ValueError):module.verify_kernel_ids(debug,[17,35,51])
+    with pytest.raises(ValueError):module.verify_kernel_ids(debug+'\n'+debug,[17,34,51])

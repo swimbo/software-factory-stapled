@@ -69,3 +69,17 @@ def verify_snapshot(snapshot, identifier, probe, ingress, restate):
     lines=[re.sub(r'\s+# handle [0-9]+$', '', line.strip())
            for line in snapshot.splitlines() if line.strip()]
     if lines!=expected:raise ValueError('nft admission rules differ')
+
+
+def verify_kernel_ids(debug_output, expected_ids):
+    """Compare kernel rule operands to independently read cgroup-v2 inode IDs."""
+    if (not isinstance(debug_output,str) or len(debug_output)>4*1024*1024 or
+            not isinstance(expected_ids,list) or len(expected_ids)!=3 or
+            any(type(value) is not int or not 0 < value < 2**64 for value in expected_ids)):
+        raise ValueError('invalid cgroup kernel evidence')
+    pattern=r'\[ socket load cgroupv2 => reg 1 \]\s*\[ cmp eq reg 1 0x([0-9a-f]{8}) 0x([0-9a-f]{8}) \]'
+    matches=re.findall(pattern,debug_output)
+    if debug_output.count('[ socket load cgroupv2') != 3 or len(matches)!=3:
+        raise ValueError('cgroup kernel operands unavailable')
+    actual=[int(low,16) | int(high,16)<<32 for low,high in matches]
+    if actual != expected_ids:raise ValueError('cgroup kernel identities differ')
