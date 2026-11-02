@@ -68,6 +68,13 @@ point-in-time local checks. They neither freeze inputs nor attest what a builder
 consumed, publisher identity, a complete dependency inventory, or a release.
 They are not connected to the runtime validation or publication gate.
 
+The npm verifier can additionally check registry signatures against public keys
+that the caller has independently pinned. It trusts the host's `openssl` and
+reports key lifetime and revocation as unknown. Registry signatures bind the
+package name, version and integrity; they do not prove publisher identity or
+complete provenance. This optional evidence is not yet carried into a frozen
+material archive or a runtime receipt and does not change the release gate.
+
 `oci_archive.py` verifies the descriptor graph and linux/amd64 image config of
 a pinned OCI archive and records an archive digest. Its result is deliberately
 incomplete: it does not establish publisher identity, build provenance, safe
