@@ -55,3 +55,24 @@ def test_arm_preserves_original_marker_and_fsyncs_creation(tmp_path, monkeypatch
     with pytest.raises(FileExistsError):
         module.arm(control, 'b' * 64)
     assert marker.read_bytes() == before
+
+
+def test_restart_permit_is_bound_to_hold_boot_and_unit_file(tmp_path, monkeypatch):
+    import hashlib
+    module = load()
+    control = tmp_path / 'admission'; control.mkdir(mode=0o700)
+    unit = tmp_path / 'factory-endpoint.service'; unit.write_text('candidate'); unit.chmod(0o600)
+    monkeypatch.setattr(module, '_boot_id', lambda: '00000000-0000-4000-8000-000000000001')
+    module.arm(control, 'a' * 64)
+    hashes = {'factory-endpoint': [hashlib.sha256(unit.read_bytes()).hexdigest()]}
+    module.authorize_restarts(control, 'a' * 64, hashes)
+    module.prestart(control, 'factory-endpoint', unit)
+    unit.write_text('different')
+    with pytest.raises((ValueError, RuntimeError)):
+        module.prestart(control, 'factory-endpoint', unit)
+    unit.write_text('candidate')
+    monkeypatch.setattr(module, '_boot_id', lambda: '00000000-0000-4000-8000-000000000002')
+    with pytest.raises((ValueError, RuntimeError)):
+        module.prestart(control, 'factory-endpoint', unit)
+    with pytest.raises((ValueError, RuntimeError)):
+        module.prestart(control, 'factory-restate', unit)
