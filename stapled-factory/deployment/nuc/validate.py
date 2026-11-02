@@ -102,7 +102,8 @@ def main(argv=None):
     result = validate_session(directory, binding,
         lambda: post(args.ingress, args.unit, 'getState', {}), evaluate,
         lambda envelope: post(args.ingress, args.unit, 'acceptValidation', envelope),
-        key, observe_only=args.observe_only, resume_only=args.resume_only,
+        key, bind=lambda envelope: post(args.ingress, args.unit, 'registerValidationBinding', envelope),
+        observe_only=args.observe_only, resume_only=args.resume_only,
         resume_unstarted=args.resume_unstarted)
     print(json.dumps(result, sort_keys=True))
     return result

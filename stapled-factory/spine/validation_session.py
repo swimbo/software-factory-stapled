@@ -102,7 +102,7 @@ def evidence(result, binding):
     return proof
 
 
-def validate_session(directory, binding, read_state, evaluate, submit, key, *, observe_only=False, resume_only=False, resume_unstarted=False):
+def validate_session(directory, binding, read_state, evaluate, submit, key, *, bind=None, observe_only=False, resume_only=False, resume_unstarted=False):
     """Persist checks and envelope before one signed acceptance submission.
 
     Readback can prove a lost response succeeded. An unresolved submission or
@@ -137,6 +137,29 @@ def validate_session(directory, binding, read_state, evaluate, submit, key, *, o
             if state['stage'] != 'needs_validation' or state.get('validation'):
                 raise ValueError('selected build already has different validation authority')
             record(intent, binding)
+        contract = state.get('validation_contract')
+        if contract is not None:
+            if contract != 'manifest-v2' or binding.get('receipt_version') != 2:
+                raise ValueError('selected build requires manifest-bound validation')
+            expected_binding = {name: binding[name] for name in (
+                'unit_id','attempt_id','git_revision','baseline','artifact_digest',
+                'source_archive_digest','scenario_digest','build_manifest_digest')}
+            expected_binding['kind'] = 'validation-binding-v1'
+            actual = state.get('validation_binding')
+            if actual is not None and actual != expected_binding:
+                raise ValueError('original validation binding differs from WorkUnit')
+            if actual is None:
+                marker = root/'binding-submission.json'
+                if marker.exists() or observe_only or state['stage'] != 'needs_validation' or bind is None:
+                    raise ValueError('original validation binding unresolved; never resend')
+                payload = canonical(expected_binding)
+                envelope = {'payload':payload,'signature':hmac.new(key,payload.encode(),hashlib.sha256).hexdigest()}
+                record(marker, {'envelope_digest':hashlib.sha256(canonical(envelope).encode()).hexdigest()})
+                try:bind(envelope)
+                except (OSError,TimeoutError):pass
+                state = read_state();selected(state,binding)
+                if state.get('validation_binding') != expected_binding:
+                    raise ValueError('original validation binding unresolved; never resend')
         checks_path = root / 'checks.json'
         if not checks_path.exists():
             retained = root / 'target' / 'result.json'

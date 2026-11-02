@@ -177,6 +177,31 @@ class Runtime:
                                   self.evaluate, self.submit, KEY, **kwargs)
 
 
+def test_binding_response_loss_uses_original_readback_before_evaluation(tmp_path):
+    runtime=Runtime();runtime.state['validation_contract']='manifest-v2';calls=[]
+    def bind(envelope):
+        calls.append(envelope)
+        assert hmac.compare_digest(envelope['signature'],hmac.new(KEY,envelope['payload'].encode(),hashlib.sha256).hexdigest())
+        runtime.state['validation_binding']=json.loads(envelope['payload'])
+        raise TimeoutError('response lost after acceptance')
+    v2=dict(binding(),receipt_version=2)
+    outcome=m.validate_session(tmp_path/'session',v2,lambda:runtime.state,runtime.evaluate,runtime.submit,KEY,bind=bind)
+    assert outcome['accepted'] is True and len(calls)==runtime.evaluations==runtime.submissions==1
+    assert runtime.state['validation_binding']['build_manifest_digest']==v2['build_manifest_digest']
+
+
+def test_uncertain_binding_never_repeats_or_runs_candidate(tmp_path):
+    runtime=Runtime();runtime.state['validation_contract']='manifest-v2';calls=[]
+    def bind(envelope):
+        calls.append(envelope);raise TimeoutError('unknown outcome')
+    v2=dict(binding(),receipt_version=2);folder=tmp_path/'session'
+    with pytest.raises(ValueError,match='binding unresolved'):
+        m.validate_session(folder,v2,lambda:runtime.state,runtime.evaluate,runtime.submit,KEY,bind=bind)
+    with pytest.raises(ValueError,match='never resend'):
+        m.validate_session(folder,v2,lambda:runtime.state,runtime.evaluate,runtime.submit,KEY,bind=bind,resume_only=True)
+    assert len(calls)==1 and runtime.evaluations==runtime.submissions==0
+
+
 def test_accepted_response_loss_and_reobservation_never_revalidate(tmp_path):
     runtime = Runtime()
     runtime.lose_response = True

@@ -70,6 +70,14 @@ test('validated wall receipt is signed, revision bound and stored atomically', a
     let state = {stage: 'needs_validation', receipt: null, validation_contract:'manifest-v2',
       build: {attempt_id: 'unit:0', status: 'completed', git_revision: revision}};
     const ctx = {key: 'unit', run: async f => f(), get: async () => state, set: (_key, value) => state = value};
+    assert.equal(await workUnit.object.acceptValidation(ctx, sign(proof)), false);
+    const original = {kind:'validation-binding-v1', unit_id:'unit', attempt_id:'unit:0', git_revision:revision,
+      baseline:'0'.repeat(40), artifact_digest:proof.artifact_digest, source_archive_digest:proof.source_archive_digest,
+      scenario_digest:proof.scenario_digest, build_manifest_digest:proof.build_manifest_digest};
+    assert.equal(await workUnit.object.registerValidationBinding(ctx,sign(original)),true);
+    assert.equal(await workUnit.object.registerValidationBinding(ctx,sign(original)),true);
+    assert.equal(await workUnit.object.registerValidationBinding(ctx,sign({...original, artifact_digest:'sha256:'+'0'.repeat(64)})),false);
+    assert.equal(await workUnit.object.acceptValidation(ctx,sign({...proof, artifact_digest:'sha256:'+'0'.repeat(64)})),false);
     for (const bad of [
       {...receipt, git_revision: '0'.repeat(40)},
       {...receipt, verdict: {...receipt.verdict, passed: false}},
