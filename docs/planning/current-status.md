@@ -1,11 +1,12 @@
 # Software factory current status
 
-Updated: November 1, 2026. **Resumed at the user's request.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
+Updated: November 1, 2026. **Paused at the user's request.** The full delivery objective remains incomplete. Baseline remains default and profile promotion remains held.
 
 ## Repository and verification
 
 - Checkout: `/Users/bo/code/software-factory-stapled`.
 - Branch: `codex/phase9d-qualification`.
+- Last implementation checkpoint before this pause: `9738fb530a9704430da02e3faa311bd436342392` (signed original validation binding); the status-only pause commit follows it. Confirm the current branch and remote when resuming.
 - Confirm the current branch and remote with Git; subsequent checkpoints may advance beyond this document.
 - Exact-revision local CI passed for `a2841cd7bf4a984020cf99cc211f21ce7e1c92f5`: 930 Python tests, 18 subtests, 36 Node tests, secrets scan, locked npm dependency installation/audit and spine build. The release still needs its admission and provenance gates.
 - Baseline harness remains default; optimization profile promotion remains held. Native terminal truncation telemetry remains unknown.
@@ -21,6 +22,8 @@ Updated: November 1, 2026. **Resumed at the user's request.** The full delivery 
 - The operator can prepare an exact source bundle, verify and load a signed image once, transfer a private holdout with digest binding, and join a prepared build to the validation journal. These steps have fixture evidence; they do not establish a real end-to-end delivery.
 - Four confirmed foundation review findings were fixed and independently checked. The latest deadline retirement fix received a separate review with no actionable findings.
 - These local checks and code changes do not establish live end-to-end delivery or production readiness.
+
+The interrupted continuation was inspecting the isolated Restate receipt probe; it did not launch a probe or make source changes. The existing probe still constructs a legacy binding and does not call `registerValidationBinding`, while newly claimed WorkUnits require the manifest-bound contract. Update the probe to exercise the new binding and its lost-response recovery before relying on it; any run must use a new isolated fixture and must not touch the live WorkUnits. The latest targeted checks for the new binding were the spine build, four Node tests and 32 Python tests; these are not exact-revision full CI or a live Restate result.
 
 ## Live NUC evidence and pause boundary
 
@@ -116,13 +119,13 @@ The controlled-build entry point and operator CLI can optionally verify this evi
 
 The NUC operator module contains an independent re-verifier for this signed binding. It copies pinned verifier source into a fresh private directory, selects a separately pinned local Cosign binary, and requires the signed trust-root and policy digests. A local fixture reverified the real retained package using this code. Transfer now inventories the evidence, pins the original verifier release and separately provisioned owner-only `attestation-trust.json`, and rejects evidence or trust substitution. Its signed-transfer integration has local fixture coverage, but the trust file has not been provisioned on the NUC and no NUC runtime was changed.
 
-An isolated NUC fixture reverified both attestations for the frozen `sigstore@5.0.0` package using the previously provisioned Linux Cosign binary and a copy of the local Sigstore TUF-cache root. Its retained evidence is `/home/bo/.local/share/stapled-factory-control/attestation-verifier-fixture-jMhcMgB3/nuc-receipt.json`. This verifies the fixture on the NUC; the copied root and fixture policy have not been selected as production trust, complete dependency coverage remains unproven, and the transfer/runtime path was not exercised. A separate NUC disk spot check showed approximately 39 GiB free.
+An isolated NUC fixture reverified both attestations for the frozen `sigstore@5.0.0` package using the previously provisioned Linux Cosign binary and a copy of the local Sigstore TUF-cache root. Its retained evidence is `/home/bo/.local/share/stapled-factory-control/attestation-verifier-fixture-jMhcMgB3/nuc-receipt.json`. This verifies the fixture on the NUC; the copied root and fixture policy have not been selected as production trust, complete dependency coverage remains unproven, and the transfer/runtime path was not exercised. The last NUC disk spot check showed approximately 38 GiB free.
 
 A private one-pair evaluation task and independent acceptance oracle were prepared under `/Users/bo/.local/share/stapled-factory-release/out/actual-pair-prep-59b02c5b90d6c92f`. The oracle rejected the present baseline and passed an isolated positive control. This is preparation only; no paid trial was run. Refresh its exact source revision and freeze the task before submission if the checkout advances.
 
 ## Resume order
 
-1. Preserve all original attempts, evidence and reservations. Establish and independently verify the durable admission fence and recovery procedure, including the admin path; take a fresh consistent inventory under that fence. Do not infer terminality from absent records or stopped containers.
+1. Reconcile the isolated Restate probe with the new signed-binding contract and verify its original lost-response path. Preserve all original attempts, evidence and reservations. Establish and independently verify the durable admission fence and recovery procedure, including the admin path; take a fresh consistent inventory under that fence. Do not infer terminality from absent records or stopped containers.
 2. Complete the supported dependency provenance and coverage controls in the [decision brief](decisions/dependency-provenance/consensus-plan.md). Unknown publisher or binary provenance stays incomplete. Keep the deployment hold until the required gate passes.
 3. Prepare and verify a new exact-source release, activate it through the fenced procedure, and run the prepared small paired comparison using a freshly frozen baseline. Record acceptance and available telemetry; unknown costs and truncation stay unknown. A small sample does not authorize profile promotion.
 4. Complete Phases 10–11 acceptance, rejection, crash recovery and approval paths without duplicate dispatch, then run a real fullstack dogfood feature through build, validation and a reviewed remote PR.
