@@ -164,6 +164,33 @@ def test_attestation_verifier_binds_signed_policy_and_independent_local_tools(tm
         nuc.verify_controlled_npm_attestation(data['target'],controlled,pin,trust)
 
 
+def test_attested_transfer_requires_original_evidence_and_local_trust(tmp_path, monkeypatch):
+    data=fixture(tmp_path,monkeypatch,'npm'); target=data['target']
+    trust={'trusted_root':'/private/root','trusted_root_sha256':'a'*64,'cosign':'/private/cosign','cosign_sha256':'b'*64}
+    trust_file=data['root']/'attestation-trust.json';trust_file.write_text(json.dumps(trust));trust_file.chmod(0o600)
+    bundle=target/'npm-attestations.json';bundle.write_bytes(b'fixture attestation')
+    digest=hashlib.sha256(bundle.read_bytes()).hexdigest()
+    binding=data['binding'];binding['controlled']['npm_attestation']={'bundle_sha256':digest}
+    data['sign'](target,binding)
+    path=target/'transfer-intent.json';intent=json.loads(path.read_text())
+    intent['files']['npm-attestations.json']=digest
+    for name in ('build.json','build.sig'):intent['files'][name]=hashlib.sha256((target/name).read_bytes()).hexdigest()
+    intent['attestation_trust']=trust;path.write_text(json.dumps(intent))
+    calls=[]
+    def verify(target_arg, controlled, pin, chosen):
+        calls.append((controlled['npm_attestation']['bundle_sha256'],chosen))
+        return {'controlled_attestation_bundle_sha256':digest,'coverage':'incomplete'}
+    monkeypatch.setattr(nuc,'verify_controlled_npm_attestation',verify)
+    result=nuc.main('validation_verify_transfer',{'unit':data['unit']})
+    assert result['controlled_attestation_bundle_sha256']==digest and calls==[(digest,trust)]
+    trust_file.write_text(json.dumps({**trust,'cosign_sha256':'c'*64}))
+    with pytest.raises(ValueError,match='trust differs'):
+        nuc.main('validation_verify_transfer',{'unit':data['unit']})
+    trust_file.write_text(json.dumps(trust));bundle.write_bytes(b'substituted')
+    with pytest.raises(ValueError,match='incomplete'):
+        nuc.main('validation_verify_transfer',{'unit':data['unit']})
+
+
 @pytest.mark.parametrize('profile', ['npm','cargo'])
 def test_controlled_transfer_verifies_signed_material_and_original_release(tmp_path, monkeypatch, profile):
     data=fixture(tmp_path,monkeypatch,profile)

@@ -221,6 +221,33 @@ print(json.dumps(verify_attestation_bundle(v['bundle'],v['bundle_sha256'],v['pol
             'controlled_attestation_policy_sha256':att['policy_sha256'], 'coverage':'incomplete'}
 
 
+def attestation_trust():
+    """Read the operator-provisioned local verifier and trusted root selection."""
+    fd = os.open(ROOT/'attestation-trust.json', os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+    with os.fdopen(fd, 'rb') as stream:
+        info = os.fstat(stream.fileno())
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077 or info.st_size > 16384:
+            raise ValueError('owner-only attestation trust required')
+        raw = stream.read(16385)
+    if len(raw) > 16384: raise ValueError('attestation trust too large')
+    def unique(pairs):
+        result = {}
+        for key,value in pairs:
+            if key in result: raise ValueError('duplicate attestation trust key')
+            result[key] = value
+        return result
+    value = json.loads(raw, object_pairs_hook=unique)
+    if not isinstance(value, dict) or set(value) != {'trusted_root','trusted_root_sha256','cosign','cosign_sha256'}:
+        raise ValueError('invalid attestation trust')
+    for field in ('trusted_root','cosign'):
+        if not isinstance(value[field], str) or not Path(value[field]).is_absolute() or '..' in Path(value[field]).parts:
+            raise ValueError('absolute attestation trust paths required')
+    for field in ('trusted_root_sha256','cosign_sha256'):
+        if not isinstance(value[field], str) or not re.fullmatch(r'[a-f0-9]{64}', value[field]):
+            raise ValueError('pinned attestation trust required')
+    return value
+
+
 def verify_controlled_materials(target, intent, binding, unit):
     """Check signed material, source lock and pinned release without executing a build."""
     controlled = binding.get('controlled')
@@ -235,6 +262,10 @@ def verify_controlled_materials(target, intent, binding, unit):
     if has_registry_policy:
         if controlled['profile'] != 'npm':raise ValueError('registry policy requires npm profile')
         names |= {'registry_policy', 'registry_evidence_sha256'}
+    has_attestation = 'npm_attestation' in controlled
+    if has_attestation:
+        if controlled['profile'] != 'npm':raise ValueError('attestation requires npm profile')
+        names.add('npm_attestation')
     sha_fields = {'source_sha256', 'materials_sha256', 'lock_sha256', 'builder_container_id',
                   'builder_config_sha256', 'recipe_sha256', 'docker_bin_sha256', 'buildx_bin_sha256'}
     if controlled['profile'] == 'npm':sha_fields |= {'materials_manifest_sha256', 'cache_recipe_sha256'}
@@ -311,6 +342,14 @@ print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True)
     result = {'controlled_profile': controlled['profile'], 'controlled_materials_sha256': controlled['materials_sha256'],
               'controlled_lock_sha256': controlled['lock_sha256'], 'material_verifier': pin}
     if has_registry_policy:result['controlled_registry_evidence_sha256'] = controlled['registry_evidence_sha256']
+    if has_attestation:
+        if (not isinstance(controlled['npm_attestation'], dict) or
+                intent['files'].get('npm-attestations.json') != controlled['npm_attestation'].get('bundle_sha256') or
+                not isinstance(intent.get('attestation_trust'), dict) or attestation_trust() != intent['attestation_trust']):
+            raise ValueError('original attestation transfer or trust differs')
+        result.update(verify_controlled_npm_attestation(target, controlled, pin, intent['attestation_trust']))
+    elif 'npm-attestations.json' in intent['files'] or 'attestation_trust' in intent:
+        raise ValueError('unexpected attestation evidence')
     return result
 
 
@@ -712,20 +751,25 @@ def main(action, data):
         baseline = plan.get('baseline')
         if not isinstance(baseline, str) or not re.fullmatch(r'[a-f0-9]{40}', baseline):
             raise ValueError('original validation baseline unavailable')
-        pin = material_verifier_release(release())
-        return {'unit': unit, 'attempt_id': selected['attempt_id'], 'revision': selected['revision'],
-                'baseline': baseline, 'material_verifier': pin}
+        use_attestations = data.get('attestations', False)
+        if type(use_attestations) is not bool:raise ValueError('invalid attestation selection')
+        pin = material_verifier_release(release(), registry_policy=use_attestations, attestations=use_attestations)
+        response = {'unit': unit, 'attempt_id': selected['attempt_id'], 'revision': selected['revision'],
+                    'baseline': baseline, 'material_verifier': pin}
+        if use_attestations:response['attestation_trust'] = attestation_trust()
+        return response
     if action in ('validation_transfer_begin', 'validation_transfer_status'):
         target = approval / 'validation-inputs'
         names = {'image.tar', 'source.tar', 'diff', 'Dockerfile', 'build.json', 'build.sig', 'result.bundle'}
         controlled_names = names | {'materials.tar'}
+        attested_names = controlled_names | {'npm-attestations.json'}
         if action == 'validation_transfer_begin':
             files = data.get('files')
             result = json.loads((approval / 'result.json').read_text())
             plan = json.loads((approval / 'operator.json').read_text())
             state = post('WorkUnit/' + unit + '/getState', {})
             selected = state.get('successor') or state.get('build') or {}
-            if (not isinstance(files, dict) or set(files) not in (names, controlled_names) or
+            if (not isinstance(files, dict) or set(files) not in (names, controlled_names, attested_names) or
                     any(not isinstance(v, str) or not re.fullmatch(r'[a-f0-9]{64}', v) for v in files.values()) or
                     not result.get('binding_restored') or state.get('stage') != 'needs_validation' or
                     selected.get('status') != 'completed' or
@@ -734,7 +778,7 @@ def main(action, data):
                     data.get('attempt_id') != result.get('attempt_id') or
                     data.get('revision') != result.get('revision') or data.get('baseline') != plan.get('baseline')):
                 raise ValueError('validation transfer binding differs')
-            if set(files) == controlled_names:
+            if set(files) in (controlled_names, attested_names):
                 # Revalidate the exact preflight release, even if a different
                 # release is now active; never substitute the active release.
                 requested = data.get('material_verifier')
@@ -742,17 +786,23 @@ def main(action, data):
                         not isinstance(requested['release'], str) or not isinstance(requested['manifest_sha256'], str) or
                         not re.fullmatch(r'[a-f0-9]{64}', requested['manifest_sha256'])):
                     raise ValueError('original material verifier release unavailable')
-                if requested != material_verifier_release(requested['release'], requested['manifest_sha256']):
+                attested = set(files) == attested_names
+                if requested != material_verifier_release(requested['release'], requested['manifest_sha256'],
+                                                           registry_policy=attested, attestations=attested):
                     raise ValueError('original material verifier release differs')
+                if attested and data.get('attestation_trust') != attestation_trust():
+                    raise ValueError('original attestation trust differs')
+                if not attested and 'attestation_trust' in data:raise ValueError('unexpected attestation trust')
                 data = dict(data)
             target.mkdir(mode=0o700)
             private(target / 'transfer-intent.json', data)
             return {'created': True}
         intent = json.loads((target / 'transfer-intent.json').read_text())
         if (intent.get('unit') != unit or not isinstance(intent.get('files'), dict) or
-                set(intent['files']) not in (names, controlled_names) or
-                set(intent['files']) == controlled_names and 'material_verifier' not in intent or
-                set(intent['files']) == names and 'material_verifier' in intent):
+                set(intent['files']) not in (names, controlled_names, attested_names) or
+                set(intent['files']) in (controlled_names, attested_names) and 'material_verifier' not in intent or
+                set(intent['files']) == names and 'material_verifier' in intent or
+                ('attestation_trust' in intent) != (set(intent['files']) == attested_names)):
             raise ValueError('original transfer intent differs')
         matches = {}
         for name, expected in intent['files'].items():
@@ -764,8 +814,9 @@ def main(action, data):
                     matches[name] = hashlib.file_digest(stream, 'sha256').hexdigest() == expected
         result = {'complete': all(matches.values()), 'files': matches, 'expected': intent['files'],
                   'attempt_id': intent['attempt_id'], 'revision': intent['revision']}
-        if set(intent['files']) == controlled_names:
+        if set(intent['files']) in (controlled_names, attested_names):
             result['material_verifier'] = intent['material_verifier']
+        if set(intent['files']) == attested_names:result['attestation_trust'] = intent['attestation_trust']
         return result
     if action == 'validation_status':
         result = json.loads((approval / 'result.json').read_text())

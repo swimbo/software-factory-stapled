@@ -612,6 +612,8 @@ def transfer_validation_inputs(run):
         if not isinstance(config,dict) or not isinstance(config.get('materials_archive'),str):
             raise ValueError('original controlled material path unavailable')
         paths['materials.tar'] = Path(config['materials_archive'])
+        if 'npm_attestation' in build['manifest']['controlled']:
+            paths['npm-attestations.json'] = run / 'attested-build' / 'npm-attestations.json'
     hashes = {}
     for name, path in paths.items():
         if path.is_symlink() or not path.is_file():
@@ -621,10 +623,15 @@ def transfer_validation_inputs(run):
         raise ValueError('collected bundle differs')
     if 'controlled' in build_intent and hashes['materials.tar'] != build_intent['controlled'].get('materials_sha256'):
         raise ValueError('controlled materials differ from original build intent')
+    has_attestation = 'npm-attestations.json' in paths
+    if has_attestation and hashes['npm-attestations.json'] != build_intent['controlled']['npm_attestation'].get('bundle_sha256'):
+        raise ValueError('attestation evidence differs from original build intent')
     data = {'unit': plan['unit'], 'attempt_id': result['attempt_id'], 'revision': result['revision'],
             'baseline': plan['baseline'], 'files': hashes}
     if 'controlled' in build_intent:
-        preflight = remote('validation_transfer_preflight', {'unit':plan['unit']})
+        preflight_request = {'unit':plan['unit']}
+        if has_attestation:preflight_request['attestations'] = True
+        preflight = remote('validation_transfer_preflight', preflight_request)
         verifier = preflight.get('material_verifier') if isinstance(preflight,dict) else None
         if (not isinstance(preflight,dict) or any(preflight.get(k) != data[k] for k in ('unit','attempt_id','revision','baseline')) or
                 not isinstance(verifier,dict) or set(verifier) != {'release','manifest_sha256'} or
@@ -632,6 +639,9 @@ def transfer_validation_inputs(run):
                 not isinstance(verifier['manifest_sha256'],str) or not re.fullmatch(r'[a-f0-9]{64}',verifier['manifest_sha256'])):
             raise ValueError('controlled transfer verifier preflight differs')
         data['material_verifier'] = verifier
+        if has_attestation:
+            if not isinstance(preflight.get('attestation_trust'),dict):raise ValueError('attestation trust unavailable')
+            data['attestation_trust'] = preflight['attestation_trust']
     fd = os.open(intent, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, 'w') as stream:
         json.dump(data, stream, sort_keys=True);stream.write('\n');stream.flush();os.fsync(stream.fileno())
@@ -654,6 +664,8 @@ def observe_validation_transfer(run):
             status['complete'] != all(status['files'].values()) or
             ('material_verifier' in intent and status.get('material_verifier') != intent['material_verifier'])):
         raise ValueError('original transfer observation differs')
+    if 'attestation_trust' in intent and status.get('attestation_trust') != intent['attestation_trust']:
+        raise ValueError('original attestation trust observation differs')
     return status
 
 
