@@ -1,0 +1,52 @@
+{
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:measure-operator-approval-and-spend-gates-enforced",
+  "execution_boundary": {
+    "docker_contact": false,
+    "external_side_effects": false,
+    "github_contact": false,
+    "host": "Envision",
+    "live_nuc_contact": false,
+    "network": "fresh empty user/network namespace with loopback only for each pytest invocation",
+    "production_state_mutation": false,
+    "provider_or_model_contact": false
+  },
+  "interpretation": "The observed true value establishes fixture-backed runtime enforcement at the source revision. It does not launch, authorize, or bypass a live NUC, provider, publication, deployment, or production approval gate.",
+  "metric": "operator_approval_and_spend_gates_enforced",
+  "observation_method": {
+    "approval_gates": {
+      "checks": [
+        "test_invalid_approval_has_no_preparation_effects: rejection occurs before the task root or attempt database is created",
+        "test_real_signed_approval_and_negative_controls: operator signatures, scope, expiration, image identity, and reviewed build inputs are verified"
+      ],
+      "command": "unshare --user --map-root-user --net sh -c 'ip link set lo up && exec env PYTHONDONTWRITEBYTECODE=1 python -m pytest stapled-factory/deployment/nuc/test_prepare_dispatch.py stapled-factory/worker/tests/test_image_approval.py -q'",
+      "exit_code": 0,
+      "output": "operator-approval-gates.txt",
+      "output_sha256": "b35dbecccb7a595256e282ead476415606c29bf0ee0e97121c55928fd1bac899",
+      "summary": "10 passed in 0.49s"
+    },
+    "operator_workflow_context": {
+      "command": "unshare --user --map-root-user --net sh -c 'ip link set lo up && exec env PYTHONDONTWRITEBYTECODE=1 python -m pytest stapled-factory/deployment/nuc/test_operator_workflow.py -q'",
+      "exit_code": 0,
+      "output": "operator-workflow.txt",
+      "output_sha256": "11a6967cea1e475a0b255f81c4f3858eeb4d0d4ffa448a1171b13cc5bf7222a4",
+      "summary": "65 passed in 0.16s"
+    },
+    "spend_gates": {
+      "checks": [
+        "mismatched capability or identity cannot spend; successor reservations share one atomic authority",
+        "missing authority denies without recreation and policy ceilings cannot be recreated or increased",
+        "concurrent proxy requests and monetary reservations cannot exceed their configured ceilings"
+      ],
+      "command": "unshare --user --map-root-user --net sh -c 'ip link set lo up && exec env PYTHONDONTWRITEBYTECODE=1 python -m pytest stapled-factory/worker/tests/test_budget_authority.py stapled-factory/worker/tests/test_egress_proxy.py -q'",
+      "exit_code": 0,
+      "output": "operator-spend-gates.txt",
+      "output_sha256": "2c964faa3c8073e8d9d852f41228c62c2cc470d419c889d5429f619bf03f1b82",
+      "summary": "32 passed in 7.50s"
+    }
+  },
+  "observed_at": "2026-11-02T04:04:17Z",
+  "observed_value": true,
+  "schema": "factory.operator-approval-and-spend-gate-observation/v1",
+  "source_revision": "ef71767f4584364b5a06b4f724d3338d5589771d",
+  "value_definition": "True only when the approval-gate and spend-gate test selections both exit 0 at the measured source revision; local fixture-backed enforcement is measured without activating a live runtime."
+}

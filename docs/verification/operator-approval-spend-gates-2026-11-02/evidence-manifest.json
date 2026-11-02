@@ -1,0 +1,13 @@
+{
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:measure-operator-approval-and-spend-gates-enforced",
+  "files": {
+    "observation.json": "68d26b83bc512a2c1e44813deee40eaf3c96a2857cb6abe2bcfabfbb31db23b7",
+    "operator-approval-gates.txt": "b35dbecccb7a595256e282ead476415606c29bf0ee0e97121c55928fd1bac899",
+    "operator-spend-gates.txt": "2c964faa3c8073e8d9d852f41228c62c2cc470d419c889d5429f619bf03f1b82",
+    "operator-workflow.txt": "11a6967cea1e475a0b255f81c4f3858eeb4d0d4ffa448a1171b13cc5bf7222a4"
+  },
+  "files_hashed": 4,
+  "private_oracle_and_raw_thoughts_excluded": true,
+  "schema": "factory.operator-approval-and-spend-gate-evidence-manifest/v1",
+  "source_revision": "ef71767f4584364b5a06b4f724d3338d5589771d"
+}
