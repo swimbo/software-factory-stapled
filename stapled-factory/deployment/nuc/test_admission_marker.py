@@ -66,7 +66,8 @@ def test_restart_permit_is_bound_to_hold_boot_and_unit_file(tmp_path, monkeypatc
     module.arm(control, 'a' * 64)
     hashes = {'factory-endpoint': [hashlib.sha256(unit.read_bytes()).hexdigest()]}
     module.authorize_restarts(control, 'a' * 64, hashes)
-    module.prestart(control, 'factory-endpoint', unit)
+    with pytest.raises(RuntimeError, match='independently verified'):
+        module.prestart(control, 'factory-endpoint', unit)
     unit.write_text('different')
     with pytest.raises((ValueError, RuntimeError)):
         module.prestart(control, 'factory-endpoint', unit)

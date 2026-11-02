@@ -128,6 +128,9 @@ def prestart(control, unit=None, unit_file=None):
             digest = hashlib.sha256(stream.read()).hexdigest()
         if digest not in permit['units'][unit]:
             raise ValueError('service unit differs from restart permit')
+        # The permit does not itself establish that host firewall rules are
+        # still installed or that all effective systemd drop-ins are pinned.
+        raise RuntimeError('restart requires independently verified active network fence and effective unit')
     finally:
         os.close(directory)
 
