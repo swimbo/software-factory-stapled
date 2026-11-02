@@ -185,16 +185,20 @@ def authorize_verified_restarts(control, intent_sha256, authorizations, network,
         value={'schema':'factory.restart-permit.v2','intent_sha256':intent_sha256,'boot_id':_boot_id(),
                'units':authorizations,'network':network,'service_dir':service_dir,
                'initial_identity_sha256':evidence['identities_sha256']}
-        fd=os.open('restart-permit',os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,0o600,dir_fd=directory)
+        encoded=json.dumps(value,sort_keys=True,separators=(',',':')).encode()
+        name='restart-permit-'+hashlib.sha256(encoded).hexdigest()
+        existing=[item for item in os.listdir(directory) if item.startswith('restart-permit-')]
+        if len(existing)>=8:raise ValueError('restart permit limit reached')
+        fd=os.open(name,os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,0o600,dir_fd=directory)
         with os.fdopen(fd,'wb') as stream:
-            stream.write(json.dumps(value,sort_keys=True,separators=(',',':')).encode())
+            stream.write(encoded)
             stream.flush();os.fsync(stream.fileno())
         os.fsync(directory)
     finally:
         os.close(directory)
 
 
-def _verified_prestart(control, directory, hold, permit, unit, unit_file, permit_raw):
+def _verified_prestart(directory, hold, permit, unit, unit_file, permit_name, permit_raw, modules):
     keys={'schema','intent_sha256','boot_id','units','network','service_dir','initial_identity_sha256'}
     if (set(permit)!=keys or permit['intent_sha256']!=hold['intent_sha256'] or permit['boot_id']!=_boot_id() or
             not isinstance(permit['service_dir'],str) or str(Path(unit_file).absolute().parent)!=permit['service_dir'] or
@@ -202,7 +206,7 @@ def _verified_prestart(control, directory, hold, permit, unit, unit_file, permit
             not re.fullmatch(r'[a-f0-9]{64}',permit['initial_identity_sha256'])):
         raise ValueError('verified restart permit differs')
     _authorizations(permit['units']);_network(permit['network'])
-    live,effective=_verified_modules(control)
+    live,effective=modules
     first=effective.capture_effective(unit,permit['service_dir'])
     if not _effective_allowed(first,permit['units'][unit]):raise ValueError('effective service configuration differs')
     evidence=live.verify_restart_fence(**permit['network'])
@@ -210,7 +214,7 @@ def _verified_prestart(control, directory, hold, permit, unit, unit_file, permit
             evidence.get('identities_sha256')!=permit['initial_identity_sha256']):
         raise ValueError('live restart fence differs')
     if (effective.capture_effective(unit,permit['service_dir'])!=first or
-            _read_private(directory,'restart-permit')!=permit_raw or _hold(directory)!=hold or _boot_id()!=permit['boot_id']):
+            _read_private(directory,permit_name)!=permit_raw or _hold(directory)!=hold or _boot_id()!=permit['boot_id']):
         raise ValueError('restart evidence changed during verification')
 
 
@@ -224,11 +228,25 @@ def prestart(control, unit=None, unit_file=None):
         if unit not in RESTARTABLE or unit_file is None or os.path.basename(unit_file) != unit + '.service':
             raise RuntimeError('runtime transition requires recovery')
         hold = _hold(directory)
+        names=sorted(name for name in os.listdir(directory) if name.startswith('restart-permit-'))
+        if names:
+            if len(names)>8 or any(not re.fullmatch(r'restart-permit-[a-f0-9]{64}',name) for name in names):
+                raise ValueError('invalid restart permit inventory')
+            modules=_verified_modules(control)
+            for name in names:
+                try:
+                    raw=_read_private(directory,name)
+                    if name!='restart-permit-'+hashlib.sha256(raw).hexdigest():raise ValueError('restart permit digest differs')
+                    value=json.loads(raw)
+                    if not isinstance(value,dict) or value.get('schema')!='factory.restart-permit.v2':
+                        raise ValueError('invalid verified permit')
+                    _verified_prestart(directory,hold,value,unit,unit_file,name,raw,modules)
+                    return
+                except (OSError,ValueError,RuntimeError):
+                    continue
+            raise ValueError('no verified permit matches the live restart')
         permit_raw = _read_private(directory, 'restart-permit')
         permit = json.loads(permit_raw)
-        if isinstance(permit,dict) and permit.get('schema')=='factory.restart-permit.v2':
-            _verified_prestart(control,directory,hold,permit,unit,unit_file,permit_raw)
-            return
         if (not isinstance(permit, dict) or set(permit) != {'schema', 'intent_sha256', 'boot_id', 'units'} or
                 permit['schema'] != 'factory.restart-permit.v1' or
                 permit['intent_sha256'] != hold['intent_sha256'] or permit['boot_id'] != _boot_id() or

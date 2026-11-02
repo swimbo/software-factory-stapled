@@ -87,13 +87,13 @@ def test_verified_permit_rechecks_network_and_effective_configuration(tmp_path, 
     for name in ('factory-endpoint','factory-ingress'):
         path=units/(name+'.service');path.write_text(name);path.chmod(0o600)
     monkeypatch.setattr(module,'_boot_id',lambda:'00000000-0000-4000-8000-000000000001')
-    state={'fence':True,'config':'b'*64}
+    state={'fence':True,'config':'b'*64,'active':'0123456789abcdef'}
     def live(*args,**kwargs):
         if not state['fence']:raise ValueError('fence unavailable')
-        return {'verified':True,'ingress_observed':True,'identities_sha256':'1'*64,'nft_snapshot_sha256':'2'*64}
+        return {'verified':True,'ingress_observed':True,'identities_sha256':('1' if kwargs['identifier'].startswith('0') else '3')*64,'nft_snapshot_sha256':'2'*64}
     def restart(*args,**kwargs):
-        if not state['fence']:raise ValueError('fence unavailable')
-        return {'verified':True,'ingress_observed':False,'identities_sha256':'1'*64}
+        if not state['fence'] or state['active']!=kwargs['identifier']:raise ValueError('fence unavailable')
+        return {'verified':True,'ingress_observed':False,'identities_sha256':('1' if kwargs['identifier'].startswith('0') else '3')*64}
     def effective(name,service_dir):
         unit=Path(service_dir)/(name+'.service')
         return {'unit_sha256':hashlib.sha256(unit.read_bytes()).hexdigest(),
@@ -105,9 +105,14 @@ def test_verified_permit_rechecks_network_and_effective_configuration(tmp_path, 
     module.arm(control,'a'*64)
     module.authorize_verified_restarts(control,'a'*64,allowed,network,units)
     module.prestart(control,'factory-ingress',units/'factory-ingress.service')
+    replacement={**network,'identifier':'1123456789abcdef'}
+    module.authorize_verified_restarts(control,'a'*64,allowed,replacement,units)
+    state['active']=replacement['identifier']
+    assert len(list(control.glob('restart-permit-*')))==2
+    module.prestart(control,'factory-ingress',units/'factory-ingress.service')
     state['fence']=False
-    with pytest.raises(ValueError,match='fence unavailable'):
+    with pytest.raises(ValueError,match='verified permit'):
         module.prestart(control,'factory-ingress',units/'factory-ingress.service')
     state['fence']=True;state['config']='f'*64
-    with pytest.raises(ValueError,match='effective'):
+    with pytest.raises(ValueError,match='verified permit'):
         module.prestart(control,'factory-ingress',units/'factory-ingress.service')
