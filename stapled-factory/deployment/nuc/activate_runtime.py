@@ -12,11 +12,12 @@ and review that adapter. Same-owner concurrent tampering is outside the trust
 boundary. This core conservatively rejects every nonterminal WorkUnit even if
 it is historical and no invocation is running. Prior qualification instead
 checked preservation of known WorkUnit states and finished namespaces; this
-core does not assert those two policies are equivalent. Crashes require explicit
-observation and, if safe, manual recovery; there is no automatic retry or
-watchdog rollback. Recovery requires both services active; a stopped service
-requires manual reconciliation. The bundled NUC adapter does not implement an
-admission fence, so activation and recovery fail closed.
+core does not assert those two policies are equivalent. Restart and rollback
+intents are durable before dispatch. An uncertain restart requires observation
+and independent proof of quiescence before recovery; an uncertain rollback is
+never repeated automatically. Recovery requires both services active. The NUC
+adapter does not implement an admission fence or restart-quiescence proof, so
+activation and recovery fail closed.
 """
 from contextlib import contextmanager
 import fcntl
@@ -267,7 +268,7 @@ def observe(control, service_dir, journal):
                 'candidate_revision':intent['candidate_revision']}
 
 
-def _restore(service_dir, journal, intent, host):
+def _restore(service_dir, journal, intent, host, *, restart=True):
     for name in SERVICES:
         old,mode=_regular(journal/(name+'.previous'),private=True)
         current,_=_regular(service_dir/(name+'.service'))
@@ -277,7 +278,9 @@ def _restore(service_dir, journal, intent, host):
     for name in SERVICES:
         old,_=_regular(journal/(name+'.previous'),private=True)
         _atomic_service(service_dir/(name+'.service'),old,intent['services'][name]['mode'])
-    host.restart_services(SERVICES)
+    if restart:
+        _write_new(journal/'rollback-restart-requested.json',_canonical({'services':list(SERVICES)}));_sync(journal)
+        host.restart_services(SERVICES)
     after=_capture(host, intent['source_revision'], intent['runtime_config_sha256'])
     if after['stable_sha256'] != intent['stable_sha256']:
         raise ManualRecoveryRequired('prior host evidence changed after restoration')
@@ -310,11 +313,16 @@ def activate(*,control,service_dir,journal,source_revision,source_manifest_sha25
                 'runtime_config_sha256':runtime_config_sha256,
                 'services':entries}
         _write_new(journal/'intent.json',_canonical(intent));_sync(journal)
+        restart_requested=False
         try:
             for name in SERVICES:
                 current,_=_regular(service_dir/(name+'.service'))
                 if current != old[name]:raise ValueError('service changed before original activation')
                 _atomic_service(service_dir/(name+'.service'),new[name],modes[name])
+            # Persist the exact original restart intent before issuing it. A
+            # timeout or lost response is not evidence that no job was accepted.
+            restart_requested=True
+            _write_new(journal/'restart-requested.json',_canonical({'services':list(SERVICES)}));_sync(journal)
             host.restart_services(SERVICES)
             after=_capture(host,candidate_revision,runtime_config_sha256)
             if after['stable_sha256']!=before['stable_sha256']:
@@ -323,7 +331,9 @@ def activate(*,control,service_dir,journal,source_revision,source_manifest_sha25
             _write_new(journal/'activated.json',_canonical(result));_sync(journal)
             return result
         except Exception as original:
-            try:_restore(service_dir,journal,intent,host)
+            if restart_requested:
+                raise ManualRecoveryRequired('restart or subsequent observation uncertain; inspect original journal') from original
+            try:_restore(service_dir,journal,intent,host,restart=False)
             except Exception as rollback:
                 raise ManualRecoveryRequired('activation or restoration uncertain; inspect original journal') from rollback
             raise original
@@ -336,8 +346,14 @@ def recover(*,control,service_dir,journal,host):
         intent=_load_journal(journal)
         if os.path.lexists(journal/'activated.json') or os.path.lexists(journal/'rolled-back.json'):
             raise ManualRecoveryRequired('terminal evidence exists; observe and reconcile the original journal')
+        if os.path.lexists(journal/'rollback-restart-requested.json'):
+            raise ManualRecoveryRequired('original rollback restart requires reconciliation; never repeat it')
         if os.path.lexists(control/'operator-active.json'):
             raise ValueError('operator active; preserve original work')
+        if os.path.lexists(journal/'restart-requested.json'):
+            # The adapter must independently establish that the original
+            # request cannot still apply before any compensating restart.
+            host.assert_restart_quiescent(SERVICES)
         _verify_release(control,intent['source_revision'],intent['source_manifest_sha256'])
         _verify_release(control,intent['candidate_revision'],intent['candidate_manifest_sha256'])
         before=_capture(host,expected_runtime_config_sha256=intent['runtime_config_sha256'])

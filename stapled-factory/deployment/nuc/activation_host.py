@@ -244,6 +244,12 @@ class NucHost:
         # has been provisioned or verified. Never stop ingress as a substitute.
         raise RuntimeError('no verified admission fence available')
 
+    def assert_restart_quiescent(self,names):
+        if tuple(names)!=SERVICES:raise ValueError('unexpected service set')
+        # No proof currently binds a timed-out client request to terminal
+        # systemd jobs. Absence of a listed job alone is not that proof.
+        raise RuntimeError('original restart quiescence not established')
+
     def restart_services(self,names):
         if tuple(names)!=SERVICES:raise ValueError('unexpected service set')
         self._command('/usr/bin/systemctl','--user','daemon-reload')

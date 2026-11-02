@@ -52,6 +52,9 @@ def fixture(tmp_path):
             if self.fail:self.fail=False;raise RuntimeError('restart failure')
             text=(units/'factory-endpoint.service').read_text()
             self.running=new if '/releases/'+new+'/' in text else old
+        def assert_restart_quiescent(self,names):
+            assert self.fenced and names==m.SERVICES
+            if getattr(self,'pending',False):raise RuntimeError('original restart still uncertain')
     h=Host();journal=root/'rollouts/unit-1'
     args=dict(control=root,service_dir=units,journal=journal,source_revision=old,source_manifest_sha256=oldhash,
               candidate_revision=new,candidate_manifest_sha256=newhash,host=h)
@@ -69,10 +72,18 @@ def test_activation_preserves_binding_and_original_intent(tmp_path):
     with pytest.raises(ValueError,match='original activation exists'):m.activate(**args)
 
 
-def test_restart_failure_restores_exact_original(tmp_path):
+def test_restart_failure_preserves_original_until_explicit_recovery(tmp_path):
     args,h,original=fixture(tmp_path);h.fail=True
-    with pytest.raises(RuntimeError,match='restart failure'):m.activate(**args)
-    assert h.calls==2 and h.running==args['source_revision']
+    with pytest.raises(m.ManualRecoveryRequired,match='uncertain'):m.activate(**args)
+    assert h.calls==1 and h.running==args['source_revision']
+    assert (args['journal']/'restart-requested.json').is_file()
+    h.pending=True
+    with pytest.raises(RuntimeError,match='still uncertain'):
+        m.recover(control=args['control'],service_dir=args['service_dir'],journal=args['journal'],host=h)
+    assert h.calls==1
+    h.pending=False
+    m.recover(control=args['control'],service_dir=args['service_dir'],journal=args['journal'],host=h)
+    assert h.calls==2
     for n in m.SERVICES:assert (args['service_dir']/(n+'.service')).read_bytes()==original[n]
     assert m.observe(args['control'],args['service_dir'],args['journal'])['state']=='rollback-recorded'
 
@@ -96,6 +107,18 @@ def test_recovery_refuses_foreign_unit_without_mutation(tmp_path):
     assert victim.read_text()=='foreign\n' and h.calls==1
 
 
+def test_uncertain_recovery_restart_is_not_repeated(tmp_path):
+    args,h,_=fixture(tmp_path);h.crash=True
+    with pytest.raises(SystemExit):m.activate(**args)
+    h.crash=False;h.fail=True
+    with pytest.raises(RuntimeError,match='restart failure'):
+        m.recover(control=args['control'],service_dir=args['service_dir'],journal=args['journal'],host=h)
+    assert h.calls==2 and (args['journal']/'rollback-restart-requested.json').exists()
+    with pytest.raises(m.ManualRecoveryRequired,match='never repeat'):
+        m.recover(control=args['control'],service_dir=args['service_dir'],journal=args['journal'],host=h)
+    assert h.calls==2
+
+
 def test_active_work_fails_before_rollout_created(tmp_path):
     args,h,_=fixture(tmp_path);h.busy=True
     with pytest.raises(ValueError,match='complete authenticated'):m.activate(**args)
@@ -109,12 +132,12 @@ def test_running_endpoint_binding_mismatch_fails_before_journal(tmp_path):
     assert not args['journal'].exists() and h.calls==0
 
 
-def test_changed_running_binding_after_switch_restores_original(tmp_path):
+def test_changed_running_binding_after_switch_requires_reconciliation(tmp_path):
     args,h,original=fixture(tmp_path);h.bad_candidate=True
-    with pytest.raises(ValueError,match='runtime configuration differs'):
+    with pytest.raises(m.ManualRecoveryRequired,match='uncertain'):
         m.activate(**args)
-    assert h.calls==2 and h.running==args['source_revision']
-    for n in m.SERVICES:assert (args['service_dir']/(n+'.service')).read_bytes()==original[n]
+    assert h.calls==1 and h.running==args['candidate_revision']
+    assert m.observe(args['control'],args['service_dir'],args['journal'])['state']=='interrupted-or-unresolved'
 
 
 def test_missing_admission_fence_fails_before_changes(tmp_path):
@@ -135,16 +158,16 @@ def test_activation_and_rollback_restart_failure_preserve_original_evidence(tmp_
     host.restart_services = fail_both
     with pytest.raises(m.ManualRecoveryRequired, match='uncertain'):
         m.activate(**args)
-    assert host.calls == 2
+    assert host.calls == 1
     assert (args['journal'] / 'intent.json').is_file()
     assert not (args['journal'] / 'activated.json').exists()
     assert not (args['journal'] / 'rolled-back.json').exists()
     for name in m.SERVICES:
-        assert (args['service_dir'] / (name + '.service')).read_bytes() == original[name]
+        assert (args['service_dir'] / (name + '.service')).read_bytes() != original[name]
         assert (args['journal'] / (name + '.previous')).read_bytes() == original[name]
     with pytest.raises(ValueError, match='original activation exists'):
         m.activate(**args)
-    assert host.calls == 2
+    assert host.calls == 1
 
 
 def test_partial_activation_receipt_cannot_be_reported_as_success(tmp_path, monkeypatch):
@@ -157,12 +180,12 @@ def test_partial_activation_receipt_cannot_be_reported_as_success(tmp_path, monk
             raise OSError('simulated incomplete receipt')
         return write(path, raw)
     monkeypatch.setattr(m, '_write_new', interrupted)
-    with pytest.raises(OSError, match='incomplete receipt'):
+    with pytest.raises(m.ManualRecoveryRequired, match='uncertain'):
         m.activate(**args)
-    assert host.calls == 2
-    assert (args['journal'] / 'rolled-back.json').is_file()
+    assert host.calls == 1
+    assert not (args['journal'] / 'rolled-back.json').exists()
     assert m.observe(args['control'], args['service_dir'], args['journal'])['state'] == 'manual-reconciliation'
     for name in m.SERVICES:
-        assert (args['service_dir'] / (name + '.service')).read_bytes() == original[name]
+        assert (args['service_dir'] / (name + '.service')).read_bytes() != original[name]
     with pytest.raises(m.ManualRecoveryRequired, match='terminal evidence'):
         m.recover(control=args['control'], service_dir=args['service_dir'], journal=args['journal'], host=host)
