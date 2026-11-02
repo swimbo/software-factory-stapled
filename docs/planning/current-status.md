@@ -111,6 +111,8 @@ The controlled-build entry point and operator CLI can optionally verify this evi
 
 The NUC operator module contains an independent re-verifier for this signed binding. It copies pinned verifier source into a fresh private directory, selects a separately pinned local Cosign binary, and requires the signed trust-root and policy digests. A local fixture reverified the real retained package using this code. Transfer now inventories the evidence, pins the original verifier release and separately provisioned owner-only `attestation-trust.json`, and rejects evidence or trust substitution. Its signed-transfer integration has local fixture coverage, but the trust file has not been provisioned on the NUC and no NUC runtime was changed.
 
+An isolated NUC fixture reverified both attestations for the frozen `sigstore@5.0.0` package using the previously provisioned Linux Cosign binary and a copy of the local Sigstore TUF-cache root. Its retained evidence is `/home/bo/.local/share/stapled-factory-control/attestation-verifier-fixture-jMhcMgB3/nuc-receipt.json`. This verifies the fixture on the NUC; the copied root and fixture policy have not been selected as production trust, complete dependency coverage remains unproven, and the transfer/runtime path was not exercised. A separate NUC disk spot check showed approximately 39 GiB free.
+
 A private one-pair evaluation task and independent acceptance oracle were prepared under `/Users/bo/.local/share/stapled-factory-release/out/actual-pair-prep-59b02c5b90d6c92f`. The oracle rejected the present baseline and passed an isolated positive control. This is preparation only; no paid trial was run. Refresh its exact source revision and freeze the task before submission if the checkout advances.
 
 ## Resume order
