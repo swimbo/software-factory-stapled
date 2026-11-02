@@ -96,7 +96,7 @@ def run(args):
     binding = dict(unit_id=unit, attempt_id=unit + ':0', git_revision=checks['git_revision'],
         baseline=args.baseline, artifact_digest=checks['artifact_digest'],
         source_archive_digest=checks['source_archive_digest'], scenario_digest=checks['scenario_digest'],
-        build_manifest_digest=hashlib.sha256(manifest_raw).hexdigest())
+        build_manifest_digest=hashlib.sha256(manifest_raw).hexdigest(), receipt_version=2)
     validate_binding(binding)
     if (manifest.get('revision') != binding['git_revision'] or manifest.get('baseline') != args.baseline or
             manifest.get('archive_sha256') != binding['source_archive_digest']):
@@ -210,8 +210,14 @@ createServer(restate.createEndpointHandler({services:[workUnit]})).listen(Number
                             raise AssertionError('original signed acceptance refused')
                         record(root / 'acceptance-committed-before-client-crash.json', {'unit': unit})
                         os._exit(0)  # No accepted.json or local acknowledgment can be written.
+                    def bind_then_lose_response(envelope):
+                        record(root / 'sole-binding-intent.json', {'unit': unit})
+                        if call('registerValidationBinding', envelope) is not True:
+                            raise AssertionError('original signed binding refused')
+                        record(root / 'binding-committed-before-response-loss.json', {'unit': unit})
+                        raise TimeoutError('simulated lost binding response')
                     validate_session(journal, binding, lambda: call('getState', None),
-                        lambda: checks, accept_then_crash, key)
+                        lambda: checks, accept_then_crash, key, bind=bind_then_lose_response)
                     os._exit(3)
                 except BaseException as error:
                     record(root / 'client-error.json', {'error_class': type(error).__name__})
@@ -240,10 +246,13 @@ createServer(restate.createEndpointHandler({services:[workUnit]})).listen(Number
                 forbidden, forbidden, key, observe_only=True) == accepted
             state = call('getState', None)
             assert state['stage'] == 'validated' and state['validation'] == proof and state['receipt'] == proof['receipt']
+            assert state['validation_binding']['build_manifest_digest'] == binding['build_manifest_digest']
+            assert (journal / 'binding-submission.json').is_file()
             assert call('acceptValidation', sign(proof)) is False
             record(root / 'result.json', {'passed': True, 'fixture_unit': unit,
                 'real_restate': True, 'signed_receipt_stored': True, 'stale_bindings_rejected': True,
                 'atomic_receipt_capability': True,
+                'signed_binding_committed_before_response_loss': True,
                 'tamper_rejected': True, 'client_crash_after_acceptance': True,
                 'endpoint_crash_recovery': True, 'original_journal_reconciled_without_resubmit': True,
                 'repeated_observation_unchanged': True, 'duplicate_acceptance_rejected': True,
