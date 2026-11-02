@@ -100,7 +100,11 @@ def archive_lockfiles(raw, source):
 
 
 def archive_dependency_inventory(raw):
-    """Find obvious missing locks; presence alone never proves complete coverage."""
+    """Find missing local locks; parent workspace membership is not yet verified.
+
+    Presence alone never proves complete coverage. Until a workspace relationship
+    is independently checked, an unrelated parent lock must not cover a child.
+    """
     candidates = {
         'package.json': ('package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', 'bun.lock'),
         'Cargo.toml': ('Cargo.lock',),
@@ -127,8 +131,7 @@ def archive_dependency_inventory(raw):
                 if path.name in candidates:manifests.append(path)
     missing = []
     for manifest in manifests:
-        parents = (manifest.parent, *manifest.parent.parents)
-        if not any(str(parent/name) in regular for parent in parents for name in candidates[manifest.name]):
+        if not any(str(manifest.parent/name) in regular for name in candidates[manifest.name]):
             missing.append(str(manifest))
     return {'manifests': sorted(map(str, manifests)), 'missing_locks': sorted(missing),
             'coverage': 'incomplete'}

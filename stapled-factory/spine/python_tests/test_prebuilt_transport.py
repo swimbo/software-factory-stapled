@@ -50,6 +50,19 @@ def test_source_inventory_reports_manifests_without_matching_locks():
     assert inventory['coverage'] == 'incomplete'
 
 
+def test_unrelated_parent_lock_does_not_cover_nested_package():
+    import io
+    import tarfile
+    data = io.BytesIO()
+    with tarfile.open(fileobj=data, mode='w') as tar:
+        for name in ('package.json', 'package-lock.json', 'frontend/package.json',
+                     'Cargo.lock', 'backend/Cargo.toml'):
+            entry=tarfile.TarInfo(name);entry.size=2;tar.addfile(entry,io.BytesIO(b'{}'))
+    inventory=m.archive_dependency_inventory(data.getvalue())
+    assert inventory['missing_locks'] == ['backend/Cargo.toml','frontend/package.json']
+    assert inventory['coverage'] == 'incomplete'
+
+
 def test_source_inventory_rejects_symlinked_dependency_manifest():
     import io
     import tarfile
