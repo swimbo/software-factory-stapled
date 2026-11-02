@@ -23,7 +23,7 @@ def test_nft_rebind_replaces_only_owned_table():
 def test_nft_readback_rejects_changed_cgroup_and_extra_rules():
     snapshot='''table inet factory_hold_0123456789abcdef { # handle 1
  chain output { # handle 1
-  type filter hook output priority mangle; policy accept;
+  type filter hook output priority mangle - 1; policy accept;
   ip daddr 127.0.0.0/8 tcp dport { 5122, 18080, 19070, 19080, 19081 } jump guard # handle 4
   ip6 daddr ::1 tcp dport { 5122, 18080, 19070, 19080, 19081 } jump guard # handle 6
  }
@@ -51,3 +51,13 @@ def test_kernel_readback_requires_exact_current_cgroup_ids():
     module.verify_kernel_ids(debug,[17,34,51])
     with pytest.raises(ValueError):module.verify_kernel_ids(debug,[17,35,51])
     with pytest.raises(ValueError):module.verify_kernel_ids(debug+'\n'+debug,[17,34,51])
+
+
+def test_other_output_hook_cannot_precede_owned_fence():
+    import json
+    owned={'chain':{'family':'inet','table':'factory_hold_0123456789abcdef','name':'output','hook':'output','prio':-151}}
+    later={'chain':{'family':'ip','table':'mangle','name':'OUTPUT','hook':'output','prio':-150}}
+    module.verify_hook_order(json.dumps({'nftables':[owned,later]}),'0123456789abcdef')
+    earlier={'chain':{'family':'ip','table':'raw','name':'OUTPUT','hook':'output','prio':-300}}
+    with pytest.raises(ValueError):
+        module.verify_hook_order(json.dumps({'nftables':[owned,earlier]}),'0123456789abcdef')

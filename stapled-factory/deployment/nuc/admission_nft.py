@@ -4,6 +4,7 @@ These transactions are not an admission fence by themselves. The caller must
 verify exact cgroup identities, installed rules, startup guards, drained work,
 and recovery before using them on a shared host.
 """
+import json
 import re
 
 PORTS = '5122, 18080, 19070, 19080, 19081'
@@ -32,7 +33,7 @@ def render_install(identifier, probe, ingress, restate):
     def match(path):return f'socket cgroupv2 level {len(path.split("/"))} "{path}"'
     return f'''table inet {table} {{
  chain output {{
-  type filter hook output priority -150; policy accept;
+  type filter hook output priority -151; policy accept;
   ip daddr 127.0.0.0/8 tcp dport {{ {PORTS} }} jump guard
   ip6 daddr ::1 tcp dport {{ {PORTS} }} jump guard
  }}
@@ -59,7 +60,7 @@ def verify_snapshot(snapshot, identifier, probe, ingress, restate):
     probe,ingress,restate=paths
     def match(path):return f'socket cgroupv2 level {len(path.split("/"))} "{path}"'
     expected=[f'table inet {table} {{','chain output {',
-        'type filter hook output priority mangle; policy accept;',
+        'type filter hook output priority mangle - 1; policy accept;',
         f'ip daddr 127.0.0.0/8 tcp dport {{ {PORTS} }} jump guard',
         f'ip6 daddr ::1 tcp dport {{ {PORTS} }} jump guard','}',
         'chain guard {',f'{match(probe)} return',
@@ -83,3 +84,35 @@ def verify_kernel_ids(debug_output, expected_ids):
         raise ValueError('cgroup kernel operands unavailable')
     actual=[int(low,16) | int(high,16)<<32 for low,high in matches]
     if actual != expected_ids:raise ValueError('cgroup kernel identities differ')
+
+
+def verify_hook_order(snapshot, identifier):
+    """Reject earlier or equally prioritized output hooks in any nft family."""
+    table,_=_inputs(identifier)
+    if not isinstance(snapshot,str) or len(snapshot)>16*1024*1024:
+        raise ValueError('invalid nft ruleset snapshot')
+    def unique(pairs):
+        result={}
+        for key,value in pairs:
+            if key in result:raise ValueError('duplicate nft ruleset key')
+            result[key]=value
+        return result
+    try:data=json.loads(snapshot,object_pairs_hook=unique)
+    except (ValueError,TypeError) as exc:raise ValueError('invalid nft ruleset snapshot') from exc
+    if not isinstance(data,dict) or not isinstance(data.get('nftables'),list):
+        raise ValueError('invalid nft ruleset snapshot')
+    own=0
+    for item in data['nftables']:
+        if not isinstance(item,dict):raise ValueError('invalid nft ruleset entry')
+        if 'chain' not in item:continue
+        chain=item['chain']
+        if not isinstance(chain,dict):raise ValueError('invalid nft chain')
+        if chain.get('hook')!='output':continue
+        priority=chain.get('prio')
+        if type(priority) is not int:raise ValueError('nft output priority unavailable')
+        is_own=(chain.get('family')=='inet' and chain.get('table')==table and chain.get('name')=='output')
+        if is_own:
+            if priority!=-151:raise ValueError('owned nft priority differs')
+            own+=1
+        elif priority<=-151:raise ValueError('another nft output hook precedes admission')
+    if own!=1:raise ValueError('owned nft output hook unavailable')
