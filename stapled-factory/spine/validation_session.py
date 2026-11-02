@@ -87,6 +87,8 @@ def evidence(result, binding):
                 any(not isinstance(name, str) or not name or type(ok) is not bool for name, ok in scenarios.items()) or
                 usage['requests'] < 3 * len(scenarios)):
             raise ValueError('passing wall receipt must cover every scenario run')
+        if not all(scenarios.values()):
+            raise ValueError('passing wall receipt requires every scenario quorum')
         cost = usage.get('cost_estimate_usd')
         if (not isinstance(usage.get('tier'), str) or
                 usage.get('pricing_mode') not in ('subscription', 'metered') or

@@ -232,15 +232,16 @@ def test_receipt_must_be_durably_stored_before_acceptance(tmp_path, stored_recei
     assert not (tmp_path/'session/accepted.json').exists()
 
 
-def test_passing_aggregate_keeps_failed_holdout_feedback_private(tmp_path):
+def test_failed_quorum_is_not_submitted_and_feedback_stays_private(tmp_path):
     scenarios = [ScenarioResult(f'private-pass-{i}', 3, 3) for i in range(9)]
     markers = ('private-holdout-marker', '/private/holdout-path', 'expected-secret-value')
     scenarios.append(ScenarioResult(markers[0], 0, 3,
                                     f'GET {markers[1]} expected {markers[2]}'))
     verdict = gate(scenarios)
-    assert verdict.passed is True
+    assert verdict.passed is False
     assert verdict.aggregate_pass_rate == .9
     original = result()
+    original['passed'] = False
     original['wall']['verdict'] = asdict(verdict)
     original['wall']['receipt']['requests'] = 30
     runtime = Runtime()
@@ -248,24 +249,27 @@ def test_passing_aggregate_keeps_failed_holdout_feedback_private(tmp_path):
         runtime.evaluations += 1
         return original
     runtime.evaluate = evaluate
-    runtime.lose_response = True
     folder = tmp_path / 'session'
-    accepted = runtime.run(folder)
-    assert runtime.run(folder, observe_only=True) == accepted
-    assert runtime.evaluations == runtime.submissions == 1
+    rejected = runtime.run(folder)
+    assert runtime.run(folder, observe_only=True) == rejected
+    assert rejected['accepted'] is False
+    assert runtime.evaluations == 1 and runtime.submissions == 0
     checks = json.loads((folder / 'checks.json').read_text())
     assert checks == original
     for marker in markers:
         assert marker in m.canonical(checks)
-        for public in (accepted, runtime.state['validation'],
-                       json.loads((folder / 'envelope.json').read_text()),
-                       json.loads((folder / 'accepted.json').read_text())):
-            assert marker not in m.canonical(public)
-    proof = accepted['evidence']
-    assert proof['checks_digest'] == hashlib.sha256(m.canonical(original).encode()).hexdigest()
-    assert proof['receipt']['verdict'] == dict(passed=True, aggregate_pass_rate=.9,
-                                             failure_message='', per_scenario={})
-    assert proof['receipt']['usage'] == original['wall']['receipt']
+        assert marker not in m.canonical(rejected)
+    assert rejected['checks_digest'] == hashlib.sha256(m.canonical(original).encode()).hexdigest()
+    assert not (folder/'envelope.json').exists()
+    assert not (folder/'accepted.json').exists()
+
+
+def test_receipt_rejects_inconsistent_passing_verdict_with_failed_quorum():
+    checks = result()
+    checks['wall']['verdict']['per_scenario']['failed-case'] = False
+    checks['wall']['receipt']['requests'] = 6
+    with pytest.raises(ValueError, match='every scenario quorum'):
+        m.evidence(checks, dict(binding(), receipt_version=2))
 
 
 @pytest.mark.parametrize('changed', [

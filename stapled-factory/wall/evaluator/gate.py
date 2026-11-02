@@ -42,6 +42,10 @@ def gate(
     first_failure = ""
 
     for r in scenario_results:
+        if (not isinstance(r.scenario_id, str) or not r.scenario_id or r.scenario_id in per_scenario or
+                type(r.runs_total) is not int or r.runs_total < 1 or type(r.runs_passed) is not int or
+                not 0 <= r.runs_passed <= r.runs_total):
+            raise ValueError('invalid or duplicate scenario result')
         majority = required_majority(r.runs_total)
         ok = r.runs_passed >= majority
         per_scenario[r.scenario_id] = ok
@@ -53,9 +57,8 @@ def gate(
     aggregate = passed_count / len(scenario_results)
 
     return Verdict(
-        # A scenario "passes" its quorum (2-of-3 or 1-of-1); the wall passes when
-        # >= threshold of scenarios pass. failure_message is feedback, not the pass test.
-        passed=aggregate >= aggregate_threshold,
+        # Every scenario must meet its quorum as well as the aggregate threshold.
+        passed=all(per_scenario.values()) and aggregate >= aggregate_threshold,
         aggregate_pass_rate=aggregate,
         per_scenario=per_scenario,
         failure_message=first_failure,
