@@ -58,6 +58,12 @@ def evidence(result, binding):
     passed = result.get('security', {}).get('verdict') == 'pass' and result.get('wall', {}).get('verdict', {}).get('passed') is True
     if type(result.get('passed')) is not bool or result['passed'] != passed:
         raise ValueError('candidate verdict differs from security/wall checks')
+    if binding.get('receipt_version') == 2 and passed:
+        engines = result['security'].get('engines')
+        if (not isinstance(engines, dict) or not engines or
+                any(not isinstance(name, str) or not name.strip() or
+                    not isinstance(engine, str) or not engine.strip() for name, engine in engines.items())):
+            raise ValueError('manifest-bound validation requires security engine evidence')
     proof = dict(unit_id=binding['unit_id'], attempt_id=binding['attempt_id'],
                 git_revision=binding['git_revision'], artifact_digest=binding['artifact_digest'],
                 deployment_id=result['deployment_id'], scenario_digest=binding['scenario_digest'],

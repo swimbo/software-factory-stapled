@@ -63,6 +63,17 @@ export function verifyValidation(value: SignedValidation): ValidationEvidence {
        !/^[a-f0-9]{64}$/.test(result.checks_digest ?? ''))) throw Error('Invalid validation check binding');
   if (result.build_manifest_digest !== undefined &&
       !/^[a-f0-9]{64}$/.test(result.build_manifest_digest)) throw Error('Invalid build manifest binding');
+  // A manifest-bound record is the newer exact-build contract, not the
+  // historical metadata-only format. It must include its signed wall receipt
+  // and an explicit account of which security engines were actually used.
+  if (result.build_manifest_digest !== undefined &&
+      (result.receipt === undefined || !/^[a-f0-9]{64}$/.test(result.source_archive_digest ?? '') ||
+       !/^[a-f0-9]{64}$/.test(result.checks_digest ?? '') || Array.isArray(result.security_engines) ||
+       Object.keys(result.security_engines).length === 0 ||
+       Object.entries(result.security_engines).some(([name, engine]) =>
+         !name.trim() || typeof engine !== 'string' || !engine.trim()))) {
+    throw Error('Incomplete manifest-bound validation evidence');
+  }
   validateReceipt(result);
   return result;
 }

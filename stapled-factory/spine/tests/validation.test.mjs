@@ -56,6 +56,18 @@ test('validated wall receipt is signed, revision bound and stored atomically', a
       assert.equal(state.receipt, null);
     }
     await assert.rejects(() => workUnit.object.acceptValidation(ctx, sign({...proof, build_manifest_digest: 'bad'})), /signed evidence/);
+    for (const incomplete of [
+      {...proof, receipt: undefined},
+      {...proof, source_archive_digest: undefined},
+      {...proof, checks_digest: undefined},
+      {...proof, security_engines: {}},
+      {...proof, security_engines: []},
+      {...proof, security_engines: {sast: ''}},
+    ]) {
+      await assert.rejects(() => workUnit.object.acceptValidation(ctx, sign(incomplete)), /signed evidence/);
+      assert.equal(state.stage, 'needs_validation');
+      assert.equal(state.receipt, null);
+    }
     assert.equal(await workUnit.object.acceptValidation(ctx, sign(proof)), true);
     assert.equal(state.validation.build_manifest_digest, proof.build_manifest_digest);
     assert.deepEqual(state.receipt, receipt);

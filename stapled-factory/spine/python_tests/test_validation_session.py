@@ -50,6 +50,13 @@ def test_v2_proof_binds_manifest_and_preserves_legacy_contract():
         m.validate_binding(dict(original, receipt_version=3))
 
 
+@pytest.mark.parametrize('engines', [{}, [], {'sast': ''}, {'': 'semgrep'}])
+def test_v2_rejects_missing_or_invalid_security_engine_evidence(engines):
+    checks = result(); checks['security']['engines'] = engines
+    with pytest.raises(ValueError, match='security engine evidence'):
+        m.evidence(checks, dict(binding(), receipt_version=2))
+
+
 def test_passing_receipt_requires_requests_for_each_scenario_run():
     checks = result()
     checks['wall']['receipt']['requests'] = 0
