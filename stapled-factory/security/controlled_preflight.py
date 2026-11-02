@@ -20,7 +20,7 @@ from isolated_cargo_build import MAX_SOURCE_BYTES, _recipe, cargo_source_preflig
 def preflight_controlled(*, profile, repo, revision, source_tar, source_sha256,
                          materials_archive, materials_sha256, base_layout, base_manifest,
                          docker_bin, docker_bin_sha256, buildx_bin_sha256, docker_config, docker_host, builder_name,
-                         builder_container_id, builder_image_id, npm_entrypoint=None, cargo_binary=None):
+                         builder_container_id, builder_image_id, npm_entrypoint=None, cargo_binary=None, registry_keys=None):
     if profile not in ('npm', 'cargo'):
         raise ValueError('unsupported controlled build profile')
     for value in (source_sha256, materials_sha256):
@@ -36,11 +36,11 @@ def preflight_controlled(*, profile, repo, revision, source_tar, source_sha256,
     _verify_source_revision(repo, revision, source_sha256)
     if profile == 'npm':
         if cargo_binary is not None:raise ValueError('unsupported mixed runtime contract')
-        frozen = verify_frozen_npm(materials_archive, materials_sha256)
+        frozen = verify_frozen_npm(materials_archive, materials_sha256, registry_keys=registry_keys)
         lock_sha = hashlib.sha256(_source_lock(source_tar, revision, npm_entrypoint)).hexdigest()
         recipe = npm_recipe(npm_entrypoint)
     else:
-        if npm_entrypoint is not None:raise ValueError('unsupported mixed runtime contract')
+        if npm_entrypoint is not None or registry_keys is not None:raise ValueError('unsupported mixed runtime contract')
         frozen = verify_frozen_cargo(materials_archive, materials_sha256)
         lock_sha = cargo_source_preflight(source_tar, cargo_binary)['lock_sha256']
         recipe = _recipe(source_sha256, materials_sha256, cargo_binary)
@@ -64,6 +64,8 @@ def preflight_controlled(*, profile, repo, revision, source_tar, source_sha256,
     if profile == 'npm':
         result.update(npm_entrypoint=npm_entrypoint, materials_manifest_sha256=frozen['manifest_sha256'],
                       cache_recipe_sha256=hashlib.sha256(POPULATE).hexdigest())
+        if 'registry_evidence_sha256' in frozen:
+            result['registry_evidence_sha256'] = frozen['registry_evidence_sha256']
     else:
         result['cargo_binary']=cargo_binary
     return result

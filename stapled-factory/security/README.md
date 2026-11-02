@@ -73,8 +73,10 @@ that the caller has independently pinned. It trusts the host's `openssl` and
 reports key lifetime and revocation as unknown. Registry signatures bind the
 package name, version and integrity; they do not prove publisher identity or
 complete provenance. A frozen npm archive can retain this evidence; a reader
-must supply independently pinned keys to verify it. The runtime does not yet
-carry this evidence into a receipt and the release gate is unchanged.
+must supply independently pinned keys to verify it. Controlled npm preflight
+and the isolated build library can verify and report the evidence digest when
+given those keys. The operator and runtime do not yet pass the key policy or
+carry this evidence into a receipt; the release gate is unchanged.
 
 `oci_archive.py` verifies the descriptor graph and linux/amd64 image config of
 a pinned OCI archive and records an archive digest. Its result is deliberately

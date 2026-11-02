@@ -323,7 +323,7 @@ def _verify_source_revision(repo, revision, expected):
 
 def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_tar, materials_sha256,
                        base_layout, base_manifest, docker, docker_bin_sha256, buildx_bin_sha256, docker_config, docker_host,
-                       builder, builder_container_id, builder_image_id, npm_entrypoint, tag, output_tar):
+                       builder, builder_container_id, builder_image_id, npm_entrypoint, tag, output_tar, registry_keys=None):
     """Produce an npm-ci image; the caller signs the returned binding separately."""
     for digest in (source_sha256, materials_sha256):
         if not isinstance(digest, str) or not re.fullmatch(r'[a-f0-9]{64}', digest):raise ValueError('pinned input digest required')
@@ -348,7 +348,7 @@ def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_t
         root = Path(temp);context = root/'context';context.mkdir()
         _copy_checked(source_tar, context/'source.tar', source_sha256, MAX_SOURCE)
         _copy_checked(materials_tar, context/'materials.tar', materials_sha256, 2 * 1024**3 + 64 * 1024**2)
-        frozen = verify_frozen_npm(context/'materials.tar', materials_sha256)
+        frozen = verify_frozen_npm(context/'materials.tar', materials_sha256, registry_keys=registry_keys)
         with tarfile.open(context/'materials.tar', mode='r:') as tar:
             lock = tar.extractfile('package-lock.json').read()
         if _source_lock(context/'source.tar', revision, npm_entrypoint) != lock:
@@ -373,7 +373,7 @@ def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_t
         # raw or gzip layer against the uncompressed rootfs diff IDs.
         from isolated_cargo_build import verify_docker_image_archive
         image = verify_docker_image_archive(output, tag, revision, source_sha256, expected_cmd=['node','/workspace/'+npm_entrypoint])
-        return {'status':'isolated-npm-ci-image', 'coverage':'incomplete', 'revision':revision,
+        result = {'status':'isolated-npm-ci-image', 'coverage':'incomplete', 'revision':revision,
                 'source_archive_sha256':source_sha256, 'materials_archive_sha256':materials_sha256,
                 'lock_sha256':frozen['lock_sha256'], 'materials_manifest_sha256':frozen['manifest_sha256'],
                 'base_manifest':base_manifest, 'base_config':base_config,
@@ -382,3 +382,6 @@ def isolated_npm_build(*, repo, source_tar, source_sha256, revision, materials_t
                 'npm_entrypoint':npm_entrypoint,'docker_bin_sha256':docker_bin_sha256,'buildx_bin_sha256':buildx_bin_sha256,
                 'cache_recipe_sha256':hashlib.sha256(POPULATE).hexdigest(), 'image_tar_sha256':image['archive_sha256'],
                 'config_digest':image['config_digest']}
+        if 'registry_evidence_sha256' in frozen:
+            result['registry_evidence_sha256'] = frozen['registry_evidence_sha256']
+        return result

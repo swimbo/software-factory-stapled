@@ -60,8 +60,28 @@ def fixture(tmp_path):
     return values, metadata, flags, instance
 
 
+def signed_materials(values, tmp_path):
+    lock = (values['repo']/'package-lock.json').read_bytes()
+    entry = json.loads(lock)['packages']['node_modules/x']
+    private = tmp_path/'registry-key.pem'; public = tmp_path/'registry-key.der'; signature = tmp_path/'registry.sig'
+    subprocess.run(['openssl','ecparam','-name','prime256v1','-genkey','-noout','-out',str(private)],check=True,capture_output=True)
+    subprocess.run(['openssl','pkey','-in',str(private),'-pubout','-outform','DER','-out',str(public)],check=True,capture_output=True)
+    key = public.read_bytes()
+    def field(value):return len(value).to_bytes(4,'big')+value
+    ssh = field(b'ecdsa-sha2-nistp256')+field(b'nistp256')+field(key[-65:])
+    keyid = 'SHA256:'+base64.b64encode(hashlib.sha256(ssh).digest()).decode().rstrip('=')
+    subprocess.run(['openssl','dgst','-sha256','-sign',str(private),'-out',str(signature)],
+        input=('x@'+entry['version']+':'+entry['integrity']).encode(),check=True,capture_output=True)
+    evidence={'node_modules/x':{'keyid':keyid,'sig':base64.b64encode(signature.read_bytes()).decode()}}
+    archive=values['materials_tar'].parent/'signed-materials.tar';keys={keyid:key}
+    report=freeze_npm(lock,tmp_path/'store',archive,registry_evidence=evidence,registry_keys=keys)
+    return archive,report,keys
+
+
 def test_fixed_offline_build_and_input_binding(tmp_path, monkeypatch):
     values, metadata, flags, _ = fixture(tmp_path);calls=[]; real_run = isolated._run
+    archive, signed, keys = signed_materials(values, tmp_path)
+    values.update(materials_tar=archive,materials_sha256=signed['archive_sha256'],registry_keys=keys)
     monkeypatch.setattr(isolated,'verify_docker_tools',lambda docker,*a:(docker,'/plugin'))
     def run(args, env, timeout=30):
         if args[0] == '/usr/bin/git':return real_run(args, env, timeout)
@@ -90,6 +110,7 @@ def test_fixed_offline_build_and_input_binding(tmp_path, monkeypatch):
     assert result['coverage']=='incomplete'
     assert result['source_archive_sha256']==values['source_sha256']
     assert result['materials_archive_sha256']==values['materials_sha256']
+    assert result['registry_evidence_sha256']==signed['registry_evidence_sha256']
     assert result['image_tar_sha256']==hashlib.sha256(values['output_tar'].read_bytes()).hexdigest()
     assert result['config_digest'].startswith('sha256:')
     assert sum(args[1:3]==['buildx','build'] for args in calls)==1
@@ -141,7 +162,14 @@ def test_controlled_preflight_binds_frozen_material_before_dispatch(tmp_path, mo
     result = preflight.preflight_controlled(**args)
     assert result['coverage'] == 'incomplete'
     assert result['materials_sha256'] == values['materials_sha256']
-    with values['materials_tar'].open('ab') as stream:
+    archive,signed,keys=signed_materials(values,tmp_path)
+    args.update(materials_archive=archive,materials_sha256=signed['archive_sha256'])
+    with pytest.raises(ValueError,match='pinned'):
+        preflight.preflight_controlled(**args)
+    result=preflight.preflight_controlled(**args,registry_keys=keys)
+    assert result['registry_evidence_sha256']==signed['registry_evidence_sha256']
+    args.update(registry_keys=keys)
+    with archive.open('ab') as stream:
         stream.write(b'tamper')
     with pytest.raises(ValueError, match='digest differs'):
         preflight.preflight_controlled(**args)

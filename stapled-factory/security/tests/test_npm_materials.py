@@ -114,9 +114,13 @@ def test_registry_signature_binds_verified_bytes_and_identity(tmp_path):
 
 def test_published_npm_signature_uses_registry_key_fingerprint():
     from npm_materials import _verify_registry_signature
+    from npm_registry_policy import decode_policy
     keyid = 'SHA256:jl3bwswu80PjjokCgh0o2w5c2U4LhQAE57gj9cz1kzA'
     key = base64.b64decode('MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Olb3zMAFFxXKHiIkQO5cJ3Yhl5i6UPp+IhuteBJbuHcA5UogKo0EWtlWwW6KSaKoTNEYL7JlCQiVnkhBktUgg==')
     integrity = 'sha512-zRpUiDwd/xk6ADqPMATG8vc9VPrkck7T07OIx0gnjmJAnHnTVXNQG3vfvWNuiZIkwu9KrKdA1iJKfsfTVxE6NA=='
     signature = 'MEYCIQCxn2UBpu2wlAmln1ChWuYUBMnxSn2adhrYCIB90FGjzAIhAIRdBfoB5qhFGwn6GbSAKAqFI/JmBKVwDFMWXDRj8KeY'
+    assert decode_policy({keyid: base64.b64encode(key).decode()}) == {keyid: key}
+    with pytest.raises(ValueError, match='fingerprint'):
+        decode_policy({'SHA256:wrong': base64.b64encode(key).decode()})
     _verify_registry_signature('node_modules/buffer-equal-constant-time', '1.0.1', integrity,
                                {'keyid': keyid, 'sig': signature}, {keyid: key})

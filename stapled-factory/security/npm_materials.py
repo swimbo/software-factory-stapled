@@ -28,6 +28,15 @@ def _unique_object(pairs):
     return value
 
 
+def registry_key_fingerprint(key):
+    prefix = bytes.fromhex('3059301306072a8648ce3d020106082a8648ce3d03010703420004')
+    if not isinstance(key, bytes) or len(key) != 91 or not key.startswith(prefix):
+        raise ValueError('invalid registry P-256 public key')
+    def field(value): return len(value).to_bytes(4, 'big') + value
+    ssh = field(b'ecdsa-sha2-nistp256') + field(b'nistp256') + field(key[-65:])
+    return 'SHA256:' + base64.b64encode(hashlib.sha256(ssh).digest()).decode().rstrip('=')
+
+
 def _verify_registry_signature(path, version, integrity, record, keys):
     """Verify an npm registry signature against an independently pinned P-256 key.
 
@@ -51,12 +60,10 @@ def _verify_registry_signature(path, version, integrity, record, keys):
     if not signature or base64.b64encode(signature).decode() != encoded:
         raise ValueError('invalid registry signature')
     key = keys.get(keyid)
-    p256_prefix = bytes.fromhex('3059301306072a8648ce3d020106082a8648ce3d03010703420004')
-    if not isinstance(key, bytes) or len(key) != 91 or not key.startswith(p256_prefix):
-        raise ValueError('registry signature key not pinned')
-    def field(value): return len(value).to_bytes(4, 'big') + value
-    ssh_key = field(b'ecdsa-sha2-nistp256') + field(b'nistp256') + field(key[-65:])
-    if keyid != 'SHA256:' + base64.b64encode(hashlib.sha256(ssh_key).digest()).decode().rstrip('='):
+    try:expected_keyid = registry_key_fingerprint(key)
+    except ValueError as exc:
+        raise ValueError('registry signature key not pinned') from exc
+    if keyid != expected_keyid:
         raise ValueError('registry signature key not pinned')
     pem = b'-----BEGIN PUBLIC KEY-----\n' + base64.b64encode(key) + b'\n-----END PUBLIC KEY-----\n'
     with tempfile.TemporaryDirectory(prefix='factory-npm-signature-') as temp:
