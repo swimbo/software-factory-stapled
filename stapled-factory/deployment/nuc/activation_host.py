@@ -244,11 +244,31 @@ class NucHost:
         # has been provisioned or verified. Never stop ingress as a substitute.
         raise RuntimeError('no verified admission fence available')
 
-    def assert_restart_quiescent(self,names):
+    def assert_restart_quiescent(self,names,journal):
         if tuple(names)!=SERVICES:raise ValueError('unexpected service set')
-        # No proof currently binds a timed-out client request to terminal
-        # systemd jobs. Absence of a listed job alone is not that proof.
-        raise RuntimeError('original restart quiescence not established')
+        # A missing or partial completion receipt may mean that the original
+        # client timed out or died after submission; job absence is insufficient.
+        try:
+            requested=json.loads(_private(Path(journal)/'restart-requested.json'))
+            completed=json.loads(_private(Path(journal)/'restart-completed.json'))
+        except (OSError,ValueError) as exc:raise RuntimeError('original restart completion unavailable') from exc
+        if (requested!={'services':list(SERVICES)} or completed!={'services':list(SERVICES),'returned':True} or
+                type(completed.get('returned')) is not bool):
+            raise RuntimeError('original restart completion differs')
+        def read_jobs():
+            result={}
+            for name in SERVICES:
+                raw=self._command('/usr/bin/systemctl','--user','show',name,'-p','ActiveState','-p','SubState','-p','Job').decode()
+                pairs=[line.split('=',1) for line in raw.splitlines() if '=' in line]
+                value=dict(pairs)
+                if len(pairs)!=3 or set(value)!={'ActiveState','SubState','Job'}:
+                    raise RuntimeError('restart job state unavailable')
+                result[name]=value
+            return result
+        first=read_jobs()
+        if (any(value!={'ActiveState':'active','SubState':'running','Job':''} for value in first.values()) or
+                read_jobs()!=first):
+            raise RuntimeError('restart jobs are not quiescent')
 
     def restart_services(self,names):
         if tuple(names)!=SERVICES:raise ValueError('unexpected service set')

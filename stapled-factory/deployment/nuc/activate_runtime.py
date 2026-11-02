@@ -16,8 +16,9 @@ core does not assert those two policies are equivalent. Restart and rollback
 intents are durable before dispatch. An uncertain restart requires observation
 and independent proof of quiescence before recovery; an uncertain rollback is
 never repeated automatically. Recovery requires both services active. The NUC
-adapter does not implement an admission fence or restart-quiescence proof, so
-activation and recovery fail closed.
+adapter does not implement an admission fence. It can check quiescence only
+when the original synchronous restart returned and its durable receipt exists;
+an interrupted or timed-out request remains unresolved.
 """
 from contextlib import contextmanager
 import fcntl
@@ -324,6 +325,7 @@ def activate(*,control,service_dir,journal,source_revision,source_manifest_sha25
             restart_requested=True
             _write_new(journal/'restart-requested.json',_canonical({'services':list(SERVICES)}));_sync(journal)
             host.restart_services(SERVICES)
+            _write_new(journal/'restart-completed.json',_canonical({'services':list(SERVICES),'returned':True}));_sync(journal)
             after=_capture(host,candidate_revision,runtime_config_sha256)
             if after['stable_sha256']!=before['stable_sha256']:
                 raise ValueError('retained host evidence changed')
@@ -353,7 +355,7 @@ def recover(*,control,service_dir,journal,host):
         if os.path.lexists(journal/'restart-requested.json'):
             # The adapter must independently establish that the original
             # request cannot still apply before any compensating restart.
-            host.assert_restart_quiescent(SERVICES)
+            host.assert_restart_quiescent(SERVICES,journal)
         _verify_release(control,intent['source_revision'],intent['source_manifest_sha256'])
         _verify_release(control,intent['candidate_revision'],intent['candidate_manifest_sha256'])
         before=_capture(host,expected_runtime_config_sha256=intent['runtime_config_sha256'])

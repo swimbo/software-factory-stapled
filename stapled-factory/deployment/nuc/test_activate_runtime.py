@@ -52,7 +52,7 @@ def fixture(tmp_path):
             if self.fail:self.fail=False;raise RuntimeError('restart failure')
             text=(units/'factory-endpoint.service').read_text()
             self.running=new if '/releases/'+new+'/' in text else old
-        def assert_restart_quiescent(self,names):
+        def assert_restart_quiescent(self,names,journal):
             assert self.fenced and names==m.SERVICES
             if getattr(self,'pending',False):raise RuntimeError('original restart still uncertain')
     h=Host();journal=root/'rollouts/unit-1'
@@ -65,6 +65,7 @@ def test_activation_preserves_binding_and_original_intent(tmp_path):
     args,h,original=fixture(tmp_path)
     assert m.activate(**args)['activated'] is True
     assert h.calls==1 and h.running==args['candidate_revision']
+    assert json.loads((args['journal']/'restart-completed.json').read_text()) == {'services':list(m.SERVICES),'returned':True}
     for n in m.SERVICES:
         text=(args['service_dir']/(n+'.service')).read_text()
         assert 'Environment=FACTORY_RUNTIME_CONFIG=/private/original.json' in text
@@ -77,6 +78,7 @@ def test_restart_failure_preserves_original_until_explicit_recovery(tmp_path):
     with pytest.raises(m.ManualRecoveryRequired,match='uncertain'):m.activate(**args)
     assert h.calls==1 and h.running==args['source_revision']
     assert (args['journal']/'restart-requested.json').is_file()
+    assert not (args['journal']/'restart-completed.json').exists()
     h.pending=True
     with pytest.raises(RuntimeError,match='still uncertain'):
         m.recover(control=args['control'],service_dir=args['service_dir'],journal=args['journal'],host=h)

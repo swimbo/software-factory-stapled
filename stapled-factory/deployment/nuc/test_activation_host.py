@@ -43,6 +43,22 @@ def test_read_only_capture_cross_checks_inventory_and_authentication(tmp_path,mo
     assert not (host.control/'operator-active.json').exists()
 
 
+def test_restart_recovery_requires_completed_original_and_no_jobs(tmp_path,monkeypatch):
+    host,_,_,_=fixture(tmp_path,monkeypatch);journal=tmp_path/'journal';journal.mkdir(mode=0o700)
+    request=journal/'restart-requested.json';request.write_text(json.dumps({'services':list(host_module.SERVICES)}));request.chmod(0o600)
+    calls=[]
+    monkeypatch.setattr(host,'_command',lambda *args: calls.append(args) or b'ActiveState=active\nSubState=running\nJob=\n')
+    with pytest.raises(RuntimeError,match='completion unavailable'):
+        host.assert_restart_quiescent(host_module.SERVICES,journal)
+    assert calls==[]
+    complete=journal/'restart-completed.json';complete.write_text(json.dumps({'services':list(host_module.SERVICES),'returned':True}));complete.chmod(0o600)
+    host.assert_restart_quiescent(host_module.SERVICES,journal)
+    assert len(calls)==4
+    monkeypatch.setattr(host,'_command',lambda *args:b'ActiveState=active\nSubState=running\nJob=42\n')
+    with pytest.raises(RuntimeError,match='not quiescent'):
+        host.assert_restart_quiescent(host_module.SERVICES,journal)
+
+
 def test_capture_rejects_truncated_inventory(tmp_path,monkeypatch):
     host,_,_,_=fixture(tmp_path,monkeypatch)
     monkeypatch.setattr(host,'_query',lambda q:[{'n':2}] if 'COUNT(*)' in q else
