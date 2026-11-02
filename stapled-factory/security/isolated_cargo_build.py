@@ -81,6 +81,11 @@ def _source_lock_digest(source, binary_name=None, source_component=''):
                 # This rejects common credential files, not all possible secrets.
                 if any(re.fullmatch(r'(?:\.env(?:\..*)?|\.npmrc|id_rsa|id_ed25519|[^/]+\.(?:key|pem|p12|pfx))', part, re.I) for part in parts):
                     raise ValueError('source contains a restricted credential path')
+                # A checked-in rustup selector can choose a different cached
+                # toolchain from the operator-pinned base image. This profile
+                # does not yet bind an explicit toolchain selection.
+                if parts[-1] in ('rust-toolchain', 'rust-toolchain.toml'):
+                    raise ValueError('source toolchain override is not supported')
                 names.add(canonical); total += member.size
                 if member.isfile():regular.add(canonical)
                 if total > MAX_SOURCE_BYTES:

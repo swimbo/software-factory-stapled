@@ -185,3 +185,14 @@ def test_nested_cargo_component_binds_its_lock_and_runtime_path(tmp_path):
     write_source(('Cargo.toml',b'[workspace]\nmembers=["backend"]\n'))
     with pytest.raises(ValueError,match='parent Cargo workspace'):
         subject.cargo_source_preflight(source,'app','backend')
+
+
+def test_source_cannot_select_unpinned_rust_toolchain(tmp_path):
+    source=tmp_path/'source.tar'
+    with tarfile.open(source,'w') as tar:
+        for name,data in [('backend/Cargo.toml',b'[package]\nname="app"\nversion="0.1.0"\n'),
+                          ('backend/Cargo.lock',b'version = 4\n'),('backend/src/main.rs',b'fn main() {}'),
+                          ('backend/rust-toolchain.toml',b'[toolchain]\nchannel="stable"\n')]:
+            item=tarfile.TarInfo(name);item.size=len(data);tar.addfile(item,io.BytesIO(data))
+    with pytest.raises(ValueError,match='toolchain override'):
+        subject.cargo_source_preflight(source,'app','backend')
