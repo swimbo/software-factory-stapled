@@ -47,8 +47,7 @@ def _run(args):
     return result.stdout.decode('utf-8')
 
 
-def verify_live(identifier, expected_identities, *, helper_image, docker_sha256, nft_sha256):
-    """Independently collect and check the live table using an image-pinned read-only helper."""
+def _verify(identifier, expected_identities, *, helper_image, docker_sha256, nft_sha256, observe_ingress):
     names=('probe','ingress','restate')
     if (not isinstance(identifier,str) or not re.fullmatch(r'[a-f0-9]{16}',identifier) or
             not isinstance(helper_image,str) or not re.fullmatch(r'sha256:[a-f0-9]{64}',helper_image) or
@@ -61,7 +60,9 @@ def verify_live(identifier, expected_identities, *, helper_image, docker_sha256,
     docker=_tool(DOCKER,docker_sha256);nft=_tool(NFT,nft_sha256)
     if _run([docker,'image','inspect','--format','{{.Id}}',helper_image]).strip()!=helper_image:
         raise ValueError('admission helper image differs')
-    def identities():return {name:read_identity(expected_identities[name]['pid'],os.getuid()) for name in names}
+    def identities():
+        return {name:(dict(expected_identities[name]) if name=='ingress' and not observe_ingress else
+                      read_identity(expected_identities[name]['pid'],os.getuid())) for name in names}
     before=identities()
     if before!=expected_identities:raise ValueError('admission process identity differs')
     prefix=[docker,'run','--rm','--pull=never','--network=host','--cgroupns=host',
@@ -85,4 +86,20 @@ def verify_live(identifier, expected_identities, *, helper_image, docker_sha256,
     if _run([docker,'image','inspect','--format','{{.Id}}',helper_image]).strip()!=helper_image:
         raise ValueError('admission helper image changed')
     return {**result,'nft_snapshot_sha256':hashlib.sha256(snapshot.encode()).hexdigest(),
-            'helper_image':helper_image,'nft_sha256':nft_sha256}
+            'helper_image':helper_image,'nft_sha256':nft_sha256,'ingress_observed':observe_ingress}
+
+
+def verify_live(identifier, expected_identities, *, helper_image, docker_sha256, nft_sha256):
+    """Independently check the live table and all three original processes."""
+    return _verify(identifier,expected_identities,helper_image=helper_image,docker_sha256=docker_sha256,
+                   nft_sha256=nft_sha256,observe_ingress=True)
+
+
+def verify_restart_fence(identifier, expected_identities, *, helper_image, docker_sha256, nft_sha256):
+    """Check a retained ingress rule while that process may be stopped for restart.
+
+    The caller must bind the ingress identity to an earlier successful full
+    live verification and must rebind and reverify the new ingress afterward.
+    """
+    return _verify(identifier,expected_identities,helper_image=helper_image,docker_sha256=docker_sha256,
+                   nft_sha256=nft_sha256,observe_ingress=False)
