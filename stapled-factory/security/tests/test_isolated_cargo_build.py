@@ -196,3 +196,9 @@ def test_source_cannot_select_unpinned_rust_toolchain(tmp_path):
             item=tarfile.TarInfo(name);item.size=len(data);tar.addfile(item,io.BytesIO(data))
     with pytest.raises(ValueError,match='toolchain override'):
         subject.cargo_source_preflight(source,'app','backend')
+    assert subject.cargo_source_preflight(source,'app','backend','1.99.1')['rust_toolchain']=='1.99.1'
+    recipe=subject._recipe('a'*64,'b'*64,'app','backend','1.99.1').decode()
+    assert 'ENV RUSTUP_TOOLCHAIN=1.99.1\n' in recipe
+    assert 'RUN --network=none cargo +1.99.1 build --release --locked --offline --bin app' in recipe
+    with pytest.raises(ValueError,match='exact Rust toolchain'):
+        subject.cargo_source_preflight(source,'app','backend','stable')

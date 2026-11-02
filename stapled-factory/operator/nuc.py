@@ -267,6 +267,10 @@ def verify_controlled_materials(target, intent, binding, unit):
                         for part in component.split('/'))):
                 raise ValueError('invalid signed Cargo component')
             names.add('source_component')
+        if 'rust_toolchain' in controlled:
+            if not isinstance(controlled['rust_toolchain'],str) or not re.fullmatch(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}',controlled['rust_toolchain']):
+                raise ValueError('invalid signed Rust toolchain')
+            names.add('rust_toolchain')
     has_registry_policy = 'registry_policy' in controlled or 'registry_evidence_sha256' in controlled
     if has_registry_policy:
         if controlled['profile'] != 'npm':raise ValueError('registry policy requires npm profile')
@@ -309,14 +313,14 @@ def verify_controlled_materials(target, intent, binding, unit):
     policy_raw = json.dumps(controlled.get('registry_policy'),sort_keys=True,separators=(',',':'))
     if len(policy_raw) > 65536:raise ValueError('registry policy too large')
     material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy,
-                              cargo_component='source_component' in controlled)
+                              cargo_component='source_component' in controlled or 'rust_toolchain' in controlled)
     # -I ignores cwd and PYTHONPATH. The modules are copied from their verified
     # release bytes to a fresh private source-only directory before import;
     # disabling bytecode writes alone would still allow stale bytecode reads.
     program = r'''import hashlib, importlib, json, sys, tarfile
 sys.dont_write_bytecode = True
 sys.path.insert(0, sys.argv[1])
-profile, archive, expected, source, policy_raw, lock_name, component, binary = sys.argv[2:]
+profile, archive, expected, source, policy_raw, lock_name, component, binary, rust_toolchain = sys.argv[2:]
 module = importlib.import_module('controlled_npm' if profile == 'npm' else 'controlled_cargo')
 verify = module.verify_frozen_npm if profile == 'npm' else module.verify_frozen_cargo
 policy = json.loads(policy_raw)
@@ -336,9 +340,9 @@ with open(source, 'rb') as stream, tarfile.open(fileobj=module._BoundedTarInput(
                 raise ValueError('unsafe source lock')
             lock = hashlib.file_digest(tar.extractfile(item), 'sha256').hexdigest()
 if lock is None: raise ValueError('source lock missing')
-if component:
+if component or rust_toolchain:
     if profile != 'cargo': raise ValueError('component requires Cargo')
-    checked=importlib.import_module('isolated_cargo_build').cargo_source_preflight(source,binary,component)
+    checked=importlib.import_module('isolated_cargo_build').cargo_source_preflight(source,binary,component,rust_toolchain or None)
     if checked['lock_sha256'] != lock: raise ValueError('component source lock differs')
 print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True))
 '''
@@ -347,7 +351,8 @@ print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True)
     release_path=Path(pin['release'])
     release_files=json.loads((release_path/'release-manifest.json').read_bytes())['files']
     modules=MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if has_registry_policy else ())
-    if 'source_component' in controlled:modules += ('stapled-factory/security/isolated_cargo_build.py',)
+    if 'source_component' in controlled or 'rust_toolchain' in controlled:
+        modules += ('stapled-factory/security/isolated_cargo_build.py',)
     with tempfile.TemporaryDirectory(prefix='factory-material-verifier-') as temp:
         for name in modules:
             raw=(release_path/name).read_bytes()
@@ -355,7 +360,8 @@ print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True)
             (Path(temp)/Path(name).name).write_bytes(raw)
         result = subprocess.run([sys.executable, '-I', '-B', '-c', program, temp, controlled['profile'],
                                  str(target/'materials.tar'), controlled['materials_sha256'], str(target/'source.tar'), policy_raw,
-                                 lock_name, controlled.get('source_component',''), controlled.get('cargo_binary','')],
+                                 lock_name, controlled.get('source_component',''), controlled.get('cargo_binary',''),
+                                 controlled.get('rust_toolchain','')],
                                 capture_output=True, text=True, check=True, timeout=600)
     verified = json.loads(result.stdout); report = verified.get('report') or {}
     if (report.get('coverage') != 'incomplete' or report.get('archive_sha256') != controlled['materials_sha256'] or
@@ -365,7 +371,7 @@ print(json.dumps({'report': report, 'source_lock_sha256': lock}, sort_keys=True)
             has_registry_policy and report.get('registry_evidence_sha256') != controlled['registry_evidence_sha256']):
         raise ValueError('verified controlled materials differ from signed inputs')
     material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=has_registry_policy,
-                              cargo_component='source_component' in controlled)
+                              cargo_component='source_component' in controlled or 'rust_toolchain' in controlled)
     result = {'controlled_profile': controlled['profile'], 'controlled_materials_sha256': controlled['materials_sha256'],
               'controlled_lock_sha256': controlled['lock_sha256'], 'material_verifier': pin}
     if has_registry_policy:result['controlled_registry_evidence_sha256'] = controlled['registry_evidence_sha256']

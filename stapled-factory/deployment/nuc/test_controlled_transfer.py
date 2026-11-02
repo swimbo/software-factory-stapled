@@ -24,7 +24,7 @@ spec = importlib.util.spec_from_file_location('controlled_nuc_fixture', BASE/'op
 nuc = importlib.util.module_from_spec(spec);spec.loader.exec_module(nuc)
 
 
-def fixture(tmp_path, monkeypatch, profile, registry=False, component=''):
+def fixture(tmp_path, monkeypatch, profile, registry=False, component='', toolchain=None):
     root = tmp_path/'control';root.mkdir(mode=0o700)
     monkeypatch.setattr(nuc, 'ROOT', root)
     release = root/'releases/frozen';security = release/'stapled-factory/security';security.mkdir(parents=True)
@@ -71,7 +71,8 @@ def fixture(tmp_path, monkeypatch, profile, registry=False, component=''):
         item = tarfile.TarInfo(name);item.size = len(lock);tar.addfile(item, io.BytesIO(lock))
         if component:
             for name,raw in [('backend/Cargo.toml',b'[package]\nname="app"\nversion="0.1.0"\n'),
-                             ('backend/src/main.rs',b'fn main() {}')]:
+                             ('backend/src/main.rs',b'fn main() {}'),
+                             *([('backend/rust-toolchain.toml',b'[toolchain]\nchannel="stable"\n')] if toolchain else [])]:
                 item=tarfile.TarInfo(name);item.size=len(raw);tar.addfile(item,io.BytesIO(raw))
     (stage/'diff').write_bytes(b'fixture diff');(stage/'Dockerfile').write_bytes(b'fixture recipe')
     (stage/'result.bundle').write_bytes(b'fixture bundle');shutil.copyfile(material, stage/'materials.tar')
@@ -97,6 +98,7 @@ def fixture(tmp_path, monkeypatch, profile, registry=False, component=''):
     else:
         controlled['cargo_binary']='app'
         if component:controlled['source_component']=component
+        if toolchain:controlled['rust_toolchain']=toolchain
     binding = {'schema':'factory.build.v2','revision':revision,'baseline':baseline,'archive_sha256':source_sha,
         'diff_sha256':hashlib.sha256((stage/'diff').read_bytes()).hexdigest(),'dockerfile_sha256':recipe_sha,
         'config_digest':'sha256:'+hashlib.sha256(config).hexdigest(),
@@ -141,13 +143,16 @@ def test_signed_registry_policy_and_material_are_verified_on_transfer(tmp_path, 
 
 
 def test_nested_cargo_component_is_verified_on_transfer(tmp_path, monkeypatch):
-    data=fixture(tmp_path,monkeypatch,'cargo',component='backend')
+    data=fixture(tmp_path,monkeypatch,'cargo',component='backend',toolchain='1.99.1')
     result=nuc.main('validation_verify_transfer',{'unit':data['unit']})
     assert result['verified'] is True and result['controlled_profile']=='cargo'
     altered=json.loads(json.dumps(data['binding']))
     altered['controlled']['source_component']='../backend'
     intent=json.loads((data['target']/'transfer-intent.json').read_text())
     with pytest.raises(ValueError,match='Cargo component'):
+        nuc.verify_controlled_materials(data['target'],intent,altered,data['unit'])
+    altered['controlled']['source_component']='backend';altered['controlled']['rust_toolchain']='stable'
+    with pytest.raises(ValueError,match='Rust toolchain'):
         nuc.verify_controlled_materials(data['target'],intent,altered,data['unit'])
 
 

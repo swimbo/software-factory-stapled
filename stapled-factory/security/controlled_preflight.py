@@ -14,14 +14,14 @@ from controlled_cargo import verify_frozen_cargo
 from isolated_npm_build import (MAX_SOURCE, POPULATE, npm_recipe, verify_docker_tools, _builder_config,
                                 _freeze_base, _hash_file, _inspect_builder,
                                 _source_lock, _verify_source_revision)
-from isolated_cargo_build import MAX_SOURCE_BYTES, _component, _recipe, cargo_source_preflight
+from isolated_cargo_build import MAX_SOURCE_BYTES, _component, _toolchain, _recipe, cargo_source_preflight
 
 
 def preflight_controlled(*, profile, repo, revision, source_tar, source_sha256,
                          materials_archive, materials_sha256, base_layout, base_manifest,
                          docker_bin, docker_bin_sha256, buildx_bin_sha256, docker_config, docker_host, builder_name,
                          builder_container_id, builder_image_id, npm_entrypoint=None, cargo_binary=None, registry_keys=None,
-                         source_component=''):
+                         source_component='', rust_toolchain=None):
     if profile not in ('npm', 'cargo'):
         raise ValueError('unsupported controlled build profile')
     for value in (source_sha256, materials_sha256):
@@ -36,7 +36,7 @@ def preflight_controlled(*, profile, repo, revision, source_tar, source_sha256,
     _hash_file(source_tar, source_sha256, MAX_SOURCE if profile == 'npm' else MAX_SOURCE_BYTES)
     _verify_source_revision(repo, revision, source_sha256)
     if profile == 'npm':
-        if cargo_binary is not None or source_component:raise ValueError('unsupported mixed runtime contract')
+        if cargo_binary is not None or source_component or rust_toolchain is not None:raise ValueError('unsupported mixed runtime contract')
         frozen = verify_frozen_npm(materials_archive, materials_sha256, registry_keys=registry_keys)
         lock_sha = hashlib.sha256(_source_lock(source_tar, revision, npm_entrypoint)).hexdigest()
         recipe = npm_recipe(npm_entrypoint)
@@ -44,8 +44,9 @@ def preflight_controlled(*, profile, repo, revision, source_tar, source_sha256,
         if npm_entrypoint is not None or registry_keys is not None:raise ValueError('unsupported mixed runtime contract')
         frozen = verify_frozen_cargo(materials_archive, materials_sha256)
         source_component = _component(source_component)
-        lock_sha = cargo_source_preflight(source_tar, cargo_binary, source_component)['lock_sha256']
-        recipe = _recipe(source_sha256, materials_sha256, cargo_binary, source_component)
+        rust_toolchain = _toolchain(rust_toolchain)
+        lock_sha = cargo_source_preflight(source_tar, cargo_binary, source_component, rust_toolchain)['lock_sha256']
+        recipe = _recipe(source_sha256, materials_sha256, cargo_binary, source_component, rust_toolchain)
     if frozen['lock_sha256'] != lock_sha:
         raise ValueError('source and frozen dependency lock differ')
     base_config = _freeze_base(base_layout, base_manifest, None)
@@ -71,4 +72,5 @@ def preflight_controlled(*, profile, repo, revision, source_tar, source_sha256,
     else:
         result['cargo_binary']=cargo_binary
         if source_component:result['source_component']=source_component
+        if rust_toolchain is not None:result['rust_toolchain']=rust_toolchain
     return result

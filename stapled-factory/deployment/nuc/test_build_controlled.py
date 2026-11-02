@@ -75,6 +75,7 @@ def fake_runners(monkeypatch, values, *, wrong_image=False):
             'docker_bin_sha256':args['docker_bin_sha256'],'buildx_bin_sha256':args['buildx_bin_sha256'],
             'builder':{'container_id':args['builder_container_id'],'image_id':args['builder_image_id'],'network_mode':'none'}}
         if component:result['source_component']=component
+        if args.get('rust_toolchain') is not None:result['rust_toolchain']=args['rust_toolchain']
         return result
     monkeypatch.setattr(m,'verify_docker_tools',lambda docker,*a:(docker,'/plugin'))
     monkeypatch.setattr(m,'isolated_npm_build',npm);monkeypatch.setattr(m,'build_cargo_candidate',cargo)
@@ -110,8 +111,9 @@ def test_mismatched_image_preserves_failed_original_and_refuses_replay(tmp_path,
 def test_signed_cargo_component_and_runtime_are_bound(tmp_path,monkeypatch):
     values,public=inputs(tmp_path);fake_runners(monkeypatch,values)
     values.pop('npm_entrypoint');values['cargo_binary']='app'
-    manifest=m.build_controlled(profile='cargo',source_component='backend',**values)
+    manifest=m.build_controlled(profile='cargo',source_component='backend',rust_toolchain='1.99.1',**values)
     assert manifest['controlled']['source_component']=='backend'
+    assert manifest['controlled']['rust_toolchain']=='1.99.1'
     subprocess.run(['openssl','pkeyutl','-verify','-pubin','-inkey',str(public),'-rawin',
         '-in',str(values['output_dir']/'build.json'),'-sigfile',str(values['output_dir']/'build.sig')],check=True,capture_output=True)
 

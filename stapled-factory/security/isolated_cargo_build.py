@@ -61,8 +61,15 @@ def _component(value):
     return value
 
 
-def _source_lock_digest(source, binary_name=None, source_component=''):
+def _toolchain(value):
+    if value is not None and (not isinstance(value,str) or not re.fullmatch(r'[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}',value)):
+        raise ValueError('exact Rust toolchain version required')
+    return value
+
+
+def _source_lock_digest(source, binary_name=None, source_component='', rust_toolchain=None):
     source_component = _component(source_component)
+    rust_toolchain = _toolchain(rust_toolchain)
     prefix = source_component + '/' if source_component else ''
     if source.stat().st_size > MAX_SOURCE_BYTES:
         raise ValueError('source archive too large')
@@ -84,7 +91,7 @@ def _source_lock_digest(source, binary_name=None, source_component=''):
                 # A checked-in rustup selector can choose a different cached
                 # toolchain from the operator-pinned base image. This profile
                 # does not yet bind an explicit toolchain selection.
-                if parts[-1] in ('rust-toolchain', 'rust-toolchain.toml'):
+                if rust_toolchain is None and parts[-1] in ('rust-toolchain', 'rust-toolchain.toml'):
                     raise ValueError('source toolchain override is not supported')
                 names.add(canonical); total += member.size
                 if member.isfile():regular.add(canonical)
@@ -135,11 +142,12 @@ def _source_lock_digest(source, binary_name=None, source_component=''):
     return lock
 
 
-def cargo_source_preflight(source_archive, binary_name, source_component=''):
+def cargo_source_preflight(source_archive, binary_name, source_component='', rust_toolchain=None):
     """Validate a narrow root-package binary and report its lock digest."""
-    result = {'lock_sha256': _source_lock_digest(Path(source_archive), binary_name, source_component),
+    result = {'lock_sha256': _source_lock_digest(Path(source_archive), binary_name, source_component, rust_toolchain),
               'cargo_binary': binary_name}
     if source_component:result['source_component'] = source_component
+    if rust_toolchain is not None:result['rust_toolchain'] = rust_toolchain
     return result
 
 
@@ -336,18 +344,24 @@ def _fsync_directory(path):
         os.close(fd)
 
 
-def _recipe(source_sha, cargo_sha, binary_name, source_component=''):
+def _recipe(source_sha, cargo_sha, binary_name, source_component='', rust_toolchain=None):
     source_component = _component(source_component)
+    rust_toolchain = _toolchain(rust_toolchain)
     if not isinstance(binary_name,str) or not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_-]{0,127}',binary_name):
         raise ValueError('invalid Cargo binary name')
     workdir = '/factory/source' + ('/' + source_component if source_component else '')
+    toolchain_env = '' if rust_toolchain is None else 'ENV RUSTUP_TOOLCHAIN=' + rust_toolchain + '\n'
+    cargo = 'cargo' if rust_toolchain is None else 'cargo +' + rust_toolchain
+    version_check = '' if rust_toolchain is None else (
+        "RUN --network=none rustc +" + rust_toolchain + " --version | grep -E '^rustc " +
+        rust_toolchain.replace('.', r'\.') + "( |$)'\n")
     return f'''FROM base
 COPY source.tar /factory-input/source.tar
 COPY cargo-inputs.tar /factory-input/cargo-inputs.tar
 RUN --network=none printf '%s  %s\\n' '{source_sha}' /factory-input/source.tar '{cargo_sha}' /factory-input/cargo-inputs.tar | sha256sum -c - && mkdir -p /factory/source /factory/cargo /factory/cargo-home && tar -xf /factory-input/source.tar -C /factory/source && tar -xf /factory-input/cargo-inputs.tar -C /factory/cargo && printf '%s\\n' '[source.crates-io]' 'replace-with = "vendored-sources"' '[source.vendored-sources]' 'directory = "/factory/cargo/vendor"' '[net]' 'offline = true' > /factory/cargo-home/config.toml
 ENV CARGO_HOME=/factory/cargo-home CARGO_NET_OFFLINE=true
-WORKDIR {workdir}
-RUN --network=none cargo build --release --locked --offline --bin {binary_name}
+{toolchain_env}{version_check}WORKDIR {workdir}
+RUN --network=none {cargo} build --release --locked --offline --bin {binary_name}
 ENTRYPOINT []
 CMD ["{workdir}/target/release/{binary_name}"]
 '''.encode()
@@ -358,7 +372,7 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
                           builder_name, builder_container_id, builder_image_id,
                           docker_host, docker_config, output_dir, binary_name,
                           docker_bin_sha256, buildx_bin_sha256,
-                          docker_bin='/usr/local/bin/docker', timeout=900, source_component=''):
+                          docker_bin='/usr/local/bin/docker', timeout=900, source_component='', rust_toolchain=None):
     """Build once from private copies and return incomplete evidence for signing.
 
     No factory credential, Docker socket or caller Dockerfile enters the build
@@ -383,6 +397,7 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
     if not isinstance(revision, str) or not re.fullmatch(r'[a-f0-9]{40}', revision):
         raise ValueError('exact Git revision required')
     source_component = _component(source_component)
+    rust_toolchain = _toolchain(rust_toolchain)
     tag = 'factory-candidate-' + unit.lower() + ':' + revision
     original_docker = docker_bin
     forbidden = [source_repo, output_dir, Path(__file__).resolve().parents[2]]
@@ -403,11 +418,11 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
     _pinned_copy(cargo_archive, cargo, cargo_sha256)
     _verify_git_source(source_repo, revision, source)
     cargo_report = verify_frozen_cargo(cargo, cargo_sha256)
-    if cargo_source_preflight(source, binary_name, source_component)['lock_sha256'] != cargo_report['lock_sha256']:
+    if cargo_source_preflight(source, binary_name, source_component, rust_toolchain)['lock_sha256'] != cargo_report['lock_sha256']:
         raise ValueError('source and frozen Cargo lock differ')
     layout = output / 'base-layout'; layout.mkdir(mode=0o700)
     base_config = _freeze_base(base_layout, base_manifest, layout)
-    recipe = _recipe(source_sha256, cargo_sha256, binary_name, source_component)
+    recipe = _recipe(source_sha256, cargo_sha256, binary_name, source_component, rust_toolchain)
     (context / 'Dockerfile').write_bytes(recipe)
     recipe_sha256 = hashlib.sha256(recipe).hexdigest()
     image = output / 'image.tar'; metadata = output / 'build-metadata.json'
@@ -418,6 +433,7 @@ def build_cargo_candidate(*, source_repo, revision, unit, source_archive, source
               'cargo_binary': binary_name, 'docker_bin_sha256': docker_bin_sha256,
               'buildx_bin_sha256': buildx_bin_sha256}
     if source_component:intent['source_component'] = source_component
+    if rust_toolchain is not None:intent['rust_toolchain'] = rust_toolchain
     with (output / 'build-intent.json').open('x') as stream:
         json.dump(intent, stream, sort_keys=True, separators=(',', ':')); stream.flush(); os.fsync(stream.fileno())
     _fsync_directory(output)
