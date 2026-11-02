@@ -81,6 +81,20 @@ the frozen archive. New validation evidence binds the build manifest digest.
 None of these checks establish key lifetime, publisher identity, Cargo or
 base-image provenance, or complete coverage; the release gate is unchanged.
 
+`npm_workflow_attestation.py` verifies a supported npm SLSA v1 bundle against
+an operator-pinned Cosign binary, Sigstore trusted root and exact HTTPS workflow
+identity and issuer. It checks the signed package URL, version and SHA-512
+against the tarball bytes. Its report remains incomplete and is not yet carried
+into the frozen archive or runtime receipt. It does not verify the separate npm
+publish attestation or the claims about how the package was built.
+
+`npm_registry_attestation.py` separately checks an npm publish attestation's
+registry, package subject, pinned registry key and key-validity interval, then
+verifies its Sigstore bundle. The operator must authenticate the key policy and
+trusted root independently. This records what the registry asserted; it does
+not identify a human publisher or establish complete provenance. Neither new
+attestation verifier is connected to the release gate yet.
+
 `oci_archive.py` verifies the descriptor graph and linux/amd64 image config of
 a pinned OCI archive and records an archive digest. Its result is deliberately
 incomplete: it does not establish publisher identity, build provenance, safe
