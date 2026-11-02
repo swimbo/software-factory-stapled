@@ -40,6 +40,8 @@ def test_preparation_never_overwrites_existing_dropin(tmp_path):
 
 
 def test_preparation_pins_complete_guard_module_bundle(tmp_path):
+    import subprocess
+    import sys
     control,units,guard,digest=fixture(tmp_path)
     names=('admission_live.py','admission_identity.py','admission_nft.py','admission_effective.py','admission_install.py')
     sources={name:{'path':HERE/name,'sha256':hashlib.sha256((HERE/name).read_bytes()).hexdigest()} for name in names}
@@ -47,6 +49,11 @@ def test_preparation_pins_complete_guard_module_bundle(tmp_path):
     assert set(receipt['modules'])==set(names)
     for name in names:
         assert hashlib.sha256((control/'admission-fence'/name).read_bytes()).hexdigest()==receipt['modules'][name]
+    installed=control/'admission-fence/guard.py';hold=control/'admission-fence/hold'
+    program='import importlib.util,sys; s=importlib.util.spec_from_file_location("guard",sys.argv[1]); m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m._verified_modules(sys.argv[2])'
+    subprocess.run([sys.executable,'-I','-B','-c',program,str(installed),str(hold)],check=True,capture_output=True)
+    (control/'admission-fence/admission_nft.py').write_text('changed')
+    assert subprocess.run([sys.executable,'-I','-B','-c',program,str(installed),str(hold)],capture_output=True).returncode!=0
 
 
 def test_loaded_guard_check_rejects_stale_systemd_state(tmp_path, monkeypatch):
@@ -55,7 +62,7 @@ def test_loaded_guard_check_rejects_stale_systemd_state(tmp_path, monkeypatch):
     def show(command, **kwargs):
         name=command[3]
         script=control/'admission-fence/guard.py';hold=control/'admission-fence/hold'
-        argv=f'/usr/bin/python3 {script} prestart {hold} {name} {units/name}.service'
+        argv=f'/usr/bin/python3 -I -B {script} prestart {hold} {name} {units/name}.service'
         class Result:stdout=(f'ExecStartPre={{ path=/usr/bin/python3 ; argv[]={argv} ; ignore_errors=no ; }}\n'
             f'FragmentPath={units/name}.service\nDropInPaths={units/name}.service.d/90-factory-admission.conf\n'
             'NeedDaemonReload=no\nActiveState=active\nMainPID=123\n')

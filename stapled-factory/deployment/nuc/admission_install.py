@@ -106,7 +106,7 @@ def prepare_install(control, service_dir, guard_source, expected_sha256, *, modu
         directory = service_dir/(name+'.service.d')
         if not os.path.lexists(directory):directory.mkdir(mode=0o700);_sync(service_dir)
         _directory(directory)
-        data = ('[Service]\nExecStartPre=/usr/bin/python3 '+str(script)+' prestart '+str(hold)+' '+name+' '+
+        data = ('[Service]\nExecStartPre=/usr/bin/python3 -I -B '+str(script)+' prestart '+str(hold)+' '+name+' '+
                 str(service_dir/(name+'.service'))+'\n').encode()
         _write(directory/DROPIN, data)
         files[name] = hashlib.sha256(data).hexdigest()
@@ -164,7 +164,7 @@ def verify_loaded(control, service_dir, expected_sha256, *, module_sha256=None):
             key,value=line.split('=',1)
             if key in fields:raise ValueError('duplicate systemd property')
             fields[key]=value
-        argv='/usr/bin/python3 '+str(script)+' prestart '+str(hold)+' '+name+' '+str(unit)
+        argv='/usr/bin/python3 -I -B '+str(script)+' prestart '+str(hold)+' '+name+' '+str(unit)
         expected='{ path=/usr/bin/python3 ; argv[]='+argv+' ; ignore_errors=no ;'
         pid=fields.get('MainPID','')
         if (fields.get('FragmentPath')!=str(unit) or str(dropin) not in fields.get('DropInPaths','').split() or

@@ -5,14 +5,17 @@ network fence, drain and explicit recovery procedure are also required.
 """
 import hashlib
 import grp
+import importlib
 import json
 import os
+from pathlib import Path
 import pwd
 import re
 import stat
 import sys
 
 RESTARTABLE = frozenset(('factory-endpoint', 'factory-ingress'))
+MODULES = ('admission_identity','admission_nft','admission_install','admission_live','admission_effective')
 
 
 def _unsafe_unit_mode(info):
@@ -102,6 +105,113 @@ def authorize_restarts(control, intent_sha256, unit_hashes):
         os.close(directory)
 
 
+def _verified_modules(control):
+    if sys.flags.isolated!=1:raise ValueError('isolated Python required for verified guard modules')
+    root=Path(control).absolute().parent
+    if Path(control).absolute()!=root/'hold' or Path(__file__).resolve()!=root/'guard.py':
+        raise ValueError('guard is not in its installed bundle')
+    directory=_open_control(root)
+    try:
+        receipt=json.loads(_read_private(directory,'installation.json'))
+        if (not isinstance(receipt,dict) or not isinstance(receipt.get('modules'),dict) or
+                set(receipt['modules'])!={name+'.py' for name in MODULES} or
+                hashlib.sha256(_read_private(directory,'guard.py')).hexdigest()!=receipt.get('guard_sha256')):
+            raise ValueError('guard bundle receipt differs')
+        for name in MODULES:
+            digest=receipt['modules'][name+'.py']
+            if (not isinstance(digest,str) or not re.fullmatch(r'[a-f0-9]{64}',digest) or
+                    hashlib.sha256(_read_private(directory,name+'.py')).hexdigest()!=digest):
+                raise ValueError('guard module differs')
+    finally:
+        os.close(directory)
+    sys.path.insert(0,str(root))
+    modules={}
+    for name in MODULES:
+        if name in sys.modules and Path(getattr(sys.modules[name],'__file__','')).resolve()!=root/(name+'.py'):
+            raise ValueError('untrusted admission module already loaded')
+        module=importlib.import_module(name)
+        if Path(getattr(module,'__file__','')).resolve()!=root/(name+'.py'):
+            raise ValueError('admission module loaded from wrong path')
+        modules[name]=module
+    return modules['admission_live'],modules['admission_effective']
+
+
+def _authorizations(value):
+    if not isinstance(value,dict) or set(value)!=RESTARTABLE:
+        raise ValueError('both restartable service authorizations required')
+    for entries in value.values():
+        if not isinstance(entries,list) or not 1<=len(entries)<=2:
+            raise ValueError('invalid effective service authorizations')
+        for entry in entries:
+            if (not isinstance(entry,dict) or set(entry)!={'unit_sha256','config_sha256'} or
+                    any(not isinstance(v,str) or not re.fullmatch(r'[a-f0-9]{64}',v) for v in entry.values())):
+                raise ValueError('invalid effective service authorization')
+
+
+def _network(value):
+    keys={'identifier','expected_identities','helper_image','docker_sha256','nft_sha256'}
+    if not isinstance(value,dict) or set(value)!=keys:raise ValueError('complete network fence identity required')
+    return value
+
+
+def _effective_allowed(effective, entries):
+    return any(effective.get('unit_sha256')==entry['unit_sha256'] and
+               effective.get('config_sha256')==entry['config_sha256'] for entry in entries)
+
+
+def authorize_verified_restarts(control, intent_sha256, authorizations, network, service_dir):
+    """Write one immutable boot-bound permit after full live and unit verification."""
+    _authorizations(authorizations);_network(network)
+    # Freeze caller-owned values before checking and recording them.
+    raw=json.dumps({'units':authorizations,'network':network},sort_keys=True,separators=(',',':'),allow_nan=False).encode()
+    if len(raw)>60000:raise ValueError('restart authorization too large')
+    frozen=json.loads(raw);authorizations=frozen['units'];network=frozen['network']
+    service_dir=str(Path(service_dir).absolute())
+    directory=_open_control(control)
+    try:
+        if _hold(directory)['intent_sha256']!=intent_sha256:raise ValueError('transition identity differs')
+        live,effective=_verified_modules(control)
+        evidence=live.verify_live(**network)
+        if (evidence.get('verified') is not True or evidence.get('ingress_observed') is not True or
+                not re.fullmatch(r'[a-f0-9]{64}',evidence.get('identities_sha256','')) or
+                not re.fullmatch(r'[a-f0-9]{64}',evidence.get('nft_snapshot_sha256',''))):
+            raise ValueError('full admission verification required')
+        for name in sorted(RESTARTABLE):
+            if not _effective_allowed(effective.capture_effective(name,service_dir),authorizations[name]):
+                raise ValueError('effective service configuration differs')
+        if _hold(directory)['intent_sha256']!=intent_sha256:raise ValueError('transition changed during authorization')
+        value={'schema':'factory.restart-permit.v2','intent_sha256':intent_sha256,'boot_id':_boot_id(),
+               'units':authorizations,'network':network,'service_dir':service_dir,
+               'initial_identity_sha256':evidence['identities_sha256']}
+        fd=os.open('restart-permit',os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,0o600,dir_fd=directory)
+        with os.fdopen(fd,'wb') as stream:
+            stream.write(json.dumps(value,sort_keys=True,separators=(',',':')).encode())
+            stream.flush();os.fsync(stream.fileno())
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def _verified_prestart(control, directory, hold, permit, unit, unit_file, permit_raw):
+    keys={'schema','intent_sha256','boot_id','units','network','service_dir','initial_identity_sha256'}
+    if (set(permit)!=keys or permit['intent_sha256']!=hold['intent_sha256'] or permit['boot_id']!=_boot_id() or
+            not isinstance(permit['service_dir'],str) or str(Path(unit_file).absolute().parent)!=permit['service_dir'] or
+            not isinstance(permit['initial_identity_sha256'],str) or
+            not re.fullmatch(r'[a-f0-9]{64}',permit['initial_identity_sha256'])):
+        raise ValueError('verified restart permit differs')
+    _authorizations(permit['units']);_network(permit['network'])
+    live,effective=_verified_modules(control)
+    first=effective.capture_effective(unit,permit['service_dir'])
+    if not _effective_allowed(first,permit['units'][unit]):raise ValueError('effective service configuration differs')
+    evidence=live.verify_restart_fence(**permit['network'])
+    if (evidence.get('verified') is not True or evidence.get('ingress_observed') is not False or
+            evidence.get('identities_sha256')!=permit['initial_identity_sha256']):
+        raise ValueError('live restart fence differs')
+    if (effective.capture_effective(unit,permit['service_dir'])!=first or
+            _read_private(directory,'restart-permit')!=permit_raw or _hold(directory)!=hold or _boot_id()!=permit['boot_id']):
+        raise ValueError('restart evidence changed during verification')
+
+
 def prestart(control, unit=None, unit_file=None):
     directory = _open_control(control)
     try:
@@ -112,7 +222,11 @@ def prestart(control, unit=None, unit_file=None):
         if unit not in RESTARTABLE or unit_file is None or os.path.basename(unit_file) != unit + '.service':
             raise RuntimeError('runtime transition requires recovery')
         hold = _hold(directory)
-        permit = json.loads(_read_private(directory, 'restart-permit'))
+        permit_raw = _read_private(directory, 'restart-permit')
+        permit = json.loads(permit_raw)
+        if isinstance(permit,dict) and permit.get('schema')=='factory.restart-permit.v2':
+            _verified_prestart(control,directory,hold,permit,unit,unit_file,permit_raw)
+            return
         if (not isinstance(permit, dict) or set(permit) != {'schema', 'intent_sha256', 'boot_id', 'units'} or
                 permit['schema'] != 'factory.restart-permit.v1' or
                 permit['intent_sha256'] != hold['intent_sha256'] or permit['boot_id'] != _boot_id() or
@@ -136,9 +250,17 @@ def prestart(control, unit=None, unit_file=None):
 
 
 if __name__ == '__main__':
-    if len(sys.argv) not in (3, 5) or sys.argv[1] != 'prestart':
-        sys.exit(2)
     try:
-        prestart(*sys.argv[2:])
-    except (OSError, ValueError, RuntimeError):
+        if len(sys.argv) in (3,5) and sys.argv[1]=='prestart':
+            prestart(*sys.argv[2:])
+        elif len(sys.argv)==3 and sys.argv[1]=='authorize':
+            raw=sys.stdin.buffer.read(65537)
+            if len(raw)>65536:raise ValueError('restart request too large')
+            request=json.loads(raw)
+            if not isinstance(request,dict) or set(request)!={'intent_sha256','units','network','service_dir'}:
+                raise ValueError('invalid restart authorization request')
+            authorize_verified_restarts(sys.argv[2],request['intent_sha256'],request['units'],
+                                        request['network'],request['service_dir'])
+        else:sys.exit(2)
+    except (OSError, ValueError, RuntimeError, ImportError):
         sys.exit(1)
