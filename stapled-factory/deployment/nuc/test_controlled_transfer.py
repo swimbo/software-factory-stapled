@@ -132,6 +132,38 @@ def test_signed_registry_policy_and_material_are_verified_on_transfer(tmp_path, 
         nuc.verify_controlled_materials(target,intent,altered,data['unit'])
 
 
+def test_attestation_verifier_binds_signed_policy_and_independent_local_tools(tmp_path, monkeypatch):
+    from types import SimpleNamespace
+    data=fixture(tmp_path,monkeypatch,'npm'); release=data['release']
+    manifest_path=release/'release-manifest.json'; manifest=json.loads(manifest_path.read_text())
+    for name in nuc.ATTESTATION_MODULES:
+        dest=release/name;shutil.copyfile(BASE.parent/name,dest)
+        manifest['files'][name]=hashlib.sha256(dest.read_bytes()).hexdigest()
+    manifest_path.write_text(json.dumps(manifest))
+    pin=nuc.material_verifier_release(release,registry_policy=True,attestations=True)
+    policy={'node_modules/example':{'workflow':{'identity':'https://example.invalid/workflow','issuer':'https://example.invalid'}}}
+    policy_digest=hashlib.sha256(json.dumps(policy,sort_keys=True,separators=(',',':')).encode()).hexdigest()
+    att={'bundle_sha256':'a'*64,'policy_sha256':policy_digest,'trusted_root_sha256':'b'*64,'cosign_sha256':'c'*64,'policy':policy}
+    controlled={**data['binding']['controlled'],'npm_attestation':att}
+    trust={'trusted_root':'/pinned/root','trusted_root_sha256':'b'*64,'cosign':'/pinned/cosign','cosign_sha256':'d'*64}
+    def run(args,**kwargs):
+        request=json.loads(kwargs['input'])
+        assert request['cosign_sha256']=='d'*64 and request['policy']==policy
+        return SimpleNamespace(stdout=json.dumps({'status':'verified-selected-frozen-npm-attestations','coverage':'incomplete',
+            'archive_sha256':controlled['materials_sha256'],'lock_sha256':controlled['lock_sha256'],
+            'manifest_sha256':controlled['materials_manifest_sha256'],'attestation_bundle_sha256':'a'*64,
+            'attestation_policy_sha256':policy_digest}))
+    monkeypatch.setattr(nuc.subprocess,'run',run)
+    assert nuc.verify_controlled_npm_attestation(data['target'],controlled,pin,trust)['coverage']=='incomplete'
+    with pytest.raises(ValueError,match='policy differs'):
+        nuc.verify_controlled_npm_attestation(data['target'],{**controlled,'npm_attestation':{**att,'policy':{}}},pin,trust)
+    with pytest.raises(ValueError,match='trust'):
+        nuc.verify_controlled_npm_attestation(data['target'],controlled,pin,{**trust,'trusted_root_sha256':'0'*64})
+    (release/nuc.ATTESTATION_MODULES[0]).write_text('changed')
+    with pytest.raises(ValueError,match='changed'):
+        nuc.verify_controlled_npm_attestation(data['target'],controlled,pin,trust)
+
+
 @pytest.mark.parametrize('profile', ['npm','cargo'])
 def test_controlled_transfer_verifies_signed_material_and_original_release(tmp_path, monkeypatch, profile):
     data=fixture(tmp_path,monkeypatch,profile)

@@ -129,9 +129,12 @@ MATERIAL_MODULES = (
     'stapled-factory/security/cargo_vendor.py',
     'stapled-factory/security/controlled_cargo.py',
 )
+ATTESTATION_MODULES = tuple('stapled-factory/security/' + name + '.py' for name in (
+    'npm_registry_policy', 'npm_workflow_attestation', 'npm_registry_attestation',
+    'npm_frozen_attestations', 'npm_attestation_bundle'))
 
 
-def material_verifier_release(path, manifest_sha256=None, *, registry_policy=False):
+def material_verifier_release(path, manifest_sha256=None, *, registry_policy=False, attestations=False):
     """Validate every verifier module against one original frozen release."""
     path = verify_release(Path(path))
     for directory in (path, path/'stapled-factory', path/'stapled-factory/security'):
@@ -147,6 +150,7 @@ def material_verifier_release(path, manifest_sha256=None, *, registry_policy=Fal
         raise ValueError('original material verifier release changed')
     manifest = json.loads(raw); files = manifest.get('files')
     modules = MATERIAL_MODULES + (('stapled-factory/security/npm_registry_policy.py',) if registry_policy else ())
+    if attestations: modules += ATTESTATION_MODULES
     if not isinstance(files, dict) or not set(modules).issubset(files):
         raise ValueError('frozen release lacks material verifier modules')
     for name in modules:
@@ -159,6 +163,62 @@ def material_verifier_release(path, manifest_sha256=None, *, registry_policy=Fal
             if hashlib.file_digest(stream, 'sha256').hexdigest() != files[name]:
                 raise ValueError('material verifier module changed')
     return {'release': str(path), 'manifest_sha256': digest}
+
+
+def verify_controlled_npm_attestation(target, controlled, pin, trust):
+    """Reverify signed npm evidence with separately selected local trust tools.
+
+    The signer pins the trust root and policy; the operator supplies the local
+    root and cosign executable. Its executable digest may differ by platform.
+    This function alone does not authorize transfer or runtime activation.
+    """
+    att = controlled.get('npm_attestation')
+    keys = {'bundle_sha256','policy_sha256','trusted_root_sha256','cosign_sha256','policy'}
+    if (controlled.get('profile') != 'npm' or not isinstance(att, dict) or set(att) != keys or
+            not isinstance(trust, dict) or set(trust) != {'trusted_root','trusted_root_sha256','cosign','cosign_sha256'} or
+            any(not isinstance(att.get(k), str) or not re.fullmatch(r'[a-f0-9]{64}', att[k]) for k in keys - {'policy'}) or
+            trust['trusted_root_sha256'] != att['trusted_root_sha256'] or
+            not isinstance(trust['cosign_sha256'], str) or not re.fullmatch(r'[a-f0-9]{64}', trust['cosign_sha256'])):
+        raise ValueError('invalid controlled npm attestation trust')
+    policy_raw = json.dumps(att['policy'], sort_keys=True, separators=(',', ':'), ensure_ascii=True, allow_nan=False).encode()
+    if len(policy_raw) > 65536 or hashlib.sha256(policy_raw).hexdigest() != att['policy_sha256']:
+        raise ValueError('signed attestation policy differs')
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=True, attestations=True)
+    release_path = Path(pin['release'])
+    files = json.loads((release_path/'release-manifest.json').read_bytes())['files']
+    program = r'''import json,sys
+from npm_attestation_bundle import verify_attestation_bundle
+v=json.load(sys.stdin)
+print(json.dumps(verify_attestation_bundle(v['bundle'],v['bundle_sha256'],v['policy'],archive=v['archive'],
+ archive_sha256=v['archive_sha256'],trusted_root=v['trusted_root'],trusted_root_sha256=v['trusted_root_sha256'],
+ cosign=v['cosign'],cosign_sha256=v['cosign_sha256'],registry_keys=v['registry_keys']),sort_keys=True))
+'''
+    # A fresh private source-only directory prevents stale bytecode in the
+    # release from being loaded after the release modules were hashed.
+    with tempfile.TemporaryDirectory(prefix='factory-attestation-verifier-') as temp:
+        for name in set(MATERIAL_MODULES + ATTESTATION_MODULES):
+            raw = (release_path/name).read_bytes()
+            if hashlib.sha256(raw).hexdigest() != files[name]:raise ValueError('material verifier module changed')
+            (Path(temp)/Path(name).name).write_bytes(raw)
+        request = {'bundle':str(Path(target)/'npm-attestations.json'),'bundle_sha256':att['bundle_sha256'],
+            'policy':json.loads(policy_raw),'archive':str(Path(target)/'materials.tar'),
+            'archive_sha256':controlled['materials_sha256'],**trust,'registry_keys':None}
+        if 'registry_policy' in controlled:
+            # Registry keys are decoded within the isolated verifier below.
+            request['registry_policy'] = controlled['registry_policy']
+            program = program.replace("v=json.load(sys.stdin)", "v=json.load(sys.stdin)\nfrom npm_registry_policy import decode_policy\nv['registry_keys']=decode_policy(v.pop('registry_policy'))")
+        program = 'import sys\nsys.path.insert(0,sys.argv[1])\n' + program
+        proc = subprocess.run([sys.executable,'-I','-B','-c',program,temp],input=json.dumps(request),
+                              capture_output=True,text=True,check=True,timeout=600)
+    report = json.loads(proc.stdout)
+    if (report.get('status') != 'verified-selected-frozen-npm-attestations' or report.get('coverage') != 'incomplete' or
+            report.get('archive_sha256') != controlled['materials_sha256'] or report.get('lock_sha256') != controlled['lock_sha256'] or
+            report.get('manifest_sha256') != controlled['materials_manifest_sha256'] or
+            report.get('attestation_bundle_sha256') != att['bundle_sha256'] or report.get('attestation_policy_sha256') != att['policy_sha256']):
+        raise ValueError('verified npm attestation differs from signed inputs')
+    material_verifier_release(pin['release'], pin['manifest_sha256'], registry_policy=True, attestations=True)
+    return {'controlled_attestation_bundle_sha256':att['bundle_sha256'],
+            'controlled_attestation_policy_sha256':att['policy_sha256'], 'coverage':'incomplete'}
 
 
 def verify_controlled_materials(target, intent, binding, unit):
