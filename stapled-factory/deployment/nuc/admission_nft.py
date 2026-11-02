@@ -4,6 +4,7 @@ These transactions are not an admission fence by themselves. The caller must
 verify exact cgroup identities, installed rules, startup guards, drained work,
 and recovery before using them on a shared host.
 """
+import hashlib
 import json
 import re
 
@@ -116,3 +117,23 @@ def verify_hook_order(snapshot, identifier):
             own+=1
         elif priority<=-151:raise ValueError('another nft output hook precedes admission')
     if own!=1:raise ValueError('owned nft output hook unavailable')
+
+
+def verify_live_evidence(identifier, before, after, snapshot, debug_output, ruleset):
+    """Cross-check caller-observed identities and nft readback; this does not collect them."""
+    names=('probe','ingress','restate')
+    if not isinstance(before,dict) or set(before)!=set(names) or before!=after:
+        raise ValueError('process identities changed during nft readback')
+    for name in names:
+        item=before[name]
+        if (not isinstance(item,dict) or set(item)!={'pid','start_ticks','cgroup','inode'} or
+                any(type(item[k]) is not int or item[k]<=0 for k in ('pid','start_ticks','inode'))):
+            raise ValueError('incomplete process identity')
+    if len({before[name]['pid'] for name in names})!=3 or len({before[name]['inode'] for name in names})!=3:
+        raise ValueError('process or cgroup identities overlap')
+    paths=[before[name]['cgroup'] for name in names]
+    verify_snapshot(snapshot,identifier,*paths)
+    verify_kernel_ids(debug_output,[before[name]['inode'] for name in names])
+    verify_hook_order(ruleset,identifier)
+    raw=json.dumps(before,sort_keys=True,separators=(',',':')).encode()
+    return {'verified':True,'identities_sha256':hashlib.sha256(raw).hexdigest()}

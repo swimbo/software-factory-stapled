@@ -39,6 +39,15 @@ def test_nft_readback_rejects_changed_cgroup_and_extra_rules():
     module.verify_snapshot(snapshot,*args)
     with pytest.raises(ValueError):module.verify_snapshot(snapshot.replace('level 2 "user/ingress"','level 1 "user/ingress"'),*args)
     with pytest.raises(ValueError):module.verify_snapshot(snapshot.replace('chain guard {','chain guard {\n  accept'),*args)
+    import json
+    identities={name:{'pid':index,'start_ticks':index*10,'cgroup':path,'inode':inode}
+                for name,index,path,inode in (('probe',1,'/user/probe',17),('ingress',2,'/user/ingress',34),('restate',3,'/system/restate',51))}
+    debug=''.join(f'[ socket load cgroupv2 => reg 1 ]\n[ cmp eq reg 1 0x{value:08x} 0x00000000 ]\n' for value in (17,34,51))
+    hooks=json.dumps({'nftables':[{'chain':{'family':'inet','table':'factory_hold_0123456789abcdef','name':'output','hook':'output','prio':-151}}]})
+    assert module.verify_live_evidence('0123456789abcdef',identities,identities,snapshot,debug,hooks)['verified'] is True
+    changed=json.loads(json.dumps(identities));changed['ingress']['inode']=35
+    with pytest.raises(ValueError):
+        module.verify_live_evidence('0123456789abcdef',identities,changed,snapshot,debug,hooks)
 
 
 def test_kernel_readback_requires_exact_current_cgroup_ids():
