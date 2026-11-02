@@ -31,6 +31,8 @@ def test_freeze_verify_and_reject_changed_archive(tmp_path):
     assert frozen['coverage'] == verified['coverage'] == 'incomplete'
     assert frozen['lock_sha256'] == verified['lock_sha256']
     assert frozen['manifest_sha256'] == verified['manifest_sha256']
+    with pytest.raises(ValueError, match='evidence missing'):
+        verify_frozen_npm(output, frozen['archive_sha256'], registry_keys={})
     with pytest.raises(FileExistsError):
         freeze_npm(lock, store, output)
     with tarfile.open(output) as tar:
