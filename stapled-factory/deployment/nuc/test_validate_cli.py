@@ -173,7 +173,10 @@ def test_unstarted_resume_requires_matching_original_outer_intent(tmp_path, monk
     monkeypatch.setattr(cli, 'validate_session', lambda *args, **kwargs: calls.append(kwargs) or {'accepted': True})
     extra = ['--resume-only', '--resume-unstarted', '--expected-scenario-digest', digest]
     assert cli.main(arguments(values) + extra)['accepted'] is True
-    assert calls == [{'observe_only': False, 'resume_only': True, 'resume_unstarted': True}]
+    assert calls[0]['observe_only'] is False
+    assert calls[0]['resume_only'] is True
+    assert calls[0]['resume_unstarted'] is True
+    assert callable(calls[0]['bind'])
     original['revision'] = 'f'*40;intent.write_text(json.dumps(original));intent.chmod(0o600)
     with pytest.raises(ValueError, match='intent differs'):
         cli.main(arguments(values) + extra)
