@@ -1,0 +1,11 @@
+{
+  "schema": "factory.wip-reconciliation-evidence-manifest/v1",
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:measure-wip-reconciled-and-operator-workflow-tests-green",
+  "source_revision": "b3c9348e5bfef6dd4532665ad8bc5f288a607482",
+  "files": {
+    "nuc-test-output.txt": "e6c0e61ddf2ef01b92273c3e7e9ace5d649e1c36c79e97a9b7e10566f44ae687",
+    "observation.json": "55781332207d1a4a190158cfe83b08ba30af5ba019d441c05811f4f4d0921b53"
+  },
+  "files_hashed": 2,
+  "private_oracle_and_raw_thoughts_excluded": true
+}
