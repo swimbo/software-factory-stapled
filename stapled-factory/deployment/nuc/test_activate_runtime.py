@@ -38,7 +38,9 @@ def fixture(tmp_path):
             self.fenced=True
             self.held=True
             class Fence:
-                def complete(inner):self.held=False
+                def complete(inner):
+                    if getattr(self,'completion_fails',False):raise RuntimeError('fence completion uncertain')
+                    self.held=False
             try: yield Fence()
             finally: self.fenced=False
         def capture(self):
@@ -166,6 +168,24 @@ def test_fence_without_explicit_completion_cannot_mutate_service(tmp_path):
         m.activate(**args)
     assert not args['journal'].exists() and h.calls==0
     for name in m.SERVICES:assert (args['service_dir']/(name+'.service')).read_bytes()==original[name]
+
+
+def test_activation_receipt_does_not_imply_fence_completion(tmp_path):
+    args,h,_=fixture(tmp_path);h.completion_fails=True
+    with pytest.raises(m.ManualRecoveryRequired,match='uncertain'):
+        m.activate(**args)
+    assert h.calls==1 and h.held is True
+    assert (args['journal']/'activated.json').is_file()
+    assert not (args['journal']/'fence-completed.json').exists()
+    assert m.observe(args['control'],args['service_dir'],args['journal'])['state']=='activation-recorded-fence-unresolved'
+
+
+def test_invalid_fence_completion_receipt_requires_manual_reconciliation(tmp_path):
+    args,h,_=fixture(tmp_path)
+    m.activate(**args)
+    receipt=args['journal']/'fence-completed.json'
+    receipt.write_text('{"terminal":"activated","terminal_sha256":"invalid"}')
+    assert m.observe(args['control'],args['service_dir'],args['journal'])['state']=='manual-reconciliation'
 
 
 def test_activation_and_rollback_restart_failure_preserve_original_evidence(tmp_path):

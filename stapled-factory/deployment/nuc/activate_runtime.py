@@ -256,19 +256,38 @@ def observe(control, service_dir, journal):
         activated = {'activated': True, 'revision': intent['candidate_revision'],
                      'stable_sha256': intent['stable_sha256']}
         rolled_back = {'restored': True, 'stable_sha256': intent['stable_sha256']}
+        completion = journal/'fence-completed.json'
+        if os.path.lexists(completion):
+            try:
+                raw,_ = _regular(completion,private=True);fence_completed=json.loads(raw)
+            except (OSError,ValueError):fence_completed=None
+        else:fence_completed='absent'
+        def terminal_state(name, expected, label):
+            if terminal[name] != expected or type(terminal[name].get('activated' if name=='activated' else 'restored')) is not bool:
+                return 'manual-reconciliation'
+            if fence_completed == 'absent':return label+'-fence-unresolved'
+            if fence_completed != {'terminal':name,'terminal_sha256':_sha(_canonical(expected))}:
+                return 'manual-reconciliation'
+            return label
         if 'foreign' in files.values() or len(terminal) > 1:
             state = 'manual-reconciliation'
         elif 'activated' in terminal:
-            state = ('activation-recorded' if terminal['activated'] == activated and
-                     type(terminal['activated'].get('activated')) is bool and
-                     set(files.values()) == {'candidate'} else 'manual-reconciliation')
+            state = (terminal_state('activated',activated,'activation-recorded')
+                     if set(files.values()) == {'candidate'} and isinstance(terminal['activated'],dict) else 'manual-reconciliation')
         elif 'rolled-back' in terminal:
-            state = ('rollback-recorded' if terminal['rolled-back'] == rolled_back and
-                     type(terminal['rolled-back'].get('restored')) is bool and
-                     set(files.values()) == {'original'} else 'manual-reconciliation')
-        else:state='interrupted-or-unresolved'
+            state = (terminal_state('rolled-back',rolled_back,'rollback-recorded')
+                     if set(files.values()) == {'original'} and isinstance(terminal['rolled-back'],dict) else 'manual-reconciliation')
+        else:state='interrupted-or-unresolved' if fence_completed == 'absent' else 'manual-reconciliation'
         return {'state':state,'service_files':files,'source_revision':intent['source_revision'],
                 'candidate_revision':intent['candidate_revision']}
+
+
+def _complete_fence(fence, journal, name):
+    terminal,_ = _regular(journal/(name+'.json'),private=True)
+    value=json.loads(terminal)
+    fence.complete()
+    _write_new(journal/'fence-completed.json',_canonical({'terminal':name,'terminal_sha256':_sha(_canonical(value))}))
+    _sync(journal)
 
 
 def _restore(service_dir, journal, intent, host, *, restart=True):
@@ -334,14 +353,14 @@ def activate(*,control,service_dir,journal,source_revision,source_manifest_sha25
                 raise ValueError('retained host evidence changed')
             result={'activated':True,'revision':candidate_revision,'stable_sha256':after['stable_sha256']}
             _write_new(journal/'activated.json',_canonical(result));_sync(journal)
-            fence.complete()
+            _complete_fence(fence,journal,'activated')
             return result
         except Exception as original:
             if restart_requested:
                 raise ManualRecoveryRequired('restart or subsequent observation uncertain; inspect original journal') from original
             try:
                 _restore(service_dir,journal,intent,host,restart=False)
-                fence.complete()
+                _complete_fence(fence,journal,'rolled-back')
             except Exception as rollback:
                 raise ManualRecoveryRequired('activation or restoration uncertain; inspect original journal') from rollback
             raise original
@@ -369,5 +388,5 @@ def recover(*,control,service_dir,journal,host):
         if before['stable_sha256'] != intent['stable_sha256']:
             raise ManualRecoveryRequired('retained host evidence changed; manual reconciliation required')
         _restore(service_dir,journal,intent,host)
-        fence.complete()
+        _complete_fence(fence,journal,'rolled-back')
         return {'restored':True,'revision':intent['source_revision']}
