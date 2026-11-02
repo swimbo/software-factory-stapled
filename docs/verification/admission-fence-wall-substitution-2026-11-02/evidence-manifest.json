@@ -1,0 +1,13 @@
+{
+  "schema": "factory.admission-fence-wall-substitution-evidence-manifest/v1",
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:qualify-admission-fence-and-prebuilt-wall-substitution-guards",
+  "source_revision": "ef71767f4584364b5a06b4f724d3338d5589771d",
+  "files": {
+    "operator-workflow.txt": "b236da2c61db54abb2b9e01f89975fc9b8ffdb4504e5fb87d2ecd950f3c5c22a",
+    "nuc-suite.txt": "fed6f60388c815b835628aa2d7b4a6a3084fbbabffb30d9acd50f52715e48bc6",
+    "identity-readback.txt": "072170754549b94e30da3acbfe3db86e232d65109abc6f504eb051ba42cf6e86",
+    "readiness.json": "27b7067dbd2bfec1fef2c5eff8ce3ad2fb2f82fd0f538a23289f2695ece85ed4"
+  },
+  "files_hashed": 4,
+  "private_oracle_and_raw_thoughts_excluded": true
+}

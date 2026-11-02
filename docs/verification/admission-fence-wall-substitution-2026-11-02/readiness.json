@@ -1,0 +1,84 @@
+{
+  "schema": "factory.admission-fence-wall-substitution-readiness/v1",
+  "claim_key": "software-factory-stapled:delivery-loop-qualification-and-recovery:qualify-admission-fence-and-prebuilt-wall-substitution-guards",
+  "source_revision": "ef71767f4584364b5a06b4f724d3338d5589771d",
+  "observed_at": "2026-11-02T04:22:47Z",
+  "observed_value": true,
+  "value_definition": "True only when the fixture-backed operator workflow, the full deployment/nuc suite, and the supplemental networkless identity selection all exit 0 at the fixed source revision.",
+  "observation_method": {
+    "operator_workflow": {
+      "project_declared_command": "/home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest -o testpaths=stapled-factory/deployment/nuc -k test_operator_workflow -q",
+      "execution_command": "unshare --user --map-root-user --net sh -c 'ip link set lo up && exec env PYTHONDONTWRITEBYTECODE=1 /home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest -o testpaths=stapled-factory/deployment/nuc -k test_operator_workflow -q'",
+      "exit_code": 0,
+      "summary": "65 passed, 62 deselected in 0.21s",
+      "output": "operator-workflow.txt"
+    },
+    "full_nuc_suite": {
+      "project_declared_command": "/home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest -o testpaths=stapled-factory/deployment/nuc -q",
+      "execution_command": "unshare --user --map-root-user --net sh -c 'ip link set lo up && exec env PYTHONDONTWRITEBYTECODE=1 /home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest -o testpaths=stapled-factory/deployment/nuc -q'",
+      "exit_code": 0,
+      "summary": "127 passed, 6 subtests passed in 1.97s",
+      "output": "nuc-suite.txt"
+    },
+    "networkless_identity_supplement": {
+      "execution_command": "unshare --user --map-root-user --net sh -c 'ip link set lo up && exec env PYTHONDONTWRITEBYTECODE=1 /home/bo/.local/share/hermes-dev-projects/test-venv/bin/pytest stapled-factory/worker/tests/test_egress_guard.py -k \"networkless_topology or networkless_rejects_unsafe_changes or networkless_rejects_other_shared_namespaces\" -q'",
+      "exit_code": 0,
+      "summary": "16 passed, 40 deselected in 0.02s",
+      "output": "identity-readback.txt"
+    },
+    "guards": [
+      {
+        "guard": "startup-hold marker",
+        "checks": [
+          "test_uncertain_intent_never_rebinds_to_send_again requires the durable dispatch-intent marker to match the endpoint binding and blocks restart",
+          "test_other_uncertain_unit_blocks_endpoint_rebinding rejects a foreign active admission marker before endpoint mutation",
+          "test_existing_intent_default_refuses_without_dispatch_or_service_writes preserves an existing intent with no command, dispatch, service write, or result"
+        ]
+      },
+      {
+        "guard": "listener/cgroup identity readback",
+        "checks": [
+          "test_networkless_topology accepts only the exact worker/proxy network topology read back from the fixture",
+          "test_networkless_rejects_unsafe_changes rejects changed network identity, host access, privilege, and mount topology",
+          "test_networkless_rejects_other_shared_namespaces rejects host and foreign PID/IPC/cgroup namespaces",
+          "test_cli_refuses_external_signing_destination_before_key_access requires an explicit private loopback listener identity before key access"
+        ]
+      },
+      {
+        "guard": "restart-permit quiescence",
+        "checks": [
+          "test_uncertain_existing_work_blocks_new_task rejects unresolved WorkUnit state before a new binding or restart",
+          "test_uncertain_intent_never_rebinds_to_send_again prevents restart while the original dispatch outcome is uncertain",
+          "test_cli_observe_only_collects_original_without_orchestrate_or_service_restart observes the original without a service restart"
+        ]
+      },
+      {
+        "guard": "prebuilt wall/receipt substitution rejection",
+        "checks": [
+          "ProbeTests.test_bypassed_guard_cannot_pass rejects substituted source archive, diff, signature, and prebuilt artifact",
+          "ProbeTests.test_unrelated_value_error_cannot_pass and test_unrelated_command_or_signature_config_failure_cannot_pass prevent unrelated failures from counting as rejection",
+          "test_cli_cannot_validate_caller_selected_stale_attempt rejects original/successor substitution before validation",
+          "test_actual_http_response_loss_reconciles_without_second_validation reconciles the original signed receipt without replaying validation"
+        ]
+      }
+    ]
+  },
+  "execution_boundary": {
+    "host": "Envision",
+    "network": "fresh empty user/network namespace with loopback only for every recorded pytest invocation",
+    "live_nuc_contact": false,
+    "docker_contact": false,
+    "github_contact": false,
+    "provider_or_model_contact": false,
+    "host_firewall_mutation": false,
+    "active_service_mutation": false,
+    "production_state_mutation": false
+  },
+  "preservation_boundary": {
+    "tracked_workunits_observed": 189,
+    "tracked_workunits_contacted": 0,
+    "retained_probe_directories_contacted": 0,
+    "evidence": "Every pytest invocation ran in a fresh empty network namespace and used deterministic local fixtures. The process made no NUC, Docker, provider, or production contact, so the 189 tracked NUC WorkUnits and retained probe directories were not touched. This isolation evidence is stronger than an unverifiable remote claim here; no live WorkUnit inventory was read or changed."
+  },
+  "interpretation": "This is fixture-backed admission/readiness qualification only. It does not launch the corrected NUC probe, install or activate a release, alter firewall/shared services, execute a prebuilt wall control against Docker, accept a live receipt, or establish production readiness."
+}
