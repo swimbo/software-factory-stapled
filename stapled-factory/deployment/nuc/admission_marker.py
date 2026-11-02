@@ -5,7 +5,6 @@ network fence, drain and explicit recovery procedure are also required.
 """
 import hashlib
 import grp
-import importlib
 import json
 import os
 from pathlib import Path
@@ -13,6 +12,7 @@ import pwd
 import re
 import stat
 import sys
+import types
 
 RESTARTABLE = frozenset(('factory-endpoint', 'factory-ingress'))
 MODULES = ('admission_identity','admission_nft','admission_install','admission_live','admission_effective')
@@ -117,21 +117,23 @@ def _verified_modules(control):
                 set(receipt['modules'])!={name+'.py' for name in MODULES} or
                 hashlib.sha256(_read_private(directory,'guard.py')).hexdigest()!=receipt.get('guard_sha256')):
             raise ValueError('guard bundle receipt differs')
+        sources={}
         for name in MODULES:
             digest=receipt['modules'][name+'.py']
+            source=_read_private(directory,name+'.py')
             if (not isinstance(digest,str) or not re.fullmatch(r'[a-f0-9]{64}',digest) or
-                    hashlib.sha256(_read_private(directory,name+'.py')).hexdigest()!=digest):
+                    hashlib.sha256(source).hexdigest()!=digest):
                 raise ValueError('guard module differs')
+            sources[name]=source
     finally:
         os.close(directory)
     sys.path.insert(0,str(root))
     modules={}
     for name in MODULES:
-        if name in sys.modules and Path(getattr(sys.modules[name],'__file__','')).resolve()!=root/(name+'.py'):
-            raise ValueError('untrusted admission module already loaded')
-        module=importlib.import_module(name)
-        if Path(getattr(module,'__file__','')).resolve()!=root/(name+'.py'):
-            raise ValueError('admission module loaded from wrong path')
+        if name in sys.modules:raise ValueError('admission module already loaded')
+        module=types.ModuleType(name);module.__file__=str(root/(name+'.py'))
+        sys.modules[name]=module
+        exec(compile(sources[name],module.__file__,'exec'),module.__dict__)
         modules[name]=module
     return modules['admission_live'],modules['admission_effective']
 

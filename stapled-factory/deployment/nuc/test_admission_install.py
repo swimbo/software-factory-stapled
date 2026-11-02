@@ -40,6 +40,8 @@ def test_preparation_never_overwrites_existing_dropin(tmp_path):
 
 
 def test_preparation_pins_complete_guard_module_bundle(tmp_path):
+    import os
+    import py_compile
     import subprocess
     import sys
     control,units,guard,digest=fixture(tmp_path)
@@ -52,7 +54,13 @@ def test_preparation_pins_complete_guard_module_bundle(tmp_path):
     installed=control/'admission-fence/guard.py';hold=control/'admission-fence/hold'
     program='import importlib.util,sys; s=importlib.util.spec_from_file_location("guard",sys.argv[1]); m=importlib.util.module_from_spec(s);s.loader.exec_module(m);m._verified_modules(sys.argv[2])'
     subprocess.run([sys.executable,'-I','-B','-c',program,str(installed),str(hold)],check=True,capture_output=True)
-    (control/'admission-fence/admission_nft.py').write_text('changed')
+    target=control/'admission-fence/admission_nft.py';original=target.read_bytes();saved=target.stat()
+    injected=b'raise RuntimeError("untrusted cache")\n'
+    target.write_bytes(injected+b'#'*(len(original)-len(injected)))
+    os.utime(target,ns=(saved.st_atime_ns,saved.st_mtime_ns));py_compile.compile(str(target),doraise=True)
+    target.write_bytes(original);os.utime(target,ns=(saved.st_atime_ns,saved.st_mtime_ns))
+    subprocess.run([sys.executable,'-I','-B','-c',program,str(installed),str(hold)],check=True,capture_output=True)
+    target.write_text('changed')
     assert subprocess.run([sys.executable,'-I','-B','-c',program,str(installed),str(hold)],capture_output=True).returncode!=0
 
 
