@@ -72,8 +72,9 @@ The npm verifier can additionally check registry signatures against public keys
 that the caller has independently pinned. It trusts the host's `openssl` and
 reports key lifetime and revocation as unknown. Registry signatures bind the
 package name, version and integrity; they do not prove publisher identity or
-complete provenance. This optional evidence is not yet carried into a frozen
-material archive or a runtime receipt and does not change the release gate.
+complete provenance. A frozen npm archive can retain this evidence; a reader
+must supply independently pinned keys to verify it. The runtime does not yet
+carry this evidence into a receipt and the release gate is unchanged.
 
 `oci_archive.py` verifies the descriptor graph and linux/amd64 image config of
 a pinned OCI archive and records an archive digest. Its result is deliberately

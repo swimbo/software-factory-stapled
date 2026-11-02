@@ -17,7 +17,7 @@ import tarfile
 from urllib.parse import urlsplit
 
 from material_store import MaterialStore, MAX_MATERIAL_BYTES
-from npm_materials import MAX_LOCK_BYTES, MAX_PACKAGES, _unique_object, verify_materials
+from npm_materials import MAX_LOCK_BYTES, MAX_PACKAGES, _unique_object, _verify_registry_signature, verify_materials
 
 MAX_TOTAL_BYTES = 2 * 1024 * 1024 * 1024
 MAX_MANIFEST_BYTES = 16 * 1024 * 1024
@@ -119,9 +119,14 @@ class _DigestingReader:
         return data
 
 
-def freeze_npm(lock_bytes, material_dir, output_tar):
+def freeze_npm(lock_bytes, material_dir, output_tar, *, registry_evidence=None, registry_keys=None):
     """Create a new private archive; failures retain any incomplete output."""
-    checked = verify_materials(lock_bytes, material_dir)
+    evidence = None if registry_evidence is None else json.dumps(registry_evidence, sort_keys=True,
+        separators=(',', ':'), ensure_ascii=True).encode()
+    if evidence is not None and len(evidence) > MAX_MANIFEST_BYTES:
+        raise ValueError('npm registry evidence too large')
+    snapshot = None if evidence is None else json.loads(evidence, object_pairs_hook=_unique_object)
+    checked = verify_materials(lock_bytes, material_dir, registry_evidence=snapshot, registry_keys=registry_keys)
     entries = _entries(lock_bytes)
     if len(entries) != len(checked['packages']):
         raise ValueError('material inventory differs')
@@ -138,10 +143,12 @@ def freeze_npm(lock_bytes, material_dir, output_tar):
             raise ValueError('private output directory required')
         fd = os.open(path.name, os.O_RDWR | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600, dir_fd=parent)
         with os.fdopen(fd, 'w+b') as output:
-            total = len(lock_bytes) + len(manifest)
+            total = len(lock_bytes) + len(manifest) + (len(evidence) if evidence is not None else 0)
             with MaterialStore(material_dir) as store, tarfile.open(fileobj=output, mode='w|') as tar:
                 _add(tar, 'package-lock.json', len(lock_bytes), io.BytesIO(lock_bytes))
                 _add(tar, 'manifest.json', len(manifest), io.BytesIO(manifest))
+                if evidence is not None:
+                    _add(tar, 'registry-evidence.json', len(evidence), io.BytesIO(evidence))
                 for digest in sorted({entry['sha512'] for entry in entries}):
                     try:
                         child = os.open(digest, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=store.fd)
@@ -163,12 +170,14 @@ def freeze_npm(lock_bytes, material_dir, output_tar):
         os.fsync(parent)
     finally:
         os.close(parent)
-    return {'status': 'frozen-npm-material-bytes', 'coverage': 'incomplete',
+    result = {'status': 'frozen-npm-material-bytes', 'coverage': 'incomplete',
             'archive_sha256': archive_sha256, 'lock_sha256': checked['lock_sha256'],
             'manifest_sha256': hashlib.sha256(manifest).hexdigest()}
+    if evidence is not None:result['registry_evidence_sha256'] = hashlib.sha256(evidence).hexdigest()
+    return result
 
 
-def verify_frozen_npm(archive, expected_tar_sha256):
+def verify_frozen_npm(archive, expected_tar_sha256, *, registry_keys=None):
     """Verify a pinned frozen archive without extracting it or executing npm."""
     if not isinstance(expected_tar_sha256, str) or not re.fullmatch(r'[a-f0-9]{64}', expected_tar_sha256):
         raise ValueError('pinned archive SHA-256 required')
@@ -184,8 +193,8 @@ def verify_frozen_npm(archive, expected_tar_sha256):
             members = {}
             total = 0
             for member in tar:
-                if (len(members) >= MAX_PACKAGES + 2 or member.name in members or not member.isfile() or
-                        not (member.name in ('package-lock.json', 'manifest.json') or
+                if (len(members) >= MAX_PACKAGES + 3 or member.name in members or not member.isfile() or
+                        not (member.name in ('package-lock.json', 'manifest.json', 'registry-evidence.json') or
                              re.fullmatch(r'materials/[a-f0-9]{128}', member.name))):
                     raise ValueError('unsafe or duplicate npm archive member')
                 total += member.size
@@ -203,9 +212,23 @@ def verify_frozen_npm(archive, expected_tar_sha256):
             if manifest != _manifest(lock, entries):
                 raise ValueError('npm material manifest differs from lock')
             expected = {'package-lock.json', 'manifest.json'} | {'materials/' + e['sha512'] for e in entries}
+            evidence_raw = None
+            if 'registry-evidence.json' in members:
+                if not isinstance(registry_keys, dict):raise ValueError('independently pinned registry keys required')
+                evidence_raw = read_small('registry-evidence.json', MAX_MANIFEST_BYTES)
+                try:evidence = json.loads(evidence_raw, object_pairs_hook=_unique_object)
+                except (UnicodeDecodeError, json.JSONDecodeError) as exc:raise ValueError('invalid registry evidence') from exc
+                if not isinstance(evidence, dict) or set(evidence) != {e['path'] for e in entries}:
+                    raise ValueError('complete registry evidence required')
+                for entry in entries:
+                    integrity = 'sha512-' + base64.b64encode(bytes.fromhex(entry['sha512'])).decode()
+                    _verify_registry_signature(entry['path'], entry['version'], integrity, evidence[entry['path']], registry_keys)
+                expected.add('registry-evidence.json')
+            elif registry_keys is not None:
+                raise ValueError('registry evidence missing')
             if set(members) != expected:
                 raise ValueError('npm material archive inventory differs')
-            for name in sorted(expected - {'package-lock.json', 'manifest.json'}):
+            for name in sorted(name for name in expected if name.startswith('materials/')):
                 data = tar.extractfile(members[name]); digest = hashlib.sha512()
                 while chunk := data.read(1024 * 1024):
                     digest.update(chunk)
@@ -214,6 +237,8 @@ def verify_frozen_npm(archive, expected_tar_sha256):
         stream.seek(0)
         if hashlib.file_digest(stream, 'sha256').hexdigest() != expected_tar_sha256:
             raise ValueError('npm material archive changed during verification')
-    return {'status': 'verified-frozen-npm-material-bytes', 'coverage': 'incomplete',
+    result = {'status': 'verified-frozen-npm-material-bytes', 'coverage': 'incomplete',
             'archive_sha256': expected_tar_sha256, 'lock_sha256': hashlib.sha256(lock).hexdigest(),
             'manifest_sha256': hashlib.sha256(manifest).hexdigest()}
+    if evidence_raw is not None:result['registry_evidence_sha256'] = hashlib.sha256(evidence_raw).hexdigest()
+    return result

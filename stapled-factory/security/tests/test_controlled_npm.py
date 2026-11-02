@@ -63,3 +63,27 @@ def test_reject_oversized_pax_header_before_read(tmp_path):
     digest = hashlib.sha256(output.read_bytes()).hexdigest()
     with pytest.raises(ValueError, match='read exceeds limit'):
         verify_frozen_npm(output, digest)
+
+
+def test_frozen_signature_evidence_requires_independently_pinned_key(tmp_path):
+    import subprocess
+    lock, store, output = inputs(tmp_path)
+    private = tmp_path / 'key.pem'; public = tmp_path / 'key.der'; sig = tmp_path / 'sig.der'
+    subprocess.run(['openssl', 'ecparam', '-name', 'prime256v1', '-genkey', '-noout', '-out', str(private)], check=True, capture_output=True)
+    subprocess.run(['openssl', 'pkey', '-in', str(private), '-pubout', '-outform', 'DER', '-out', str(public)], check=True, capture_output=True)
+    key = public.read_bytes()
+    def field(value): return len(value).to_bytes(4, 'big') + value
+    ssh = field(b'ecdsa-sha2-nistp256') + field(b'nistp256') + field(key[-65:])
+    keyid = 'SHA256:' + base64.b64encode(hashlib.sha256(ssh).digest()).decode().rstrip('=')
+    entry = json.loads(lock)['packages']['node_modules/example']
+    message = f"example@{entry['version']}:{entry['integrity']}".encode()
+    subprocess.run(['openssl', 'dgst', '-sha256', '-sign', str(private), '-out', str(sig)], input=message, check=True, capture_output=True)
+    evidence = {'node_modules/example': {'keyid': keyid, 'sig': base64.b64encode(sig.read_bytes()).decode()}}
+    frozen = freeze_npm(lock, store, output, registry_evidence=evidence, registry_keys={keyid: key})
+    with pytest.raises(ValueError, match='pinned'):
+        verify_frozen_npm(output, frozen['archive_sha256'])
+    checked = verify_frozen_npm(output, frozen['archive_sha256'], registry_keys={keyid: key})
+    assert checked['registry_evidence_sha256'] == frozen['registry_evidence_sha256']
+    assert checked['coverage'] == 'incomplete'
+    with pytest.raises(ValueError, match='pinned'):
+        verify_frozen_npm(output, frozen['archive_sha256'], registry_keys={})
