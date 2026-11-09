@@ -8,6 +8,7 @@ import re
 import os
 import subprocess
 import stat
+import sys
 import tarfile
 import tempfile
 import threading
@@ -18,6 +19,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 ROOT=Path(__file__).resolve().parents[1]
+sys.path.insert(0,str(ROOT))
+from docker_scope import launch_labels
 CLIENT="""import sys,json,http.client,base64
 for line in sys.stdin:
  r=json.loads(line)
@@ -396,7 +399,10 @@ def candidate_lifecycle(evidence_dir, image):
         raise ValueError('original validation exists; inspect retained evidence, never recreate')
     name = 'factory-validation-' + uuid.uuid4().hex
     operation = uuid.uuid4().hex
-    intent = dict(name=name, image=image, operation=operation)
+    # Retained-on-purpose evidence container, so no DockerScope teardown here;
+    # but it must still carry the common launch label family to be findable.
+    launch, launch_id = launch_labels('spine-prebuilt-validation')
+    intent = dict(name=name, image=image, operation=operation, launch_id=launch_id)
     record(evidence / 'intent.json', intent)
     container = None
 
@@ -406,7 +412,8 @@ def candidate_lifecycle(evidence_dir, image):
     try:
         try:
             container = command('docker', 'create', '--name', name,
-                '--label', 'factory.validation=' + operation, '--network=none',
+                '--label', 'factory.validation=' + operation, *launch,
+                '--network=none',
                 '--read-only', '--user=65534:65534', '--cap-drop=ALL',
                 '--security-opt=no-new-privileges', '--pids-limit=64',
                 '--memory=128m', '--cpus=1', image)

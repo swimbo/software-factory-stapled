@@ -16,11 +16,17 @@ import urllib.request
 import urllib.error
 import uuid
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from docker_scope import DockerScope
 from guarded_store import GuardedAttemptStore
 from abandon_attempt import operation
 
 
 def cmd(*args):return subprocess.check_output(list(map(str,args)),text=True).strip()
+def teardown(argv):
+    # Route DockerScope removals through this probe's own `cmd` seam (stubbable,
+    # and never a second docker code path). DockerScope swallows failures.
+    return subprocess.CompletedProcess(argv, 0, cmd(*argv))
 def post(url,value):
     req=urllib.request.Request(url,json.dumps(value).encode(),headers={'Content-Type':'application/json'})
     return json.load(urllib.request.urlopen(req,timeout=45))
@@ -30,7 +36,8 @@ def main(out):
     out=out.resolve();out.mkdir(mode=0o700,parents=True,exist_ok=False)
     root=Path(__file__).resolve().parents[2];spine=root/'spine'
     suffix=uuid.uuid4().hex;unit='abandon-'+suffix;attempt=unit+':0';cid=str(uuid.uuid5(uuid.NAMESPACE_URL,"stapled-factory:"+attempt))
-    workers=[];volumes=[];restate_name='factory-abandon-restate-'+suffix;endpoint=None
+    scope=DockerScope('probe-operator-abandon',runner=teardown)
+    workers=[];volumes=[];restate_name=scope.name('factory-abandon-restate');endpoint=None
     # Probe keys are newly generated, never production credentials.
     key=out/'operator.pem';public=out/'operator-public.pem'
     cmd('openssl','genpkey','-algorithm','RSA','-pkeyopt','rsa_keygen_bits:2048','-out',key);key.chmod(0o600)
@@ -40,9 +47,12 @@ def main(out):
     _,allocation=store.reserve_allocation(attempt,'a'*64,cid,'b'*64)
     image='python:3.13-slim';budget='factory-'+allocation+'-budget'
     try:
-        cmd('docker','volume','create','--label','factory.allocation='+allocation,'--label','factory.role=budget',budget);volumes.append(budget)
+        scope.volume(budget)
+        cmd('docker','volume','create','--label','factory.allocation='+allocation,'--label','factory.role=budget',*scope.labels(),budget);volumes.append(budget)
         for role in ('worker','proxy'):
-            args=['docker','run','-d','--pull','never','--network','none','--restart','no','--label','factory.allocation='+allocation,'--label','factory.role='+role,'--mount','type=volume,src='+budget+',dst=/budget',image,'python3','-c',"import time;time.sleep(600)"]
+            name=scope.name('factory-abandon-'+role)
+            scope.container(name)
+            args=['docker','run','-d','--name',name,'--pull','never','--network','none','--restart','no','--label','factory.allocation='+allocation,'--label','factory.role='+role,*scope.labels(),'--mount','type=volume,src='+budget+',dst=/budget',image,'python3','-c',"import time;time.sleep(600)"]
             workers.append(cmd(*args))
         def binding():
             return {'worker_id':workers[0],'proxy_id':workers[1],
@@ -74,9 +84,11 @@ def main(out):
             except (json.JSONDecodeError,KeyError):pass
             if endpoint.poll() is not None:raise RuntimeError('fixture endpoint exited')
         assert port
-        data_volume='factory-abandon-data-'+suffix
-        cmd('docker','volume','create','--label','factory.abandon.probe='+suffix,data_volume);volumes.append(data_volume)
-        cmd('docker','run','-d','--pull','never','--name',restate_name,'--mount','type=volume,src='+data_volume+',dst=/factory-state','-p','127.0.0.1::8080','-p','127.0.0.1::9070',
+        data_volume=scope.name('factory-abandon-data')
+        scope.volume(data_volume)
+        cmd('docker','volume','create','--label','factory.abandon.probe='+suffix,*scope.labels(),data_volume);volumes.append(data_volume)
+        scope.container(restate_name)
+        cmd('docker','run','-d','--pull','never','--name',restate_name,*scope.labels(),'--mount','type=volume,src='+data_volume+',dst=/factory-state','-p','127.0.0.1::8080','-p','127.0.0.1::9070',
             '-e','RESTATE_ADMIN__BIND_ADDRESS=0.0.0.0:9070','-e','RESTATE_INGRESS__BIND_ADDRESS=0.0.0.0:8080',
             'restatedev/restate:1.8.0','--base-dir','/factory-state','--listen-mode','tcp','--no-logo')
         ports=json.loads(cmd('docker','inspect',restate_name))[0]['NetworkSettings']['Ports']
@@ -142,6 +154,9 @@ def main(out):
         logs=subprocess.run(['docker','logs',restate_name],capture_output=True,text=True)
         (out/'restate.log').write_text(logs.stdout+logs.stderr)
         if endpoint: endpoint.terminate();endpoint.wait(timeout=10)
+        # Owned teardown first (covers a create whose response was lost), then
+        # the pre-existing best-effort removal of anything it could not reach.
+        scope.teardown()
         for container in workers+[restate_name]:subprocess.run(['docker','rm','-f',container],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
         for volume in volumes:subprocess.run(['docker','volume','rm',volume],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
 

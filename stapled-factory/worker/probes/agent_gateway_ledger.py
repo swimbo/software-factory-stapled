@@ -5,13 +5,16 @@ Exercises a shared reservation ledger, not provider billing or production image
 provenance. The proxy's HTTPS transport alone is replaced by a synthetic model.
 Requires cached Agent Server and python:3.11-slim images. No real credentials.
 """
-import json, subprocess, time, uuid
+import json, os, subprocess, sys, time, uuid
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from docker_scope import DockerScope
 from crash_recovery import IMAGE, CLIENT, cmd
 
 ROOT = Path(__file__).resolve().parents[1]
-id = uuid.uuid4().hex[:12]
+scope = DockerScope('probe-agent-gateway')
+id = scope.launch_id[:12]
 w, p, v = ('factory-ledger-' + id + '-' + x for x in ('worker', 'proxy', 'socket'))
 created = []
 PROXY = r'''import http.client, io, json, sys, time
@@ -52,9 +55,13 @@ s=UnixServer('/gateway/api.sock','dummy','synthetic',443,'probe-model',b)
 s.serve_forever()
 '''
 try:
-    cmd('volume','create',v); created.append(('volume',v))
+    # Record before create: a lost `docker run` response still leaves the
+    # named container behind.
+    scope.volume(v); created.append(('volume',v))
+    cmd('volume','create',*scope.labels(),v)
     cmd('run','--rm','--network','none','--user','0:0','-v',v+':/gateway','python:3.11-slim','chown','10001:10001','/gateway')
-    cmd('run','-d','--name',p,'--label','factory.probe=agent-gateway','--network','none','--user','10001:10001','--cap-drop','ALL','--security-opt','no-new-privileges','-v',v+':/gateway','python:3.11-slim','sleep','300'); created.append(('container',p))
+    scope.container(p)
+    cmd('run','-d','--name',p,*scope.labels(),'--label','factory.probe=agent-gateway','--network','none','--user','10001:10001','--cap-drop','ALL','--security-opt','no-new-privileges','-v',v+':/gateway','python:3.11-slim','sleep','300'); created.append(('container',p))
     for file in ('egress_proxy.py', 'harness_telemetry.py','guarded_store.py'):
         cmd('cp',str(ROOT/file),p+':/tmp/'+file)
     cmd('exec',p,'mkdir','/tmp/anchor')
@@ -66,7 +73,8 @@ try:
     else: raise RuntimeError('proxy failed to start')
     socket_identity=cmd('exec',p,'stat','-c','%u:%g %a','/gateway/api.sock').stdout.strip()
     if socket_identity != '10001:10001 600': raise RuntimeError('socket ownership or mode is wrong')
-    cmd('run','-d','--name',w,'--label','factory.probe=agent-gateway','--network','none','--user','10001:10001','--cap-drop','ALL','--security-opt','no-new-privileges','-v',v+':/gateway:ro','-e','OH_ENABLE_VSCODE=false',IMAGE,timeout=60); created.append(('container',w))
+    scope.container(w)
+    cmd('run','-d','--name',w,*scope.labels(),'--label','factory.probe=agent-gateway','--network','none','--user','10001:10001','--cap-drop','ALL','--security-opt','no-new-privileges','-v',v+':/gateway:ro','-e','OH_ENABLE_VSCODE=false',IMAGE,timeout=60); created.append(('container',w))
     def inside(*a,input=None,check=True): return cmd('exec','-i',w,*a,input=input,check=check)
     for _ in range(90):
         if inside('python','-c','import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/openapi.json",timeout=2)',check=False).returncode==0: break
@@ -101,4 +109,7 @@ except urllib.error.HTTPError as e: print(e.code)
         raise RuntimeError('expected one tool-bearing and one tool-free request')
     print('real Agent Server requests reached shared $2 synthetic-reservation limit',flush=True)
 finally:
+    # Owned teardown first (covers a create whose response was lost), then the
+    # pre-existing best-effort removal of the resources it recorded.
+    scope.teardown()
     for kind,name in reversed(created): cmd(kind,'rm',*(['-f'] if kind=='container' else []),name,check=False,timeout=60)

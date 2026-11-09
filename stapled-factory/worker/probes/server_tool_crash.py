@@ -6,6 +6,7 @@ blocks. Restart and read-only reconciliation must not append again. This is
 not evidence that an interrupted task can be resumed or safely replayed.
 """
 import json
+import os
 import sys
 import tempfile
 import time
@@ -13,8 +14,9 @@ import uuid
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path[:0] = [str(ROOT), str(ROOT / 'probes')]
+sys.path[:0] = [str(ROOT), str(ROOT / 'probes'), str(ROOT.parent)]
 from crash_recovery import cmd, IMAGE
+from docker_scope import DockerScope
 from docker_transport import DockerTransport
 from guarded_store import GuardedAttemptStore
 from openhands_adapter import OpenHandsAdapter
@@ -41,13 +43,13 @@ http.server.HTTPServer(('127.0.0.1',18080),H).serve_forever()
 '''
 
 def main():
-    name = 'factory-tool-crash-' + uuid.uuid4().hex[:12]
-    created = False
+    scope = DockerScope('probe-server-tool-crash')
+    name = scope.name('factory-tool-crash')
     try:
-        cid = cmd('run', '-d', '--name', name, '--label', 'factory.probe=tool-crash', '--network', 'none',
+        scope.container(name)
+        cid = cmd('run', '-d', '--name', name, *scope.labels(), '--label', 'factory.probe=tool-crash', '--network', 'none',
                   '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '-e', 'OH_ENABLE_VSCODE=false',
                   IMAGE, timeout=60).stdout.strip()
-        created = True
         def inside(*args, input=None, check=True):
             return cmd('exec', '-i', cid, *args, input=input, check=check)
         def ready():
@@ -105,6 +107,6 @@ def main():
             if contents != 'effect\n': raise RuntimeError('tool effect was repeated or lost: '+repr(contents))
             print('Server process killed after actual shell tool effect; container stopped and restarted: marker preserved once; three observations unknown, no replay.')
     finally:
-        if created: cmd('rm','-f',name,check=False,timeout=60)
+        scope.teardown()
 
 if __name__=='__main__': main()

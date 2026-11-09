@@ -6,18 +6,32 @@ The Docker daemon, entrypoint and runtime image are operator trust inputs.
 import hashlib
 import io
 import json
+import os
 import re
 import subprocess
+import sys
 import tarfile
 import tempfile
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+from docker_scope import DockerScope
 
 
 def command(*args, **kwargs):
     return subprocess.check_output(args, text=True, **kwargs).strip()
+
+
+def _teardown(argv):
+    """Run one removal through this module's ``command`` seam.
+
+    Going through ``command`` keeps the site's docker access in one place (and
+    lets tests stub it), while ``DockerScope`` swallows any failure so a
+    teardown error can never replace the validation result or exception.
+    """
+    return subprocess.CompletedProcess(argv, 0, command(*argv))
 
 
 def validate(repo, revision, baseline, scenarios, entrypoint, runtime_image):
@@ -33,6 +47,7 @@ def validate(repo, revision, baseline, scenarios, entrypoint, runtime_image):
     command('git', '-C', str(repo), 'merge-base', '--is-ancestor', baseline, revision)
     archive = subprocess.check_output(['git', '-C', str(repo), 'archive', revision])
     scenario_digest = hashlib.sha256(Path(scenarios).read_bytes()).hexdigest()
+    scope = DockerScope('local-validation', runner=_teardown)
     container = None
     image = None
     with tempfile.TemporaryDirectory(prefix='trusted-validation-') as temp:
@@ -48,7 +63,15 @@ def validate(repo, revision, baseline, scenarios, entrypoint, runtime_image):
             image = command('docker', 'build', '--quiet', str(folder)).splitlines()[-1]
             if not re.fullmatch(r'sha256:[0-9a-f]{64}', image):
                 raise ValueError('invalid immutable artifact identity')
-            container = command('docker', 'run', '-d', '--read-only', '--cap-drop=ALL', '--security-opt=no-new-privileges', '--pids-limit=64', '--memory=128m', '--cpus=1', '-p', '127.0.0.1::8000', image)
+            # Name and label the container so it stays findable if this process
+            # dies before the finally block (previously it had neither).
+            name = scope.name('factory-local-validation')
+            scope.container(name)
+            container = command('docker', 'run', '-d', '--name', name, *scope.labels(),
+                                '--label', 'factory.validation=local', '--read-only',
+                                '--cap-drop=ALL', '--security-opt=no-new-privileges',
+                                '--pids-limit=64', '--memory=128m', '--cpus=1',
+                                '-p', '127.0.0.1::8000', image)
             def identity():
                 state = json.loads(command('docker', 'inspect', container))[0]
                 if state['Id'] != container or state['Image'] != image or not state['State']['Running']:
@@ -68,7 +91,12 @@ def validate(repo, revision, baseline, scenarios, entrypoint, runtime_image):
                 raise ValueError('scenario set changed')
             return dict(scope='trusted-local-only', git_revision=revision, artifact_digest=image, deployment_id=container, scenario_digest=scenario_digest, security=security, wall=wall, passed=security['verdict'] == 'pass' and wall['verdict']['passed'])
         finally:
-            if container:
-                subprocess.run(['docker', 'rm', '-f', container], check=False, stdout=subprocess.DEVNULL)
+            # Owned teardown: also removes the container when a create response
+            # was lost, because the name was recorded before `docker run`.
+            scope.teardown()
             if image:
-                subprocess.run(['docker', 'image', 'rm', image], check=False, stdout=subprocess.DEVNULL)
+                try:
+                    subprocess.run(['docker', 'image', 'rm', image], check=False,
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=60)
+                except (OSError, subprocess.SubprocessError):
+                    pass

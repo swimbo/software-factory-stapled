@@ -7,13 +7,27 @@ not establish image provenance or protect against a privileged host adversary.
 """
 import ipaddress
 import json
+import os
 import re
 import subprocess
+import sys
+
+sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from docker_scope import DockerScope
 from provision_check import resource_arguments
 
 
 class FirewallError(RuntimeError):
     pass
+
+
+def _scope_run(argv):
+    """Remove one owned helper through ``_run`` so tests keep their seam.
+
+    ``DockerScope`` swallows any failure, so a teardown error can never replace
+    the ``FirewallError`` the caller is about to raise.
+    """
+    return _run(argv[1:])
 
 
 def _run(args):
@@ -60,10 +74,22 @@ def _check_proxy_firewall(proxy_id, allocation_id, network_id, helper_image_id, 
                'iptables -S OUTPUT; echo IPv6; ip6tables -S OUTPUT')
     if not install:
         command = 'set -eu; iptables -S OUTPUT; echo IPv6; ip6tables -S OUTPUT'
-    output = _run(['run', '--rm', *resource_arguments('helper'), '--network', 'container:' + proxy_id,
-                   '--cap-drop', 'ALL', '--cap-add', 'NET_ADMIN', '--security-opt', 'no-new-privileges',
-                   '--read-only', '--tmpfs', '/run:rw,nosuid,nodev,noexec', '--user', '0:0',
-                   '--entrypoint', '/bin/sh', helper_image_id, '-c', command])
+    # The helper is ephemeral, but `--rm` only fires if the container exits. If
+    # the client call times out the container can outlive it, so name it and let
+    # an owned scope remove it on every exit path.
+    scope = DockerScope('netns-firewall-helper', runner=lambda argv: _scope_run(argv))
+    helper = scope.name('factory-firewall-helper')
+    scope.container(helper)
+    try:
+        output = _run(['run', '--rm', '--name', helper, *scope.labels(), *resource_arguments('helper'),
+                       '--network', 'container:' + proxy_id,
+                       '--cap-drop', 'ALL', '--cap-add', 'NET_ADMIN', '--security-opt', 'no-new-privileges',
+                       '--read-only', '--tmpfs', '/run:rw,nosuid,nodev,noexec', '--user', '0:0',
+                       '--entrypoint', '/bin/sh', helper_image_id, '-c', command])
+    finally:
+        # Best effort and never masks FirewallError from the run above.
+        scope.teardown()
+
     expected = ['-P OUTPUT DROP',
                 f'-A OUTPUT -d {ip}/32 -p tcp -m tcp --dport 443 -j ACCEPT',
                 'IPv6', '-P OUTPUT DROP']

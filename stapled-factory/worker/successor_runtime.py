@@ -10,11 +10,15 @@ import hashlib
 import json
 import os
 import stat
+import sys
 
 from egress_guard import inspect
 from netns_firewall import verify_proxy_firewall
 from provision_check import validate_identity, telemetry_volume_name
 from provision_runtime import ProvisionError, _check_baseline, _run, _running_lifecycle
+
+sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from docker_scope import DockerScope
 
 
 def _workspace(workspace, old_workspace, baseline, *, require_clean=True):
@@ -45,6 +49,15 @@ def _arg(command, flag, expected):
     index = command.index(flag)
     if index + 1 == len(command) or command[index + 1] != expected:
         raise ProvisionError('proxy budget identity mismatch')
+
+
+def _scope_run(argv):
+    """Run one teardown docker command through the module's own ``_run`` seam.
+
+    Teardown failures are contained by DockerScope; ``_run`` already redacts
+    stderr and raises ProvisionError with the operation name only.
+    """
+    return _run(argv[1:], timeout=60)
 
 
 def _source(store, attempt_id, request_hash, conversation_id, configuration, baseline):
@@ -106,6 +119,10 @@ def provision_successor(store, attempt_id, request_hash, conversation_id, restar
     if claimed != allocation:
         raise ProvisionError('claimed allocation mismatch')
     worker_id = None
+    # Own the successor container from before create until it is either bound
+    # live (released) or torn down. A killed-but-never-removed successor was the
+    # original leak: the except-block only sent KILL and left the container.
+    scope = DockerScope('successor-runtime', runner=lambda argv: _scope_run(argv))
     try:
         # A second inspection closes the normal delay between claim and create.
         _source(store, attempt_id, request_hash, conversation_id, configuration, baseline)
@@ -114,8 +131,10 @@ def provision_successor(store, attempt_id, request_hash, conversation_id, restar
             raise ProvisionError('invalid uid')
         command = configuration['worker_command']
         name = 'factory-' + allocation + '-successor'
+        scope.container(name)
         worker_id = _run(['create', '--name', name, '--label', 'factory.allocation=' + allocation,
-                          '--label', 'factory.role=worker', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
+                          '--label', 'factory.role=worker', *scope.labels(),
+                          '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                           '--user', f'{uid}:{uid}', '--network', 'none',
                           '--mount', 'type=volume,src=' + sock + ',dst=/gateway,readonly',
                           '--mount', 'type=bind,src=' + workspace + ',dst=/workspace',
@@ -148,13 +167,18 @@ def provision_successor(store, attempt_id, request_hash, conversation_id, restar
             raise ProvisionError('successor identity changed')
         lifecycle = _running_lifecycle(worker)
         store.bind_restart_worker(attempt_id, restart_id, workspace, baseline, worker_id, lifecycle)
+        # The bound, running successor is the deliverable: hand ownership to the
+        # durable restart binding rather than removing it.
+        scope.release('container')
         return {'worker_id': worker_id, 'proxy_id': binding['proxy_id'], 'allocation_id': allocation}
     except Exception as exc:
+        # Teardown is best effort and must never mask the original cause.
         if worker_id:
             try:
                 _run(['kill', '--signal', 'KILL', worker_id])
             except Exception:
                 pass
+        scope.teardown()
         raise ProvisionError('successor provisioning failed; claim remains consumed') from exc
 
 

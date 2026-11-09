@@ -6,14 +6,16 @@ bound container stops before its delayed write; it does not prove safe replay or
 that earlier tool effects can be rolled back. Requires a locally available
 python:3.11-slim image and a functioning Docker daemon.
 """
+import os
 import subprocess
 import sys
 import tempfile
 import time
-import uuid
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+from docker_scope import DockerScope
 from crash_fence import fence_bound_worker
 from guarded_store import GuardedAttemptStore, StoreQuarantined
 
@@ -24,8 +26,8 @@ def docker(*args):
 
 
 def main():
-    name = 'factory-fence-probe-' + uuid.uuid4().hex
-    cid = None
+    scope = DockerScope('probe-fence-container')
+    name = scope.name('factory-fence-probe')
     with tempfile.TemporaryDirectory(prefix='factory-fence-probe-') as directory:
         root = Path(directory)
         for subdir in ('ledger', 'anchor', 'work'):
@@ -36,7 +38,8 @@ def main():
         try:
             # Resolve an existing image only; never pull or touch shared images.
             image = docker('image', 'inspect', 'python:3.11-slim', '--format', '{{.Id}}')
-            cid = docker('run', '-d', '--name', name, '--label', 'factory.probe=fence',
+            scope.container(name)
+            cid = docker('run', '-d', '--name', name, *scope.labels(), '--label', 'factory.probe=fence',
                          '--label', 'factory.allocation=' + allocation, '--label', 'factory.role=worker',
                          '--network', 'none', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                          '--mount', 'type=bind,src=' + str(root / 'work') + ',dst=/work',
@@ -63,10 +66,9 @@ def main():
                 pass
             print('Bound container fenced; delayed write absent; late completion rejected; attempt remains unknown.')
         finally:
-            # Only the full ID returned by our own docker run is eligible for removal.
-            if cid:
-                subprocess.run(['docker', 'rm', '-f', cid], check=False, stdout=subprocess.DEVNULL,
-                               stderr=subprocess.DEVNULL, timeout=30)
+            # The probe's own container is disposable: remove it on every exit
+            # path, including a lost `docker run` response (recorded by name).
+            scope.teardown()
 
 
 if __name__ == '__main__':

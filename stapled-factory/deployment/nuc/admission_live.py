@@ -48,6 +48,17 @@ def _run(args):
     return result.stdout.decode('utf-8')
 
 
+def _scope_run(argv):
+    """Remove one owned helper container; never raises, never masks readback errors."""
+    env={'PATH':'/usr/bin:/bin:/usr/sbin:/sbin','HOME':str(Path.home()),
+         'DOCKER_HOST':'unix:///var/run/docker.sock'}
+    try:
+        subprocess.run(list(argv),check=False,stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL,timeout=30,env=env)
+    except (OSError,subprocess.SubprocessError):
+        pass
+
+
 def _verify(identifier, expected_identities, *, expected_endpoint, helper_image, docker_sha256, nft_sha256, observe_ingress, stopping_unit):
     names=('probe','ingress','restate')
     if (not isinstance(identifier,str) or not re.fullmatch(r'[a-f0-9]{16}',identifier) or
@@ -86,17 +97,29 @@ def _verify(identifier, expected_identities, *, expected_endpoint, helper_image,
     before=identities()
     if before!=expected_identities:raise ValueError('admission process identity differs')
     listener_before=listeners()
-    prefix=[docker,'run','--rm','--pull=never','--network=host','--cgroupns=host',
+    # `--rm` only cleans up when the helper container exits; a timed-out client
+    # can leave one behind.  Name it so this function can always remove it, and
+    # label it so a later sweep can find it if this process dies first.  Kept
+    # inline (no docker_scope import) because guard.py loads this module under
+    # `python -I` from the pinned module bundle only.
+    helper_name='factory-admission-nft-' + identifier
+    labels=['--label','factory.launch=admission-live-nft',
+            '--label','factory.launch-id=' + helper_name]
+    prefix=[docker,'run','--rm','--name',helper_name,*labels,'--pull=never','--network=host','--cgroupns=host',
         '--cap-drop=ALL','--cap-add=NET_ADMIN','--cap-add=SYS_CHROOT','--read-only',
         '--mount=type=bind,src=/,dst=/host,readonly','--security-opt=no-new-privileges',
         '--entrypoint=/usr/sbin/chroot',helper_image,'/host','/usr/sbin/nft']
     table='factory_hold_'+identifier
     table_args=['list','table','inet',table]
-    snapshot=_run(prefix+['-a']+table_args)
-    debug=_run(prefix+['--debug','netlink']+table_args)
-    hooks=_run(prefix+['-j','list','ruleset'])
-    second=_run(prefix+['-a']+table_args)
-    later_hooks=_run(prefix+['-j','list','ruleset'])
+    try:
+        snapshot=_run(prefix+['-a']+table_args)
+        debug=_run(prefix+['--debug','netlink']+table_args)
+        hooks=_run(prefix+['-j','list','ruleset'])
+        second=_run(prefix+['-a']+table_args)
+        later_hooks=_run(prefix+['-j','list','ruleset'])
+    finally:
+        # Best effort; never masks the ValueError _run raises for the readback.
+        _scope_run([docker,'rm','-f',helper_name])
     after=identities()
     if listeners()!=listener_before:raise ValueError('listener evidence changed during nft readback')
     if second!=snapshot:raise ValueError('nft table changed during readback')

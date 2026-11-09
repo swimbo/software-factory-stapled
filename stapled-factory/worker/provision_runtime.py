@@ -9,6 +9,7 @@ import os
 import re
 import stat
 import subprocess
+import sys
 import time
 import uuid
 import bounded_profile as bounded
@@ -16,6 +17,9 @@ import bounded_profile as bounded
 from egress_guard import inspect
 from provision_check import validate_identity, validate_volume, resource_arguments, telemetry_volume_name
 from netns_firewall import install_proxy_firewall, verify_proxy_firewall
+
+sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+from docker_scope import DockerScope
 
 
 class ProvisionError(RuntimeError):
@@ -106,18 +110,27 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
     if telemetry:
         volume_roles.append((telemetry, 'telemetry'))
     telemetry_mount = ['--mount', 'type=volume,src=' + telemetry + ',dst=/telemetry'] if telemetry else []
-    created = []
     process = None
-    labels = ['--label', 'factory.allocation=' + alloc]
+    # Own everything this call creates. Containers and the per-allocation network
+    # are disposable; the budget/anchor/telemetry ledgers are retained evidence
+    # by explicit policy (protected below), not by accident. Teardown goes through
+    # this module's `_run` seam so it is mockable and keeps ProvisionError
+    # semantics (DockerScope swallows any teardown failure).
+    scope = DockerScope('provision-runtime', runner=lambda argv: _run(argv[1:]))
+    labels = ['--label', 'factory.allocation=' + alloc, *scope.labels()]
     try:
         for name, role in volume_roles:
+            # `docker volume create` is idempotent, so a name match may be a
+            # volume that already existed. Record it tentatively (never delete an
+            # unproven volume) and confirm only after it validates as ours.
+            scope.volume(name, confirmed=False)
             _run(['volume', 'create', *labels, '--label', 'factory.role=' + role, name])
-            # Docker volume create is idempotent. Never mount or chown an
-            # unexpected pre-existing or bind-backed volume.
+            # Never mount or chown an unexpected pre-existing or bind-backed volume.
             validate_volume(inspect('volume', name), name, role, alloc)
-            created.append(('volume', name))
+            scope.confirm(name)
+        scope.network(network, confirmed=False)
         _run(['network', 'create', '--driver', 'bridge', *labels, network])
-        created.append(('network', network))
+        scope.confirm(network)
         # Initialization is isolated, transient, and limited to the new volumes.
         _run(['run', '--rm', *resource_arguments('helper'), '--network', 'none', '--cap-drop', 'ALL', '--cap-add', 'CHOWN',
               '--security-opt', 'no-new-privileges', '--user', '0:0',
@@ -131,12 +144,14 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
                   '--security-opt', 'no-new-privileges', '--user', f'{uid}:{uid}', *telemetry_mount,
                   '--entrypoint', '/bin/chmod', helper_image, '0700', '/telemetry'])
         common = ['--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--user', f'{uid}:{uid}']
+        # Record the names before create, so a lost create response still leaves a
+        # container this call can remove.
+        scope.container(proxy)
         _run(['create', '-i', '--name', proxy, *labels, '--label', 'factory.role=proxy', *common, *resource_arguments('proxy'),
               '--network', network, '--mount', 'type=volume,src=' + sock + ',dst=/gateway',
               '--mount', 'type=volume,src=' + budget + ',dst=/budget',
               '--mount', 'type=volume,src=' + anchor + ',dst=/anchor', *telemetry_mount,
               '--entrypoint', proxy_command[0], proxy_image, *proxy_command[1:]])
-        created.append(('container', proxy))
         # docker start -ai keeps stdin connected; key is never in argv or env.
         process = subprocess.Popen(['docker', 'start', '-ai', proxy], stdin=subprocess.PIPE,
                                    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
@@ -150,11 +165,11 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
             if state.get('Restarting') is True or time.monotonic() >= startup_deadline:
                 raise ProvisionError('proxy did not start within the bounded wait')
             time.sleep(0.1)
+        scope.container(worker)
         _run(['create', '--name', worker, *labels, '--label', 'factory.role=worker', *common, *resource_arguments('worker'), *bounded.worker_arguments(execution_profile,uid),
               '--network', 'none', '--mount', 'type=volume,src=' + sock + ',dst=/gateway,readonly',
               '--mount', 'type=bind,src=' + workspace + ',dst=/workspace',
               '--entrypoint', worker_command[0], worker_image, *worker_command[1:]])
-        created.append(('container', worker))
         _run(['start', worker])
         w, p = inspect('container', worker), inspect('container', proxy)
         records = {name: inspect('volume', name) for name, _ in volume_roles}
@@ -179,19 +194,21 @@ def provision(*, worker_image, proxy_image, helper_image, worker_command, proxy_
         # Release the credential only after the resources pass the trusted preflight.
         process.stdin.write(gateway_key + b'\n')
         process.stdin.flush()
+        # Success: containers and the bridge network stay up as the live
+        # allocation. The ledger volumes are retained by explicit policy.
+        for name in (budget, anchor, telemetry):
+            scope.protect(name)
         return {'allocation_id': alloc, 'worker': worker, 'proxy': proxy, 'network': network,
                 'socket_volume': sock, 'budget_volume': budget, 'anchor_volume': anchor, 'proxy_process': process}
     except Exception as exc:
         failure_type = type(exc).__name__
         if process is not None:
             process.terminate()
-        for kind, name in reversed(created):
-            if kind == 'volume' and name in (budget, anchor, telemetry):
-                continue
-            try:
-                _run([kind, 'rm', *(['-f'] if kind == 'container' else []), name])
-            except ProvisionError:
-                pass
+        # Budget, anchor and telemetry are ledger evidence and are retained on
+        # failure by policy. Everything else this call created is removed.
+        for name in (budget, anchor, telemetry):
+            scope.protect(name)
+        scope.teardown()
         error=ProvisionError('provisioning failed (' + failure_type + '); budget and anchor volumes retained if created; telemetry retained if created')
         error.diagnostic_code=getattr(exc,'diagnostic_code','provision.preflight.failed')
         raise error from None

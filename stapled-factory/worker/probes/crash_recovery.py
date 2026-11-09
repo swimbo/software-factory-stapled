@@ -6,9 +6,14 @@ container. This observes recovery; it does not prove safe replay of tool calls.
 """
 import argparse
 import json
+import os
 import subprocess
+import sys
 import time
 import uuid
+
+sys.path.insert(0, str(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+from docker_scope import DockerScope
 
 IMAGE = 'ghcr.io/openhands/agent-server@sha256:90da82d4dd57f713e2b9f5bc9444256b06c8bc709ca5ac794048ea9e1952b466'
 MOCK = '''import http.server,time\nclass H(http.server.BaseHTTPRequestHandler):\n def log_message(self,*a): pass\n def do_POST(self):\n  self.rfile.read(int(self.headers.get("Content-Length",0)))\n  with open("/tmp/mock-arrived", "a") as f: f.write("request\\n"); f.flush()\n  time.sleep(300)\nhttp.server.HTTPServer(("127.0.0.1",18080),H).serve_forever()\n'''
@@ -21,8 +26,8 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--hydrate', action='store_true', help='after lease expiry, pause the disposable conversation to probe rehydration')
     options = parser.parse_args()
-    name='factory-crash-probe-'+uuid.uuid4().hex[:12]
-    created=False
+    scope=DockerScope('probe-crash-recovery')
+    name=scope.name('factory-crash-probe')
     def inside(*args, input=None, check=True, timeout=30):
         return cmd('exec','-i',name,*args,input=input,check=check,timeout=timeout)
     def api(method,path,payload=None):
@@ -37,8 +42,10 @@ def main():
             except (subprocess.CalledProcessError,subprocess.TimeoutExpired): time.sleep(1)
         raise RuntimeError('server did not start')
     try:
-        cmd('run','-d','--name',name,'--label','factory.probe=crash-recovery','--network','none','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','2g','--pids-limit','256','-e','OH_ENABLE_VSCODE=false','-e','OH_SECRET_KEY=disposable-factory-probe-secret-0000000000000000',IMAGE,timeout=60)
-        created=True
+        # Record ownership before create: a `docker run` whose response is lost
+        # to a client timeout still leaves a named container behind.
+        scope.container(name)
+        cmd('run','-d','--name',name,*scope.labels(),'--label','factory.probe=crash-recovery','--network','none','--cap-drop','ALL','--security-opt','no-new-privileges','--memory','2g','--pids-limit','256','-e','OH_ENABLE_VSCODE=false','-e','OH_SECRET_KEY=disposable-factory-probe-secret-0000000000000000',IMAGE,timeout=60)
         ready()
         inside('python','-c','import sys; open("/tmp/mock.py","w").write(sys.stdin.read())',input=MOCK)
         cmd('exec','-d',name,'python','/tmp/mock.py')
@@ -69,6 +76,6 @@ def main():
         if initial_status not in ('running', 'error') or final_status not in ('running', 'error') or count != 1:
             raise RuntimeError('Unexpected outcome: inspect conversation before attempting recovery')
     finally:
-        if created: cmd('rm','-f',name,check=False,timeout=60)
+        scope.teardown()
 
 if __name__=='__main__': main()

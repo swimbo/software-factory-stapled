@@ -15,7 +15,14 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / 'probes'))
+sys.path.insert(0, str(ROOT.parent))
 from crash_recovery import cmd, IMAGE, MOCK
+from docker_scope import DockerScope
+
+
+def teardown(argv):
+    # Route DockerScope removals through the probe's own `cmd` seam.
+    return subprocess.CompletedProcess(argv, 0, cmd(*argv))
 from docker_transport import DockerTransport
 from guarded_store import GuardedAttemptStore
 from openhands_adapter import OpenHandsAdapter
@@ -23,13 +30,14 @@ from worker import execute_openhands_attempt
 
 
 def main():
-    name = 'factory-server-guard-probe-' + uuid.uuid4().hex[:12]
-    created = False
+    scope = DockerScope('probe-server-guard')
+    name = scope.name('factory-server-guard-probe')
     try:
+        scope.container(name)
         container_id = cmd('run', '-d', '--name', name, '--label', 'factory.probe=server-guard',
+                           *scope.labels(),
                            '--network', 'none', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges',
                            '-e', 'OH_ENABLE_VSCODE=false', IMAGE, timeout=60).stdout.strip()
-        created = True
         def inside(*args, input=None, check=True):
             return cmd('exec', '-i', container_id, *args, input=input, check=check)
         def ready():
@@ -76,8 +84,9 @@ def main():
                 raise RuntimeError('unexpected repeated model call')
             print('Real container crash: same attempt reconciled three times as unknown; model requests:', count)
     finally:
-        if created:
-            cmd('rm', '-f', name, check=False, timeout=60)
+        # The probe's own container is disposable: remove it on every exit path,
+        # including a lost `docker run` response (name recorded before create).
+        scope.teardown()
 
 if __name__ == '__main__':
     main()
